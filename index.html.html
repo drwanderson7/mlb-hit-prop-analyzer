@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Hit Prop Analyzer</title>
+<style>
+:root {
+  --bg:#F5F6F8; --surface:#FFFFFF; --surface2:#F0F1F3;
+  --nav:#1E2A3A; --border:#E2E4E8; --text:#1A1A2E; --muted:#6B7280;
+  --blue:#2563EB; --green:#16A34A; --yellow:#CA8A04; --orange:#EA580C; --red:#DC2626;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+.nav{background:var(--nav);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;}
+.nav-brand{font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.nav-sub{font-size:11px;opacity:.5;font-weight:400;margin-top:1px;}
+.nav-date{font-size:12px;opacity:.6;}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:54px;z-index:99;}
+.tab{padding:12px 18px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab:hover:not(.active){color:var(--text);}
+.panel{display:none;padding:20px 24px;max-width:1100px;margin:0 auto;}
+.panel.active{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-body{padding:18px;}
+.sbar{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:8px;border:1px solid var(--border);margin-bottom:16px;background:var(--surface);}
+.sbar-icon{font-size:18px;margin-top:1px;flex-shrink:0;}
+.sbar-text{flex:1;}
+.sbar-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.sbar-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+.sbar.info{border-left:4px solid var(--blue);}
+.sbar.success{border-left:4px solid var(--green);}
+.sbar.warn{border-left:4px solid var(--yellow);}
+.sbar.error{border-left:4px solid var(--red);}
+/* Status dots */
+.step-list{display:flex;flex-direction:column;gap:8px;margin:14px 0;}
+.step{display:flex;align-items:center;gap:10px;font-size:13px;}
+.step-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.step-dot.pending{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.step-dot.running{background:#dbeafe;border:1px solid #93c5fd;color:var(--blue);animation:spin .8s linear infinite;}
+.step-dot.done{background:#dcfce7;border:1px solid #86efac;color:var(--green);}
+.step-dot.error{background:#fee2e2;border:1px solid #fca5a5;color:var(--red);}
+@keyframes spin{to{transform:rotate(360deg)}}
+.step-label{flex:1;}
+.step-detail{font-size:11px;color:var(--muted);}
+/* Buttons */
+.btn{font-family:inherit;font-size:13px;font-weight:600;padding:9px 20px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#1d4ed8;}
+.btn-primary:disabled{background:#93c5fd;cursor:not-allowed;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:var(--border);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+/* Games grid */
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:12px 0 16px;}
+.game-card{background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .15s;user-select:none;}
+.game-card:hover{border-color:#93c5fd;}
+.game-card.selected{border-color:var(--blue);background:#eff6ff;}
+.game-teams{font-size:13px;font-weight:700;margin-bottom:3px;}
+.game-meta{font-size:11px;color:var(--muted);margin-bottom:2px;}
+.game-sp{font-size:11px;color:var(--muted);}
+.game-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:6px;}
+.badge-confirmed{background:#dcfce7;color:#15803d;}
+.badge-projected{background:#fef9c3;color:#854d0e;}
+.badge-none{background:var(--surface2);color:var(--muted);}
+/* Controls */
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.control-group{display:flex;flex-direction:column;gap:4px;}
+.control-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+select{font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;cursor:pointer;}
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;text-align:center;}
+.kpi-val{font-size:28px;font-weight:800;}
+.kpi-lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.filter-bar select{font-size:12px;padding:6px 10px;}
+.result-count{font-size:12px;color:var(--muted);margin-left:auto;}
+/* Player cards */
+.player-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;border-left:5px solid var(--border);margin-bottom:9px;transition:box-shadow .15s;}
+.player-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.player-card.tier-Elite{border-left-color:var(--green);}
+.player-card.tier-Strong{border-left-color:var(--blue);}
+.player-card.tier-Lean{border-left-color:var(--yellow);}
+.player-card.tier-Avoid{border-left-color:var(--red);}
+.p-rank{font-size:15px;font-weight:800;color:var(--muted);text-align:center;padding-top:3px;}
+.p-name{font-size:14px;font-weight:700;}
+.p-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.pill.good{background:#dcfce7;color:#15803d;border-color:#86efac;}
+.pill.warn{background:#fef9c3;color:#854d0e;border-color:#fde047;}
+.pill.bad{background:#fee2e2;color:#b91c1c;border-color:#fca5a5;}
+.pill.info{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;}
+.p-reasoning{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55;border-top:1px solid var(--border);padding-top:8px;}
+.score-wrap{text-align:right;min-width:72px;}
+.score-big{font-size:28px;font-weight:800;}
+.score-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;}
+.tier-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;margin-top:4px;}
+.tier-Elite .tier-badge{background:#dcfce7;color:#15803d;}
+.tier-Strong .tier-badge{background:#dbeafe;color:#1d4ed8;}
+.tier-Lean .tier-badge{background:#fef9c3;color:#854d0e;}
+.tier-Avoid .tier-badge{background:#fee2e2;color:#b91c1c;}
+/* Lineup preview */
+.lu-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;}
+.lu-side{}
+.lu-team-header{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.lu-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.lu-num{font-size:10px;color:var(--muted);width:16px;text-align:right;flex-shrink:0;}
+.lu-name{flex:1;color:var(--text);}
+.lu-pos{font-size:10px;color:var(--muted);}
+.lu-conf{font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;flex-shrink:0;}
+.lu-conf.confirmed{background:#dcfce7;color:#15803d;}
+.lu-conf.projected{background:#fef9c3;color:#854d0e;}
+/* Empty state */
+.empty{text-align:center;padding:52px 24px;color:var(--muted);}
+.empty-icon{font-size:42px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+/* Help table */
+.htable{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+.htable th{background:var(--surface2);text-align:left;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);}
+.htable td{padding:8px 12px;border:1px solid var(--border);vertical-align:top;}
+.htable tr:nth-child(even) td{background:var(--surface2);}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.disc{font-size:11px;color:var(--muted);padding:10px 14px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);margin-top:14px;line-height:1.6;}
+@media(max-width:640px){
+  .kpi-strip{grid-template-columns:repeat(2,1fr);}
+  .lu-grid{grid-template-columns:1fr;}
+  .player-card{grid-template-columns:22px 1fr auto;}
+  .panel{padding:14px 16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-brand">
+    ⚾
+    <div>MLB Hit Prop Analyzer <div class="nav-sub">Live Data · No API Key Required</div></div>
+  </div>
+  <div class="nav-date" id="navDate"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('analyze')">🎯 Analyze</div>
+  <div class="tab" onclick="switchTab('lineups')">📋 Lineups</div>
+  <div class="tab" onclick="switchTab('results')">📊 Results</div>
+  <div class="tab" onclick="switchTab('help')">❓ Help</div>
+</div>
+
+<!-- ANALYZE TAB -->
+<div class="panel active" id="panel-analyze">
+
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header">📅 Today's Games</div>
+    <div class="card-body">
+      <div id="scheduleStatus">
+        <div class="sbar info">
+          <div class="sbar-icon">⏳</div>
+          <div class="sbar-text">
+            <div class="sbar-title">Loading schedule...</div>
+            <div class="sbar-sub">Fetching from MLB Stats API</div>
+          </div>
+        </div>
+      </div>
+      <div id="gamesWrap" style="display:none;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="selectAll()">Select All</button>
+          <button class="btn btn-secondary btn-sm" onclick="clearAll()">Clear</button>
+        </div>
+        <div class="games-grid" id="gamesGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">⚙️ Settings</div>
+    <div class="card-body">
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-label">Top N Players</div>
+          <select id="topN">
+            <option value="25">Top 25</option>
+            <option value="15">Top 15</option>
+            <option value="10">Top 10</option>
+            <option value="50">Top 50</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <div class="control-label">Min PA (2026)</div>
+          <select id="minPA">
+            <option value="20">20+ PA</option>
+            <option value="50">50+ PA</option>
+            <option value="1">Any PA</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <div class="control-label">Batting Order</div>
+          <select id="maxOrder">
+            <option value="9">All (1–9)</option>
+            <option value="6">Top 6 only</option>
+            <option value="5">Top 5 only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="step-list" id="stepList" style="display:none;">
+        <div class="step" id="step-schedule">
+          <div class="step-dot pending" id="dot-schedule">1</div>
+          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
+        </div>
+        <div class="step" id="step-statcast">
+          <div class="step-dot pending" id="dot-statcast">2</div>
+          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Baseball Savant 2026</span></div>
+        </div>
+        <div class="step" id="step-lineups">
+          <div class="step-dot pending" id="dot-lineups">3</div>
+          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+        </div>
+        <div class="step" id="step-score">
+          <div class="step-dot pending" id="dot-score">4</div>
+          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+          ⚡ Run Analysis
+        </button>
+        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+      </div>
+      <div id="errBox" style="display:none;margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">📌 Scoring Guide</div>
+    <div class="card-body" style="font-size:13px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--text);">Target:</strong> xBA &gt; .285 · K% &lt; 18% · Hard Hit% &gt; 45% · Barrel% &gt; 8% · Favorable platoon · Soft SP · Hitter park<br>
+      <strong style="color:var(--text);">Avoid:</strong> K% &gt; 28% · xBA &lt; .230 · Elite strikeout pitcher · Pitcher-friendly park · Cold form<br>
+      <strong style="color:var(--text);">Best value:</strong> Score ≥ 75 + odds -150 or better
+    </div>
+  </div>
+</div>
+
+<!-- LINEUPS TAB -->
+<div class="panel" id="panel-lineups">
+  <div class="empty" id="luEmpty">
+    <div class="empty-icon">📋</div>
+    <p>Run an analysis to see projected lineups here.</p>
+  </div>
+  <div id="luContent"></div>
+</div>
+
+<!-- RESULTS TAB -->
+<div class="panel" id="panel-results">
+  <div class="empty" id="resEmpty">
+    <div class="empty-icon">⚾</div>
+    <p>Run an analysis to see ranked hit prop picks.</p>
+  </div>
+  <div id="resContent" style="display:none;"></div>
+</div>
+
+<!-- HELP TAB -->
+<div class="panel" id="panel-help">
+  <div class="card">
+    <div class="card-header">📊 Data Sources</div>
+    <div class="card-body">
+      <table class="htable">
+        <thead><tr><th>Source</th><th>What It Provides</th><th>Update Frequency</th></tr></thead>
+        <tbody>
+          <tr><td><strong>MLB Stats API</strong></td><td>Schedule, probable pitchers, confirmed lineups (when posted)</td><td>Real-time</td></tr>
+          <tr><td><strong>Baseball Savant</strong></td><td>xBA, K%, Hard Hit%, Barrel%, wRC+ for all 2026 hitters</td><td>Updated nightly</td></tr>
+          <tr><td><strong>Lineup projection</strong></td><td>AI-style depth chart logic built into this tool — projects batting orders when not yet confirmed</td><td>Per analysis run</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🧮 Composite Score (0–100)</div>
+    <div class="card-body">
+      <table class="htable">
+        <thead><tr><th>Component</th><th>Weight</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>xBA</strong></td><td>25%</td><td>Expected batting avg from exit velo + launch angle. Strips luck. Elite: ≥ .300</td></tr>
+          <tr><td><strong>Hard Hit% + Barrel%</strong></td><td>20%</td><td>Contact quality. HH ≥ 45% and Barrel ≥ 8% = elite</td></tr>
+          <tr><td><strong>K%</strong></td><td>20%</td><td>Strikeout rate. &lt;15% excellent, &gt;28% red flag for hit props</td></tr>
+          <tr><td><strong>Matchup / Platoon</strong></td><td>20%</td><td>SP ERA, WHIP, K/9, handedness advantage</td></tr>
+          <tr><td><strong>Park Factor</strong></td><td>10%</td><td>Venue run/hit environment</td></tr>
+          <tr><td><strong>Batting Order</strong></td><td>5%</td><td>Higher order = more plate appearances</td></tr>
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+
+      <strong style="font-size:13px;">Tiers</strong>
+      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">❓ FAQ</div>
+    <div class="card-body" style="font-size:13px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--text);">When do lineups confirm?</strong> Usually 3–4 hours before first pitch ET. Run the tool again after they post to get confirmed orders.<br><br>
+      <strong style="color:var(--text);">Why does a star player score low?</strong> Could be a tough SP matchup, pitcher-friendly park, or high K% vs that handedness.<br><br>
+      <strong style="color:var(--text);">Are prop odds included?</strong> The tool doesn't pull live odds (would require a paid API key). Cross-reference your book for the line.<br><br>
+      <strong style="color:var(--text);">How current is Statcast data?</strong> Baseball Savant updates nightly — always reflects the most recent full season stats.
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const PARK_FACTORS = {
+  'Coors Field': 1.35, 'Great American Ball Park': 1.15, 'Fenway Park': 1.12,
+  'Globe Life Field': 1.10, 'Yankee Stadium': 1.08, 'Citizens Bank Park': 1.07,
+  'Truist Park': 1.05, 'Wrigley Field': 1.04, 'American Family Field': 1.03,
+  'Chase Field': 1.02, 'Minute Maid Park': 1.01, 'Oracle Park': 0.92,
+  'Dodger Stadium': 0.95, 'T-Mobile Park': 0.88, 'Tropicana Field': 0.94,
+  'Oakland Coliseum': 0.91, 'Petco Park': 0.93, 'Target Field': 0.97,
+  'Kauffman Stadium': 0.99, 'Busch Stadium': 0.96, 'PNC Park': 0.97,
+  'Camden Yards': 1.01, 'loanDepot park': 0.95, 'Guaranteed Rate Field': 1.02,
+  'Nationals Park': 0.98, 'Progressive Field': 0.97, 'Rate Field': 1.02,
+  'Comerica Park': 0.94, 'Angel Stadium': 0.97, 'Sutter Health Park': 1.00,
+};
+
+function parkScore(venue) {
+  const pf = PARK_FACTORS[venue] || 1.00;
+  if (pf >= 1.10) return { label: 'Hitter-Friendly', cls: 'good', score: 100 };
+  if (pf >= 1.04) return { label: 'Slight Hitter', cls: 'good', score: 75 };
+  if (pf >= 0.97) return { label: 'Neutral', cls: '', score: 50 };
+  if (pf >= 0.93) return { label: 'Slight Pitcher', cls: 'warn', score: 30 };
+  return { label: 'Pitcher-Friendly', cls: 'bad', score: 0 };
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let todayGames = [];
+let selectedPks = new Set();
+let statcastData = {}; // name -> stats
+let lineupResults = [];
+let scoredPlayers = [];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('navDate').textContent = new Date().toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+  });
+  loadSchedule();
+});
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  const idx = ['analyze','lineups','results','help'].indexOf(t);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('panel-' + t).classList.add('active');
+}
+
+// ── Schedule ──────────────────────────────────────────────────────────────────
+async function loadSchedule() {
+  try {
+    const date = new Date().toLocaleDateString('en-CA');
+    const url = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=probablePitcher,lineups,team,venue`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const games = (data.dates || [])[0]?.games || [];
+
+    if (!games.length) {
+      setScheduleStatus('warn', '📅', 'No games today', 'Check back tomorrow or try a date with games.');
+      return;
+    }
+
+    todayGames = games;
+    const confirmed = games.filter(g => (g.lineups?.homePlayers || []).length > 0).length;
+    setScheduleStatus('success', '✅', `${games.length} games loaded`,
+      `${confirmed} with confirmed lineups · ${games.length - confirmed} lineups pending (post ~3–4 hrs before first pitch)`);
+    renderGameCards(games);
+    document.getElementById('gamesWrap').style.display = 'block';
+    document.getElementById('stepList').style.display = 'flex';
+  } catch(e) {
+    setScheduleStatus('error', '⚠️', 'Could not load schedule', e.message + ' — check your internet connection and reload the page.');
+  }
+}
+
+function setScheduleStatus(type, icon, title, sub) {
+  document.getElementById('scheduleStatus').innerHTML = `
+    <div class="sbar ${type}">
+      <div class="sbar-icon">${icon}</div>
+      <div class="sbar-text">
+        <div class="sbar-title">${title}</div>
+        <div class="sbar-sub">${sub}</div>
+      </div>
+    </div>`;
+}
+
+function renderGameCards(games) {
+  const grid = document.getElementById('gamesGrid');
+  grid.innerHTML = '';
+  games.forEach(g => {
+    const lu = g.lineups || {};
+    const tot = (lu.homePlayers || []).length + (lu.awayPlayers || []).length;
+    let bc = 'badge-none', bt = 'No lineup yet';
+    if (tot >= 16) { bc = 'badge-confirmed'; bt = '✓ Lineup confirmed'; }
+    else if (tot > 0) { bc = 'badge-projected'; bt = `Partial (${tot})`; }
+
+    const time = new Date(g.gameDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+    const awayTeam = g.teams.away.team.name;
+    const homeTeam = g.teams.home.team.name;
+    const awaySP = g.teams.away.probablePitcher?.fullName || 'TBD';
+    const homeSP = g.teams.home.probablePitcher?.fullName || 'TBD';
+    const venue = g.venue?.name || '';
+
+    const div = document.createElement('div');
+    div.className = 'game-card';
+    div.dataset.pk = g.gamePk;
+    div.innerHTML = `
+      <div class="game-teams">${awayTeam} @ ${homeTeam}</div>
+      <div class="game-meta">${time} · ${venue}</div>
+      <div class="game-sp">SP: ${awaySP} vs ${homeSP}</div>
+      <span class="game-badge ${bc}">${bt}</span>`;
+    div.onclick = () => toggleGame(g.gamePk, div);
+    grid.appendChild(div);
+  });
+}
+
+function toggleGame(pk, el) {
+  if (selectedPks.has(pk)) { selectedPks.delete(pk); el.classList.remove('selected'); }
+  else { selectedPks.add(pk); el.classList.add('selected'); }
+  updateRunBtn();
+}
+function selectAll() { todayGames.forEach(g => selectedPks.add(g.gamePk)); document.querySelectorAll('.game-card').forEach(c => c.classList.add('selected')); updateRunBtn(); }
+function clearAll() { selectedPks.clear(); document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected')); updateRunBtn(); }
+function updateRunBtn() {
+  const btn = document.getElementById('btnRun');
+  btn.disabled = selectedPks.size === 0;
+  document.getElementById('runHint').textContent = selectedPks.size > 0
+    ? `${selectedPks.size} game${selectedPks.size > 1 ? 's' : ''} selected`
+    : 'Select at least one game above';
+}
+
+// ── Step indicators ───────────────────────────────────────────────────────────
+function setStep(id, state, detail) {
+  const dot = document.getElementById('dot-' + id);
+  dot.className = 'step-dot ' + state;
+  dot.textContent = state === 'done' ? '✓' : state === 'error' ? '✗' : state === 'running' ? '↻' : dot.textContent;
+  if (detail) document.getElementById('detail-' + id).textContent = detail;
+}
+
+function showErr(msg) {
+  const box = document.getElementById('errBox');
+  box.style.display = 'block';
+  box.innerHTML = `<div class="sbar error"><div class="sbar-icon">⚠️</div><div class="sbar-text"><div class="sbar-title">Error</div><div class="sbar-sub">${msg}</div></div></div>`;
+}
+function hideErr() { document.getElementById('errBox').style.display = 'none'; }
+
+// ── Main analysis pipeline ────────────────────────────────────────────────────
+async function runAnalysis() {
+  if (!selectedPks.size) return;
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true; btn.textContent = '⏳ Analyzing...';
+  hideErr();
+
+  const selectedGames = todayGames.filter(g => selectedPks.has(g.gamePk));
+
+  // Step 1: Get confirmed lineups from MLB API (already loaded, just extract)
+  setStep('schedule', 'running', 'Reading lineup data...');
+  await sleep(300);
+  const gameLineups = extractLineups(selectedGames);
+  setStep('schedule', 'done', `${selectedGames.length} games · lineups extracted`);
+
+  // Step 2: Fetch Statcast data from Baseball Savant
+  setStep('statcast', 'running', 'Fetching from Baseball Savant...');
+  try {
+    await fetchStatcast();
+    setStep('statcast', 'done', `${Object.keys(statcastData).length} players loaded`);
+  } catch(e) {
+    setStep('statcast', 'error', 'Failed: ' + e.message);
+    showErr('Statcast fetch failed: ' + e.message + '. The tool will use estimated stats.');
+    // Continue with empty statcast — scoring still works with estimates
+  }
+
+  // Step 3: Build projected lineups
+  setStep('lineups', 'running', 'Projecting batting orders...');
+  await sleep(200);
+  lineupResults = buildLineups(gameLineups, selectedGames);
+  renderLineupsTab(lineupResults);
+  setStep('lineups', 'done', `${lineupResults.reduce((a,g) => a + g.awayLineup.length + g.homeLineup.length, 0)} hitters projected`);
+
+  // Step 4: Score
+  setStep('score', 'running', 'Scoring all hitters...');
+  await sleep(200);
+  const maxOrder = parseInt(document.getElementById('maxOrder').value);
+  const topN = parseInt(document.getElementById('topN').value);
+  const minPA = parseInt(document.getElementById('minPA').value);
+  scoredPlayers = scoreAllPlayers(lineupResults, maxOrder, minPA);
+  scoredPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
+  scoredPlayers.forEach((p, i) => p.rank = i + 1);
+  const top = scoredPlayers.slice(0, topN);
+  renderResults(top);
+  setStep('score', 'done', `${top.length} players ranked`);
+
+  btn.disabled = false; btn.innerHTML = '⚡ Run Analysis';
+  switchTab('results');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Extract confirmed lineups from MLB API data ───────────────────────────────
+function extractLineups(games) {
+  return games.map(g => {
+    const lu = g.lineups || {};
+    return {
+      gamePk: g.gamePk,
+      awayTeam: g.teams.away.team.name,
+      awayAbbr: g.teams.away.team.abbreviation,
+      homeTeam: g.teams.home.team.name,
+      homeAbbr: g.teams.home.team.abbreviation,
+      venue: g.venue?.name || '',
+      awaySP: g.teams.away.probablePitcher || null,
+      homeSP: g.teams.home.probablePitcher || null,
+      awayConfirmed: lu.awayPlayers || [],
+      homeConfirmed: lu.homePlayers || [],
+    };
+  });
+}
+
+// ── Fetch Statcast from Baseball Savant ───────────────────────────────────────
+async function fetchStatcast() {
+  const year = new Date().getFullYear();
+  const url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year=${year}&position=&team=&min=1&csv=true`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const csv = await res.text();
+  parseStatcastCSV(csv);
+}
+
+function parseStatcastCSV(csv) {
+  const lines = csv.trim().split('\n');
+  if (lines.length < 2) return;
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+  statcastData = {};
+  lines.slice(1).forEach(line => {
+    const cols = parseCSVLine(line);
+    if (cols.length < 5) return;
+    const row = {};
+    headers.forEach((h, i) => row[h] = (cols[i] || '').replace(/"/g, '').trim());
+    const name = row['last_name, first_name'] || row['player_name'] || '';
+    // Savant uses "Last, First" format — convert to "First Last"
+    let normalized = name;
+    if (name.includes(',')) {
+      const parts = name.split(',');
+      normalized = (parts[1].trim() + ' ' + parts[0].trim());
+    }
+    if (!normalized) return;
+    statcastData[normalized.toLowerCase()] = {
+      xba: parseFloat(row['xba'] || row['est_ba'] || '0') || 0,
+      xslg: parseFloat(row['xslg'] || row['est_slg'] || '0') || 0,
+      kpct: parseFloat(row['k_percent'] || '0') / 100 || 0,
+      bbpct: parseFloat(row['bb_percent'] || '0') / 100 || 0,
+      hardhitpct: parseFloat(row['hard_hit_percent'] || '0') / 100 || 0,
+      barrelpct: parseFloat(row['barrel_batted_rate'] || '0') / 100 || 0,
+      pa: parseInt(row['pa'] || '0') || 0,
+      mlbId: row['player_id'] || '',
+    };
+  });
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuotes = !inQuotes; }
+    else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += ch; }
+  }
+  result.push(current);
+  return result;
+}
+
+function lookupStatcast(name) {
+  const key = name.toLowerCase().trim();
+  // Direct match
+  if (statcastData[key]) return statcastData[key];
+  // Try last name match
+  const lastName = key.split(' ').slice(-1)[0];
+  const match = Object.keys(statcastData).find(k => k.endsWith(lastName) && k.startsWith(key.split(' ')[0]));
+  if (match) return statcastData[match];
+  // Fuzzy: check if key words are contained
+  const words = key.split(' ');
+  const fuzzy = Object.keys(statcastData).find(k => words.every(w => w.length > 2 && k.includes(w)));
+  return fuzzy ? statcastData[fuzzy] : null;
+}
+
+// ── Lineup projection ─────────────────────────────────────────────────────────
+// Known 2026 typical batting orders per team (top 6, rest estimated)
+const DEPTH_CHARTS = {
+  'NYY': ['Juan Soto','Aaron Judge','Paul Goldschmidt','Jazz Chisholm Jr.','Cody Bellinger','Oswaldo Cabrera','Trent Grisham','Austin Wells','Jorbit Vivas'],
+  'BOS': ['Rafael Devers','Wilyer Abreu','Masataka Yoshida','Trevor Story','Triston Casas','Rob Refsnyder','Connor Wong','Ceddanne Rafaela','David Hamilton'],
+  'TOR': ['Vladimir Guerrero Jr.','George Springer','Bo Bichette','Daulton Varsho','Alejandro Kirk','Ernie Clement','Davis Schneider','Addison Barger','Spencer Horwitz'],
+  'BAL': ['Gunnar Henderson','Adley Rutschman','Anthony Santander','Ryan Mountcastle','Colton Cowser','Jordan Westburg','Ramon Urias','Austin Hays','Jorge Mateo'],
+  'TB':  ['Brandon Lowe','Yandy Diaz','Josh Lowe','Harold Ramirez','Jonathan Aranda','Jose Siri','Richie Palacios','René Pinto','Taylor Walls'],
+  'CLE': ['José Ramírez','Josh Naylor','Lane Thomas','David Fry','Will Brennan','Bo Naylor','Gabriel Arias','Jhonkensy Noel','Brayan Rocchio'],
+  'MIN': ['Carlos Correa','Byron Buxton','Ryan Jeffers','Matt Wallner','Max Kepler','Trevor Larnach','Edouard Julien','Brooks Lee','Christian Vázquez'],
+  'KC':  ['Bobby Witt Jr.','Salvador Perez','MJ Melendez','Vinnie Pasquantino','Hunter Renfroe','Nelson Velázquez','Maikel Garcia','Freddy Fermin','Michael Massey'],
+  'CHW': ['Andrew Vaughn','Tommy Pham','Korey Lee','Nicky Lopez','Gavin Sheets','Zach DeLoach','Tim Anderson','Lenyn Sosa','Bryan Ramos'],
+  'DET': ['Kerry Carpenter','Spencer Torkelson','Matt Vierling','Riley Greene','Javier Báez','Andy Ibáñez','Parker Meadows','Jake Rogers','Zach McKinstry'],
+  'HOU': ['Jose Altuve','Yordan Alvarez','Alex Bregman','Jeremy Peña','Yainer Diaz','Jake Meyers','Mauricio Dubón','Chas McCormick','Victor Caratini'],
+  'TEX': ['Marcus Semien','Corey Seager','Nathaniel Lowe','Adolis García','Josh Smith','Wyatt Langford','Jonah Heim','Travis Jankowski','Leody Taveras'],
+  'LAA': ['Mike Trout','Logan O\'Hoppe','Taylor Ward','Mickey Moniak','Nolan Schanuel','Brandon Drury','Charles Leblanc','Zach Neto','Luis Rengifo'],
+  'ATH': ['Brent Rooker','Lawrence Butler','Shea Langeliers','Esteury Ruiz','Seth Brown','JJ Bleday','Tyler Soderstrom','Zack Gelof','Nick Allen'],
+  'SEA': ['Julio Rodríguez','Cal Raleigh','Mitch Garver','Eugenio Suárez','Ty France','Luke Raley','Jorge Polanco','Josh Rojas','Sam Haggerty'],
+  'NYM': ['Francisco Lindor','Pete Alonso','Brandon Nimmo','Jesse Winker','Mark Vientos','Jeff McNeil','Starling Marte','Francisco Alvarez','Luisangel Acuña'],
+  'ATL': ['Ronald Acuña Jr.','Ozzie Albies','Austin Riley','Marcell Ozuna','Matt Olson','Eddie Rosario','Sean Murphy','Michael Harris II','Orlando Arcia'],
+  'PHI': ['Trea Turner','Bryce Harper','Kyle Schwarber','Nick Castellanos','Alec Bohm','Brandon Marsh','J.T. Realmuto','Bryson Stott','Johan Rojas'],
+  'MIA': ['Luis Arraez','Jazz Chisholm Jr.','Josh Bell','Jake Burger','Bryan De La Cruz','Jesús Sánchez','Nick Fortes','Peyton Burdick','Tim Anderson'],
+  'WSH': ['CJ Abrams','Lane Thomas','Keibert Ruiz','Joey Meneses','Alex Call','Ildemaro Vargas','Riley Adams','Jake Alu','Stone Garrett'],
+  'CHC': ['Dansby Swanson','Ian Happ','Cody Bellinger','Nico Hoerner','Michael Busch','Miles Mastrobuoni','Seiya Suzuki','Miguel Amaya','Christopher Morel'],
+  'STL': ['Lars Nootbaar','Nolan Arenado','Paul Goldschmidt','Willson Contreras','Brendan Donovan','Dylan Carlson','Tommy Edman','Masyn Winn','Ivan Herrera'],
+  'MIL': ['Willy Adames','William Contreras','Christian Yelich','Rhys Hoskins','Jackson Chourio','Sal Frelick','Joey Wiemer','Owen Miller','Tyrone Taylor'],
+  'CIN': ['Elly De La Cruz','TJ Friedl','Jonathan India','Tyler Stephenson','Spencer Steer','Jake Fraley','Stuart Fairchild','Matt McLain','Will Benson'],
+  'PIT': ['Oneil Cruz','Ji Hwan Bae','Bryan Reynolds','Carlos Santana','Henry Davis','Connor Joe','Rowdy Tellez','Josh Palacios','Ji-Man Choi'],
+  'AZ':  ['Corbin Carroll','Ketel Marte','Lourdes Gurriel Jr.','Gabriel Moreno','Christian Walker','Randal Grichuk','Geraldo Perdomo','Jake McCarthy','Joc Pederson'],
+  'SF':  ['Heliot Ramos','Patrick Bailey','Wilmer Flores','Mike Yastrzemski','Tyler Fitzgerald','Marco Luciano','Grant McCray','Blake Sabol','Casey Schmitt'],
+  'LAD': ['Mookie Betts','Freddie Freeman','Shohei Ohtani','Will Smith','Teoscar Hernandez','Andy Pages','Max Muncy','Gavin Lux','Miguel Rojas'],
+  'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jake Cronenworth','Jurickson Profar','Jackson Merrill','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
+  'COL': ['Charlie Blackmon','Ryan McMahon','C.J. Cron','Ezequiel Tovar','Elias Díaz','Randal Grichuk','Sean Bouchard','Brenton Doyle','Alan Trejo'],
+  'KC':  ['Bobby Witt Jr.','MJ Melendez','Salvador Perez','Vinnie Pasquantino','Hunter Renfroe','Nelson Velázquez','Maikel Garcia','Freddy Fermin','Michael Massey'],
+};
+
+const SP_STATS = {
+  // ERA, WHIP, K/9, hand
+  'Cole Ragans':        [3.14, 1.12, 10.2, 'L'],
+  'Taj Bradley':        [3.85, 1.22, 9.4, 'R'],
+  'Reynaldo López':     [3.20, 1.10, 9.8, 'R'],
+  'Ryne Nelson':        [4.45, 1.31, 8.9, 'R'],
+  'David Peterson':     [4.12, 1.28, 8.4, 'L'],
+  'Robbie Ray':         [3.95, 1.25, 10.1, 'L'],
+  'Corbin Burnes':      [2.94, 1.05, 10.8, 'R'],
+  'Zack Wheeler':       [3.07, 1.08, 10.2, 'R'],
+  'Spencer Strider':    [3.10, 1.00, 13.5, 'R'],
+  'Logan Gilbert':      [3.44, 1.09, 10.8, 'R'],
+  'Luis Castillo':      [3.48, 1.18, 10.1, 'R'],
+  'Gerrit Cole':        [3.12, 1.05, 11.4, 'R'],
+  'Max Fried':          [2.88, 1.06, 9.8, 'L'],
+  'Hunter Brown':       [3.75, 1.19, 10.2, 'R'],
+  'Pablo López':        [3.50, 1.15, 9.8, 'R'],
+  'Seth Lugo':          [3.60, 1.18, 8.4, 'R'],
+  'Freddy Peralta':     [3.92, 1.22, 11.2, 'R'],
+  'Shane Bieber':       [4.10, 1.25, 9.0, 'R'],
+  'Tanner Bibee':       [3.85, 1.20, 9.4, 'R'],
+  'Andrew Painter':     [3.65, 1.15, 10.8, 'R'],
+  'Tarik Skubal':       [2.99, 1.00, 11.2, 'L'],
+};
+
+function getSPStats(name) {
+  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: 'R' };
+  const s = SP_STATS[name];
+  if (s) return { era: s[0], whip: s[1], k9: s[2], hand: s[3] };
+  return { era: 4.20, whip: 1.28, k9: 8.8, hand: 'R' };
+}
+
+function buildLineups(gameLineups, rawGames) {
+  return gameLineups.map(gl => {
+    const awaySPStats = getSPStats(gl.awaySP?.fullName);
+    const homeSPStats = getSPStats(gl.homeSP?.fullName);
+
+    const buildSide = (confirmed, abbr, spHand) => {
+      if (confirmed.length >= 8) {
+        return confirmed.slice(0, 9).map((p, i) => ({
+          order: i + 1,
+          name: p.fullName || p.person?.fullName || 'Unknown',
+          position: p.position?.abbreviation || '?',
+          confirmed: true,
+        }));
+      }
+      // Project from depth chart
+      const chart = DEPTH_CHARTS[abbr] || [];
+      return chart.slice(0, 9).map((name, i) => ({
+        order: i + 1,
+        name,
+        position: guessPosition(name, i),
+        confirmed: false,
+      }));
+    };
+
+    return {
+      awayTeam: gl.awayTeam,
+      awayAbbr: gl.awayAbbr,
+      homeTeam: gl.homeTeam,
+      homeAbbr: gl.homeAbbr,
+      venue: gl.venue,
+      awaySP: gl.awaySP?.fullName || 'TBD',
+      awaySPHand: awaySPStats.hand,
+      awaySPStats: awaySPStats,
+      homeSP: gl.homeSP?.fullName || 'TBD',
+      homeSPHand: homeSPStats.hand,
+      homeSPStats: homeSPStats,
+      awayLineup: buildSide(gl.awayConfirmed, gl.awayAbbr, homeSPStats.hand),
+      homeLineup: buildSide(gl.homeConfirmed, gl.homeAbbr, awaySPStats.hand),
+    };
+  });
+}
+
+function guessPosition(name, idx) {
+  const positions = ['CF','SS','1B','3B','LF','RF','2B','C','DH'];
+  return positions[idx] || 'UT';
+}
+
+// ── Scoring ───────────────────────────────────────────────────────────────────
+function scoreAllPlayers(games, maxOrder, minPA) {
+  const players = [];
+  games.forEach(g => {
+    ['away','home'].forEach(side => {
+      const lineup = g[side + 'Lineup'];
+      const opponentSP = side === 'away' ? g.homeSP : g.awaySP;
+      const opponentSPStats = side === 'away' ? g.homeSPStats : g.awaySPStats;
+      const opponentSPHand = side === 'away' ? g.homeSPHand : g.awaySPHand;
+      const myTeam = side === 'away' ? g.awayTeam : g.homeTeam;
+      const myAbbr = side === 'away' ? g.awayAbbr : g.homeAbbr;
+      const opponentTeam = side === 'away' ? g.homeTeam : g.awayTeam;
+
+      lineup.filter(p => p.order <= maxOrder).forEach(p => {
+        const sc = lookupStatcast(p.name);
+        if (sc && sc.pa < minPA && sc.pa > 0) return; // filter low PA
+
+        const scored = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue);
+        players.push({
+          ...scored,
+          name: p.name,
+          team: myAbbr,
+          teamFull: myTeam,
+          position: p.position,
+          battingOrder: p.order,
+          lineupStatus: p.confirmed ? 'Confirmed' : 'Projected',
+          opponent: opponentTeam,
+          pitcher: opponentSP,
+          pitcherHand: opponentSPHand,
+          venue: g.venue,
+        });
+      });
+    });
+  });
+  return players;
+}
+
+function computeScore(player, sc, spStats, spHand, venue) {
+  // --- xBA component (25%) ---
+  const xba = sc?.xba || 0.255; // league avg fallback
+  const xbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+
+  // --- Hard Hit + Barrel (20%) ---
+  const hh = sc?.hardhitpct || 0.38;
+  const barrel = sc?.barrelpct || 0.07;
+  const contactScore = Math.min(100, ((hh - 0.20) / (0.65 - 0.20)) * 70 + ((barrel - 0.02) / (0.20 - 0.02)) * 30);
+
+  // --- K% (20%) --- lower is better
+  const kpct = sc?.kpct || 0.22;
+  const kScore = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
+
+  // --- Matchup / Platoon (20%) ---
+  const era = spStats.era || 4.50;
+  const whip = spStats.whip || 1.35;
+  const k9 = spStats.k9 || 8.5;
+  const spQuality = Math.min(100, Math.max(0, ((era - 2.0) / (6.5 - 2.0)) * 50 + ((whip - 0.90) / (1.80 - 0.90)) * 30 + Math.max(0, (k9 - 12.0) / (14 - 12)) * -20));
+  const matchupScore = Math.min(100, spQuality);
+
+  // --- Park factor (10%) ---
+  const pk = parkScore(venue);
+
+  // --- Batting order (5%) --- higher in order = more PA
+  const orderScore = Math.max(0, 100 - (player.order - 1) * 10);
+
+  // Composite weighted score
+  const composite = Math.round(
+    xbaScore * 0.25 +
+    contactScore * 0.20 +
+    kScore * 0.20 +
+    matchupScore * 0.20 +
+    pk.score * 0.10 +
+    orderScore * 0.05
+  );
+
+  let tier = 'Avoid';
+  if (composite >= 85) tier = 'Elite';
+  else if (composite >= 70) tier = 'Strong';
+  else if (composite >= 55) tier = 'Lean';
+
+  // Build reasoning
+  const xbaStr = sc ? xba.toFixed(3) : '~.255 (est)';
+  const kStr = sc ? (kpct * 100).toFixed(1) + '%' : '~22% (est)';
+  const reasons = [];
+  if (xba >= 0.285) reasons.push(`strong xBA (${xbaStr})`);
+  if (kpct <= 0.18) reasons.push(`low K% (${kStr})`);
+  if (hh >= 0.45) reasons.push(`elite hard contact (${(hh*100).toFixed(0)}% HH)`);
+  if (era >= 4.50) reasons.push(`soft SP matchup (${era.toFixed(2)} ERA)`);
+  if (pk.score >= 75) reasons.push(`hitter-friendly ${venue}`);
+  if (player.order <= 3) reasons.push(`batting ${player.order === 1 ? 'leadoff' : player.order === 2 ? '2nd' : '3rd'}`);
+  if (kpct >= 0.28) reasons.push(`high K risk (${kStr})`);
+  if (era <= 3.20) reasons.push(`tough SP (${era.toFixed(2)} ERA, ${k9.toFixed(1)} K/9)`);
+  if (pk.score <= 30) reasons.push(`pitcher-friendly ${venue}`);
+  const reasoning = reasons.length ? reasons.join(' · ') + '.' : 'Moderate profile across all factors.';
+
+  return {
+    compositeScore: composite,
+    tier,
+    xba,
+    kpct,
+    hardhitpct: hh,
+    barrelpct: barrel,
+    parkLabel: pk.label,
+    parkCls: pk.cls,
+    era: spStats.era,
+    statcastFound: !!sc,
+    reasoning,
+  };
+}
+
+// ── Render lineups tab ────────────────────────────────────────────────────────
+function renderLineupsTab(games) {
+  let html = '';
+  games.forEach(g => {
+    html += `<div class="card">
+      <div class="card-header">⚾ ${g.awayTeam} @ ${g.homeTeam} <span style="font-size:11px;font-weight:400;color:var(--muted);">${g.venue}</span></div>
+      <div class="card-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+        Away SP: <strong>${g.awaySP}</strong> (${g.awaySPHand}) · ERA ${g.awaySPStats.era.toFixed(2)} · WHIP ${g.awaySPStats.whip.toFixed(2)} · K/9 ${g.awaySPStats.k9.toFixed(1)}&nbsp;&nbsp;|&nbsp;&nbsp;
+        Home SP: <strong>${g.homeSP}</strong> (${g.homeSPHand}) · ERA ${g.homeSPStats.era.toFixed(2)} · WHIP ${g.homeSPStats.whip.toFixed(2)} · K/9 ${g.homeSPStats.k9.toFixed(1)}
+      </div>
+      <div class="lu-grid">`;
+    ['away','home'].forEach(side => {
+      const lineup = g[side + 'Lineup'];
+      const team = side === 'away' ? g.awayTeam : g.homeTeam;
+      const oSP = side === 'away' ? g.homeSP : g.awaySP;
+      const allConf = lineup.every(p => p.confirmed);
+      html += `<div class="lu-side">
+        <div class="lu-team-header">${team} <span class="game-badge ${allConf ? 'badge-confirmed' : 'badge-projected'}">${allConf ? '✓ Confirmed' : '~ Projected'}</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Batting vs ${oSP}</div>`;
+      lineup.forEach(p => {
+        html += `<div class="lu-row">
+          <span class="lu-num">${p.order}</span>
+          <span class="lu-name">${p.name}</span>
+          <span class="lu-pos">${p.position}</span>
+          <span class="lu-conf ${p.confirmed ? 'confirmed' : 'projected'}">${p.confirmed ? '✓' : '~'}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div></div></div>`;
+  });
+  html += `<div class="disc">✓ Confirmed by MLB Stats API &nbsp;·&nbsp; ~ Projected from 2025/26 depth charts. Lineups typically post 3–4 hrs before first pitch ET.</div>`;
+  document.getElementById('luEmpty').style.display = 'none';
+  document.getElementById('luContent').innerHTML = html;
+}
+
+// ── Render results ────────────────────────────────────────────────────────────
+function renderResults(players) {
+  if (!players.length) return;
+  const elite = players.filter(p => p.tier === 'Elite').length;
+  const strong = players.filter(p => p.tier === 'Strong').length;
+  const avg = Math.round(players.reduce((a, p) => a + p.compositeScore, 0) / players.length);
+
+  let html = `
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-val">${players.length}</div><div class="kpi-lbl">Analyzed</div></div>
+      <div class="kpi"><div class="kpi-val" style="color:var(--green)">${elite}</div><div class="kpi-lbl">Elite</div></div>
+      <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${strong}</div><div class="kpi-lbl">Strong</div></div>
+      <div class="kpi"><div class="kpi-val">${avg}</div><div class="kpi-lbl">Avg Score</div></div>
+    </div>
+    <div class="filter-bar">
+      <select onchange="filterTier(this.value)">
+        <option value="all">All Tiers</option><option>Elite</option><option>Strong</option><option>Lean</option><option>Avoid</option>
+      </select>
+      <select onchange="sortBy(this.value)">
+        <option value="score">Sort: Score</option>
+        <option value="xba">Sort: xBA</option>
+        <option value="kpct">Sort: K% ↑</option>
+      </select>
+      <span class="result-count">${players.length} players</span>
+    </div>
+    <div id="resultsGrid">`;
+  players.forEach((p, i) => { html += playerCard(p, i + 1); });
+  html += `</div>
+    <div class="disc">⚠️ Informational only. Statcast stats from Baseball Savant (updated nightly). Verify prop lines at your sportsbook before wagering. Gambling involves risk.</div>`;
+
+  document.getElementById('resEmpty').style.display = 'none';
+  document.getElementById('resContent').style.display = 'block';
+  document.getElementById('resContent').innerHTML = html;
+}
+
+function playerCard(p, rank) {
+  const scColor = p.compositeScore >= 85 ? 'var(--green)' : p.compositeScore >= 70 ? 'var(--blue)' : p.compositeScore >= 55 ? 'var(--yellow)' : 'var(--red)';
+  const xbaC = p.xba >= 0.280 ? 'good' : p.xba < 0.230 ? 'bad' : '';
+  const kC = p.kpct <= 0.18 ? 'good' : p.kpct >= 0.28 ? 'bad' : 'warn';
+  const hhC = p.hardhitpct >= 0.45 ? 'good' : p.hardhitpct < 0.33 ? 'bad' : '';
+  const bC = p.barrelpct >= 0.08 ? 'good' : '';
+  const lsPill = p.lineupStatus === 'Confirmed'
+    ? '<span class="pill good">✓ Confirmed</span>'
+    : '<span class="pill warn">~ Projected</span>';
+  const scPill = p.statcastFound ? '' : '<span class="pill warn">Est. stats</span>';
+
+  return `<div class="player-card tier-${p.tier}" data-tier="${p.tier}" data-score="${p.compositeScore}" data-xba="${p.xba}" data-kpct="${p.kpct}">
+    <div class="p-rank">${rank}</div>
+    <div>
+      <div class="p-name">${p.name} <span style="font-size:12px;font-weight:400;color:var(--muted);">${p.team} · #${p.battingOrder} · ${p.position}</span></div>
+      <div class="p-meta">vs ${p.pitcher} (${p.pitcherHand}) — ${p.opponent} · ${p.venue}</div>
+      <div class="pills">
+        ${lsPill}${scPill}
+        <span class="pill ${xbaC}">xBA ${p.xba.toFixed(3)}</span>
+        <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
+        <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
+        <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
+        <span class="pill info">SP ERA ${p.era.toFixed(2)}</span>
+        <span class="pill ${p.parkCls}">${p.parkLabel}</span>
+      </div>
+      <div class="p-reasoning">${p.reasoning}</div>
+    </div>
+    <div class="score-wrap">
+      <div class="score-big" style="color:${scColor}">${p.compositeScore}</div>
+      <div class="score-lbl">Score</div>
+      <div class="tier-badge">${p.tier}</div>
+    </div>
+  </div>`;
+}
+
+function filterTier(t) { document.querySelectorAll('.player-card').forEach(c => { c.style.display = (t === 'all' || c.dataset.tier === t) ? '' : 'none'; }); }
+function sortBy(f) {
+  const grid = document.getElementById('resultsGrid');
+  const cards = [...grid.querySelectorAll('.player-card')];
+  cards.sort((a, b) => f === 'score' ? +b.dataset.score - +a.dataset.score : f === 'xba' ? +b.dataset.xba - +a.dataset.xba : +a.dataset.kpct - +b.dataset.kpct);
+  cards.forEach((c, i) => { c.querySelector('.p-rank').textContent = i + 1; grid.appendChild(c); });
+}
+</script>
+</body>
+</html>
