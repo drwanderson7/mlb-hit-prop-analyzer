@@ -286,12 +286,12 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
       <table class="htable">
         <thead><tr><th>Component</th><th>Weight</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td><strong>xBA</strong></td><td>25%</td><td>Expected batting avg from exit velo + launch angle. Strips luck. Elite: ≥ .300</td></tr>
-          <tr><td><strong>Hard Hit% + Barrel%</strong></td><td>20%</td><td>Contact quality. HH ≥ 45% and Barrel ≥ 8% = elite</td></tr>
-          <tr><td><strong>K%</strong></td><td>20%</td><td>Strikeout rate. &lt;15% excellent, &gt;28% red flag for hit props</td></tr>
-          <tr><td><strong>Matchup / Platoon</strong></td><td>20%</td><td>SP ERA, WHIP, K/9, handedness advantage</td></tr>
-          <tr><td><strong>Park Factor</strong></td><td>10%</td><td>Venue run/hit environment</td></tr>
-          <tr><td><strong>Batting Order</strong></td><td>5%</td><td>Higher order = more plate appearances</td></tr>
+          <tr><td><strong>Split xBA</strong></td><td>30%</td><td>xBA vs RHP or vs LHP specifically — blended with overall xBA weighted by split PA. Platoon advantage is already baked in here.</td></tr>
+          <tr><td><strong>Batter K%</strong></td><td>22%</td><td>Strikeout = automatic out. &lt;15% excellent, &gt;28% red flag for hit props.</td></tr>
+          <tr><td><strong>Pitcher matchup</strong></td><td>18%</td><td>SP K%, xBA allowed, HH% allowed, whiff% from live Statcast. Switch hitter small bonus.</td></tr>
+          <tr><td><strong>Batting order</strong></td><td>12%</td><td>PA volume by lineup slot — leadoff ~4.7 PA/game, 9-hole ~3.6 PA/game.</td></tr>
+          <tr><td><strong>Hard Hit% + Barrel%</strong></td><td>13%</td><td>Contact quality. Reduced weight since xBA already captures exit velocity and launch angle.</td></tr>
+          <tr><td><strong>Park factor</strong></td><td>5%</td><td>Venue hit environment.</td></tr>
         </tbody>
       </table>
 
@@ -534,7 +534,10 @@ function extractLineups(games) {
 }
 
 // ── Live Statcast via Vercel proxy ───────────────────────────────────────────
-let liveStatcast = {}; // populated at runtime from /api/statcast
+let liveStatcast = {};   // overall batter stats (K%, HH%, Barrel%)
+let liveVsRHP = {};      // batter xBA + stats vs RHP only
+let liveVsLHP = {};      // batter xBA + stats vs LHP only
+let livePitchers = {};   // pitcher Statcast: xBA allowed, K%, HH%, whiff%
 const LIVE_NORM = {};
 
 async function fetchStatcast() {
@@ -543,25 +546,46 @@ async function fetchStatcast() {
   if (!res.ok) throw new Error('proxy returned ' + res.status);
   const json = await res.json();
   if (json.error) throw new Error(json.error);
-  // Proxy returns { players: {...}, meta: {...} }
-  const players = json.players || json; // backwards compat
-  liveStatcast = {};
-  Object.keys(players).forEach(key => {
-    const p = players[key];
-    // Client-side validation — reject any impossible values
+
+  const validBatter = p => p && (p.xba === null || (p.xba >= 0 && p.xba <= 0.500))
+    && (p.kpct === null || (p.kpct >= 0 && p.kpct <= 1))
+    && (p.hardhitpct === null || (p.hardhitpct >= 0 && p.hardhitpct <= 1));
+
+  const loadBatterMap = (source, target) => {
+    Object.keys(source || {}).forEach(key => {
+      const p = source[key];
+      if (!validBatter(p)) return;
+      target[normalize(key)] = {
+        xba:        p.xba        ?? null,
+        kpct:       p.kpct       ?? null,
+        hardhitpct: p.hardhitpct ?? null,
+        barrelpct:  p.barrelpct  ?? null,
+        source:     p.source || 'live',
+        pa:         p.pa || 0,
+      };
+    });
+  };
+
+  liveStatcast = {};  loadBatterMap(json.battersOverall, liveStatcast);
+  liveVsRHP    = {};  loadBatterMap(json.battersVsRHP,   liveVsRHP);
+  liveVsLHP    = {};  loadBatterMap(json.battersVsLHP,   liveVsLHP);
+
+  // Pitchers
+  livePitchers = {};
+  Object.keys(json.pitchers || {}).forEach(key => {
+    const p = json.pitchers[key];
     if (!p) return;
-    if (p.xba !== null && (p.xba < 0 || p.xba > 0.500)) return;
-    if (p.kpct !== null && (p.kpct < 0 || p.kpct > 1)) return;
-    if (p.hardhitpct !== null && (p.hardhitpct < 0 || p.hardhitpct > 1)) return;
-    if (p.barrelpct !== null && (p.barrelpct < 0 || p.barrelpct > 1)) return;
-    liveStatcast[normalize(key)] = {
-      xba:        p.xba        ?? null,
-      kpct:       p.kpct       ?? null,
-      hardhitpct: p.hardhitpct ?? null,
-      barrelpct:  p.barrelpct  ?? null,
-      source:     p.source || 'live',
+    if (p.xbaAllowed !== null && (p.xbaAllowed < 0 || p.xbaAllowed > 0.500)) return;
+    livePitchers[normalize(key)] = {
+      xbaAllowed:     p.xbaAllowed     ?? null,
+      kpct:           p.kpct           ?? null,
+      hardHitAllowed: p.hardHitAllowed ?? null,
+      barrelAllowed:  p.barrelAllowed  ?? null,
+      whiffPct:       p.whiffPct       ?? null,
+      source:         p.source || 'live',
     };
   });
+
   if (Object.keys(liveStatcast).length < 10) throw new Error('too few players parsed');
 }
 
@@ -577,34 +601,102 @@ function normalize(s){
 const SC_NORM = {};
 Object.keys(STATCAST).forEach(k => { SC_NORM[normalize(k)] = STATCAST[k]; });
 
-function lookupStatcast(name) {
+// Generic lookup helper — searches a live map then SC_NORM embedded fallback
+function lookupInMap(map, name) {
   const key = normalize(name);
-  // 1. Live data first (fetched from proxy at runtime)
-  if (liveStatcast[key]) return liveStatcast[key];
-  // 2. Partial match in live data
-  const liveParts = key.split(' ');
-  if (liveParts.length >= 2) {
-    const lLast = liveParts[liveParts.length-1], lInit = liveParts[0][0];
-    const lm = Object.keys(liveStatcast).find(k => {
+  if (map[key]) return map[key];
+  const parts = key.split(' ');
+  if (parts.length >= 2) {
+    const lLast = parts[parts.length-1], lInit = parts[0][0];
+    const lm = Object.keys(map).find(k => {
       const kp = k.split(' ');
       return kp[kp.length-1] === lLast && kp[0][0] === lInit;
     });
-    if (lm) return liveStatcast[lm];
+    if (lm) return map[lm];
   }
-  // 3. Embedded fallback
-  if (SC_NORM[key]) {
-    const s = SC_NORM[key];
-    return { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] };
+  return null;
+}
+
+// Look up batter stats — spHand determines which split xBA to use
+// Returns: { xba (split-specific), kpct, hardhitpct, barrelpct, splitUsed }
+function lookupStatcast(name, spHand) {
+  // Get overall stats (K%, HH%, Barrel%) — these are more stable overall than splits
+  const overall = lookupInMap(liveStatcast, name);
+
+  // Get split-specific xBA based on opposing SP hand
+  const splitMap = spHand === 'R' ? liveVsRHP : spHand === 'L' ? liveVsLHP : null;
+  const splitStats = splitMap ? lookupInMap(splitMap, name) : null;
+
+  // Embedded fallback for overall stats
+  const embKey = normalize(name);
+  let embedded = null;
+  if (SC_NORM[embKey]) { const s = SC_NORM[embKey]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+  if (!embedded) {
+    const parts = embKey.split(' ');
+    if (parts.length >= 2) {
+      const lLast = parts[parts.length-1], lInit = parts[0][0];
+      const match = Object.keys(SC_NORM).find(k => { const kp=k.split(' '); return kp[kp.length-1]===lLast && kp[0][0]===lInit; });
+      if (match) { const s = SC_NORM[match]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+    }
   }
+
+  if (!overall && !splitStats && !embedded) return null;
+
+  // xBA: prefer split, fall back to overall live, then embedded
+  const splitXBA  = splitStats?.xba  ?? null;
+  const overallXBA = overall?.xba ?? embedded?.xba ?? null;
+
+  // Blend split xBA with overall when split PA is low
+  // splitStats.pa tells us how many PA in that split — fewer = more weight to overall
+  let xba = overallXBA;
+  let splitUsed = 'overall';
+  if (splitXBA !== null && overallXBA !== null) {
+    const splitPA = splitStats?.pa || 0;
+    const wSplit = Math.min(1, splitPA / 60); // full split weight at 60 PA in that split
+    const wOverall = 1 - wSplit;
+    xba = parseFloat((splitXBA * wSplit + overallXBA * wOverall).toFixed(3));
+    splitUsed = splitPA >= 60 ? (spHand === 'R' ? 'vsRHP' : 'vsLHP')
+               : splitPA >= 15 ? `blend(${splitPA}PA)`
+               : 'overall';
+  } else if (splitXBA !== null) {
+    xba = splitXBA;
+    splitUsed = spHand === 'R' ? 'vsRHP' : 'vsLHP';
+  }
+
+  return {
+    xba,
+    kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+    hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
+    barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+    splitUsed,
+  };
+}
+
+// Lookup pitcher Statcast — live first, then SP_STATS hardcoded fallback
+function lookupPitcher(name) {
+  const key = normalize(name);
+  // Live Statcast pitcher data
+  if (livePitchers[key]) return { ...livePitchers[key], fromStatcast: true };
   const parts = key.split(' ');
   if (parts.length >= 2) {
-    const lastName = parts[parts.length-1], firstInit = parts[0][0];
-    const match = Object.keys(SC_NORM).find(k => {
+    const lLast = parts[parts.length-1], lInit = parts[0][0];
+    const lm = Object.keys(livePitchers).find(k => {
       const kp = k.split(' ');
-      return kp[kp.length-1] === lastName && kp[0][0] === firstInit;
+      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
     });
-    if (match) { const s = SC_NORM[match]; return { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+    if (lm) return { ...livePitchers[lm], fromStatcast: true };
   }
+  // Hardcoded SP_STATS fallback — convert to unified format
+  const sp = SP_STATS[name];
+  if (sp) return {
+    xbaAllowed: null, // not in SP_STATS
+    kpct: sp[2] / 9,  // k9 → approx kpct (k9/9 * ~0.22 PA ratio)
+    hardHitAllowed: null,
+    barrelAllowed: null,
+    whiffPct: null,
+    era: sp[0], whip: sp[1], k9: sp[2], hand: sp[3],
+    fromStatcast: false,
+  };
   return null;
 }
 
@@ -827,10 +919,11 @@ function scoreAllPlayers(games, maxOrder, minPA) {
       const opponentTeam = side === 'away' ? g.homeTeam : g.awayTeam;
 
       lineup.filter(p => p.order <= maxOrder).forEach(p => {
-        const sc = lookupStatcast(p.name);
+        const sc = lookupStatcast(p.name, opponentSPHand);
         if (sc && sc.pa < minPA && sc.pa > 0) return; // filter low PA
 
-        const scored = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?');
+        const spSC = lookupPitcher(opponentSP);
+        const scored = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC);
         players.push({
           ...scored,
           name: p.name,
@@ -850,49 +943,80 @@ function scoreAllPlayers(games, maxOrder, minPA) {
   return players;
 }
 
-function computeScore(player, sc, spStats, spHand, venue, bats) {
-  // --- xBA component (25%) ---
-  const xba = (sc?.xba != null && sc.xba > 0) ? sc.xba : 0.255; // league avg fallback
+function computeScore(player, sc, spStats, spHand, venue, bats, spSC) {
+  // --- Batter xBA (28%) ---
+  const xba = (sc?.xba != null && sc.xba > 0) ? sc.xba : 0.255;
   const xbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
 
-  // --- Hard Hit + Barrel (20%) ---
-  const hh = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
-  const barrel = (sc?.barrelpct != null && sc.barrelpct >= 0) ? sc.barrelpct : 0.07;
-  const contactScore = Math.min(100, ((hh - 0.20) / (0.65 - 0.20)) * 70 + ((barrel - 0.02) / (0.20 - 0.02)) * 30);
+  // --- Batter Hard Hit% + Barrel% (22%) ---
+  const hh     = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
+  const barrel = (sc?.barrelpct  != null && sc.barrelpct  >= 0) ? sc.barrelpct  : 0.07;
+  const contactScore = Math.min(100, Math.max(0,
+    ((hh - 0.20) / (0.65 - 0.20)) * 70 +
+    ((barrel - 0.02) / (0.20 - 0.02)) * 30
+  ));
 
-  // --- K% (20%) --- lower is better
+  // --- Batter K% (20%) — lower = better for hit props ---
   const kpct = (sc?.kpct != null && sc.kpct >= 0) ? sc.kpct : 0.22;
   const kScore = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
 
-  // --- Matchup / Platoon (20%) ---
-  const era = spStats.era || 4.50;
-  const whip = spStats.whip || 1.35;
-  const k9 = spStats.k9 || 8.5;
-  // SP quality: higher ERA/WHIP = better for batter, high K9 = worse
-  const spQuality = Math.min(100, Math.max(0,
-    ((era - 2.0) / (6.5 - 2.0)) * 60 +
-    ((whip - 0.90) / (1.80 - 0.90)) * 30 -
-    Math.max(0, (k9 - 7.0) / (14.0 - 7.0)) * 20
-  ));
-  // Platoon bonus/penalty: favorable = +12, same side = -10, switch = +8, unknown = 0
-  const platoon = platoonLabel(bats, spHand);
-  const platoonBonus = platoon.adv === true ? (bats === 'S' ? 8 : 12) : platoon.adv === false ? -10 : 0;
-  const matchupScore = Math.min(100, Math.max(0, spQuality + platoonBonus));
+  // --- Pitcher matchup (18%) ---
+  // Priority: live Statcast pitcher metrics > hardcoded SP_STATS fallback
+  // Key metrics: K% (strikeout pitcher = harder to get hits), xBA allowed, HH% allowed, whiff%
+  let spScore;
+  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
+    // Live Statcast pitcher scoring — higher K% = harder for batters, lower xBA allowed = harder
+    const spK    = spSC.kpct           ?? 0.22;  // pitcher K% — higher = worse for batter
+    const spXBA  = spSC.xbaAllowed     ?? 0.255; // lower = harder for batter
+    const spHH   = spSC.hardHitAllowed ?? 0.38;  // lower = harder for batter
+    const spBar  = spSC.barrelAllowed  ?? 0.07;  // lower = harder for batter
+    const spWh   = spSC.whiffPct       ?? 0.25;  // higher = harder for batter
 
-  // --- Park factor (10%) ---
+    // Score from batter's perspective: higher = better matchup for batter
+    const kComp    = Math.min(100, Math.max(0, (1 - (spK   - 0.10) / (0.40 - 0.10)) * 100)); // low K% = good for batter
+    const xbaComp  = Math.min(100, Math.max(0, ((spXBA - 0.150) / (0.320 - 0.150)) * 100));  // high xBA allowed = good
+    const hhComp   = Math.min(100, Math.max(0, ((spHH  - 0.25)  / (0.60 - 0.25))   * 100));  // high HH allowed = good
+    const barComp  = Math.min(100, Math.max(0, ((spBar  - 0.02)  / (0.18 - 0.02))   * 100));  // high barrel allowed = good
+    const whComp   = Math.min(100, Math.max(0, (1 - (spWh - 0.15) / (0.40 - 0.15)) * 100));  // low whiff = good for batter
+
+    spScore = kComp * 0.35 + xbaComp * 0.30 + hhComp * 0.15 + barComp * 0.10 + whComp * 0.10;
+  } else {
+    // Fallback: use hardcoded ERA/WHIP/K9 from SP_STATS
+    const era  = spSC?.era  || spStats.era  || 4.50;
+    const whip = spSC?.whip || spStats.whip || 1.35;
+    const k9   = spSC?.k9   || spStats.k9   || 8.5;
+    spScore = Math.min(100, Math.max(0,
+      ((era  - 2.0) / (6.5  - 2.0)) * 45 +
+      ((whip - 0.90) / (1.80 - 0.90)) * 35 -
+      Math.max(0, (k9 - 7.0) / (14.0 - 7.0)) * 20
+    ));
+  }
+
+  // No flat platoon bonus — split xBA already encodes platoon advantage.
+  // Switch hitters get a small bonus since they always have the favorable side.
+  const platoon = platoonLabel(bats, spHand);
+  const switchBonus = (bats === 'S') ? 5 : 0;
+  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
+
+  // --- Park factor (8%) ---
   const pk = parkScore(venue);
 
-  // --- Batting order (5%) --- higher in order = more PA
-  const orderScore = Math.max(0, 100 - (player.order - 1) * 10);
+  // --- Batting order (4%) ---
+  // PA per game by lineup slot (MLB averages): 1=4.7, 2=4.6, 3=4.5, 4=4.4, 5=4.3, 6=4.2, 7=4.0, 8=3.8, 9=3.6
+  // Normalize to 0-100 scale (slot 1 = 100, slot 9 = 0)
+  const paBySlot = [4.7, 4.6, 4.5, 4.4, 4.3, 4.2, 4.0, 3.8, 3.6];
+  const slotPA = paBySlot[Math.min(player.order - 1, 8)];
+  const orderScore = Math.round(((slotPA - 3.6) / (4.7 - 3.6)) * 100);
 
-  // Composite weighted score
+  // Weighted composite — weights sum to 1.0
+  // xBA is split-specific (vs RHP or vs LHP), so platoon is already baked in
   const composite = Math.round(
-    xbaScore * 0.25 +
-    contactScore * 0.20 +
-    kScore * 0.20 +
-    matchupScore * 0.20 +
-    pk.score * 0.10 +
-    orderScore * 0.05
+    xbaScore     * 0.30 +
+    kScore       * 0.22 +
+    matchupScore * 0.18 +
+    orderScore   * 0.12 +
+    contactScore * 0.13 +
+    pk.score     * 0.05
   );
 
   let tier = 'Avoid';
@@ -902,17 +1026,39 @@ function computeScore(player, sc, spStats, spHand, venue, bats) {
 
   // Build reasoning
   const xbaStr = sc ? xba.toFixed(3) : '~.255 (est)';
-  const kStr = sc ? (kpct * 100).toFixed(1) + '%' : '~22% (est)';
+  const kStr   = sc ? (kpct * 100).toFixed(1) + '%' : '~22% (est)';
   const reasons = [];
-  if (xba >= 0.285) reasons.push(`strong xBA (${xbaStr})`);
-  if (kpct <= 0.18) reasons.push(`low K% (${kStr})`);
-  if (hh >= 0.45) reasons.push(`elite hard contact (${(hh*100).toFixed(0)}% HH)`);
-  if (era >= 4.50) reasons.push(`soft SP matchup (${era.toFixed(2)} ERA)`);
-  if (pk.score >= 75) reasons.push(`hitter-friendly ${venue}`);
-  if (player.order <= 3) reasons.push(`batting ${player.order === 1 ? 'leadoff' : player.order === 2 ? '2nd' : '3rd'}`);
-  if (kpct >= 0.28) reasons.push(`high K risk (${kStr})`);
-  if (era <= 3.20) reasons.push(`tough SP (${era.toFixed(2)} ERA, ${k9.toFixed(1)} K/9)`);
-  if (pk.score <= 30) reasons.push(`pitcher-friendly ${venue}`);
+  // Batter strengths
+  const splitSuffix = sc?.splitUsed && sc.splitUsed !== 'overall' ? ' ' + sc.splitUsed : '';
+  if (xba >= 0.290) reasons.push('strong xBA (' + xbaStr + splitSuffix + ')');
+  if (kpct <= 0.16) reasons.push('low K% (' + kStr + ')');
+  if (hh >= 0.46) reasons.push('elite HH% (' + (hh*100).toFixed(0) + '%)');
+  if (barrel >= 0.10) reasons.push('elite Barrel% (' + (barrel*100).toFixed(1) + '%)');
+  if (player.order <= 3) reasons.push('bats ' + (player.order===1?'leadoff':player.order===2?'2nd':'3rd'));
+  // Platoon
+  if (platoon.adv === true && bats !== 'S') reasons.push('favorable platoon (' + platoon.label + ')');
+  if (platoon.adv === false) reasons.push('same-side platoon (' + platoon.label + ')');
+  // Pitcher — use Statcast if available
+  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
+    const spK = spSC.kpct;
+    if (spK <= 0.17) reasons.push('low K% SP (' + (spK*100).toFixed(0) + '% K)');
+    if (spK >= 0.28) reasons.push('high K% SP (' + (spK*100).toFixed(0) + '% K) — tough');
+    if (spSC.xbaAllowed !== null && spSC.xbaAllowed >= 0.270) reasons.push('high xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ')');
+    if (spSC.xbaAllowed !== null && spSC.xbaAllowed <= 0.220) reasons.push('low xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ') — tough SP');
+    if (spSC.hardHitAllowed !== null && spSC.hardHitAllowed >= 0.42) reasons.push('allows hard contact (' + (spSC.hardHitAllowed*100).toFixed(0) + '% HH)');
+  } else {
+    const era  = spSC?.era  || spStats.era  || 4.50;
+    const k9   = spSC?.k9   || spStats.k9   || 8.5;
+    if (era >= 4.50) reasons.push('soft SP (ERA ' + era.toFixed(2) + ')');
+    if (era <= 3.20) reasons.push('tough SP (ERA ' + era.toFixed(2) + ', ' + k9.toFixed(1) + ' K/9)');
+    if (k9 >= 11.0) reasons.push('high K/9 SP (' + k9.toFixed(1) + ') — tough');
+  }
+  // Park
+  if (pk.score >= 75) reasons.push('hitter park (' + venue + ')');
+  if (pk.score <= 30) reasons.push('pitcher park (' + venue + ')');
+  // Negatives
+  if (kpct >= 0.28) reasons.push('high K% risk (' + kStr + ')');
+  if (xba < 0.230) reasons.push('weak xBA (' + xbaStr + splitSuffix + ')');
   const reasoning = reasons.length ? reasons.join(' · ') + '.' : 'Moderate profile across all factors.';
 
   return {
@@ -926,6 +1072,11 @@ function computeScore(player, sc, spStats, spHand, venue, bats) {
     parkCls: pk.cls,
     era: spStats.era,
     statcastFound: !!sc,
+    splitUsed: sc?.splitUsed || 'overall',
+    spStatcast: !!(spSC?.fromStatcast && spSC.kpct !== null),
+    spKpct:  spSC?.kpct           ?? null,
+    spXBA:   spSC?.xbaAllowed     ?? null,
+    spHH:    spSC?.hardHitAllowed ?? null,
     bats: bats || '?',
     platoon,
     reasoning,
@@ -1023,11 +1174,11 @@ function playerCard(p, rank) {
       <div class="p-meta">Bats ${p.bats||"?"} · vs ${p.pitcher} (${p.pitcherHand}) — ${p.opponent} · ${p.venue}</div>
       <div class="pills">
         ${lsPill}${scPill}
-        <span class="pill ${xbaC}">xBA ${p.xba.toFixed(3)}</span>
+        <span class="pill ${xbaC}">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span></span>
         <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
-        <span class="pill info">SP ERA ${p.era.toFixed(2)}</span>
+        ${p.spStatcast ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span><span class="pill info">xBA vs ${p.spXBA ? p.spXBA.toFixed(3) : 'N/A'}</span>` : `<span class="pill info">SP ERA ${p.era ? p.era.toFixed(2) : 'N/A'}</span>`}
         <span class="pill ${p.parkCls}">${p.parkLabel}</span>
         <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
       </div>
