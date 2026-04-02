@@ -6,39 +6,28 @@ function parseCSVLine(line) {
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === '"') {
-      if (inQ && line[i+1] === '"') { cur += '"'; i++; } // escaped quote
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
       else inQ = !inQ;
-    } else if (ch === ',' && !inQ) {
-      result.push(cur.trim());
-      cur = '';
-    } else {
-      cur += ch;
-    }
+    } else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else cur += ch;
   }
   result.push(cur.trim());
   return result;
 }
 
-function parseCsv(csv) {
+function parseCsv(csv, type = 'batter') {
   if (!csv || csv.trim().startsWith('{')) return {};
   const lines = csv.trim().split('\n').filter(l => l.trim());
   if (lines.length < 2) return {};
+  const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/"/g, ''));
+  const col = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i >= 0) return i; } return -1; };
 
-  const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/"/g,''));
-
-  const col = (...names) => {
-    for (const n of names) {
-      const i = headers.indexOf(n);
-      if (i >= 0) return i;
-    }
-    return -1;
-  };
-
-  const iName   = col('last_name, first_name', 'player_name', 'name');
+  const iName   = col('last_name, first_name', 'player_name');
   const iXBA    = col('xba', 'est_ba');
   const iK      = col('k_percent');
   const iHH     = col('hard_hit_percent');
-  const iBarrel = col('barrel_batted_rate', 'brl_percent', 'barrel_batted_rate');
+  const iBarrel = col('barrel_batted_rate', 'brl_percent');
+  const iWhiff  = col('whiff_percent');
   const iPA     = col('pa');
 
   if (iName < 0 || iXBA < 0) return {};
@@ -47,100 +36,131 @@ function parseCsv(csv) {
   lines.slice(1).forEach(line => {
     if (!line.trim()) return;
     const cols = parseCSVLine(line);
-    let name = (cols[iName] || '').replace(/"/g,'').trim();
+    let name = (cols[iName] || '').replace(/"/g, '').trim();
     if (!name) return;
-    // Savant uses "Last, First" — convert
-    if (name.includes(',')) {
-      const p = name.split(',');
-      name = p[1].trim() + ' ' + p[0].trim();
-    }
+    if (name.includes(',')) { const p = name.split(','); name = p[1].trim() + ' ' + p[0].trim(); }
 
-    const safeFloat = (idx, scale = 1) => {
+    const safe = (idx, scale = 1) => {
       if (idx < 0 || idx >= cols.length) return null;
-      const v = parseFloat((cols[idx] || '').replace(/"/g,''));
+      const v = parseFloat((cols[idx] || '').replace(/"/g, ''));
       return isFinite(v) ? v / scale : null;
     };
 
-    const xba        = safeFloat(iXBA);
-    const kpct       = safeFloat(iK, 1);      // already a percent like 22.5
-    const hardhitpct = safeFloat(iHH, 1);     // already a percent like 45.2
-    const barrelpct  = safeFloat(iBarrel, 1); // already a percent like 8.1
-    const pa         = iPA >= 0 ? (parseInt(cols[iPA]) || 0) : 0;
-
-    // Validate — all must be in sane ranges
+    const xba = safe(iXBA);
     if (xba === null || xba < 0 || xba > 0.500) return;
-    if (kpct !== null && (kpct < 0 || kpct > 100)) return;
-    if (hardhitpct !== null && (hardhitpct < 0 || hardhitpct > 100)) return;
-    if (barrelpct !== null && (barrelpct < 0 || barrelpct > 100)) return;
 
-    result[name.toLowerCase()] = {
-      name,
-      pa,
-      xba,
-      kpct:        kpct        !== null ? kpct / 100        : null,
-      hardhitpct:  hardhitpct  !== null ? hardhitpct / 100  : null,
-      barrelpct:   barrelpct   !== null ? barrelpct / 100   : null,
-    };
+    const pa = iPA >= 0 ? (parseInt(cols[iPA]) || 0) : 0;
+    const key = name.toLowerCase();
+
+    if (type === 'batter') {
+      result[key] = {
+        name, pa,
+        xba,
+        kpct:       safe(iK)      !== null ? safe(iK) / 100      : null,
+        hardhitpct: safe(iHH)     !== null ? safe(iHH) / 100     : null,
+        barrelpct:  safe(iBarrel) !== null ? safe(iBarrel) / 100 : null,
+      };
+    } else {
+      // pitcher — xba here is xBA allowed
+      result[key] = {
+        name, pa,
+        xbaAllowed:     xba,
+        kpct:           safe(iK)      !== null ? safe(iK) / 100      : null,
+        hardHitAllowed: safe(iHH)     !== null ? safe(iHH) / 100     : null,
+        barrelAllowed:  safe(iBarrel) !== null ? safe(iBarrel) / 100 : null,
+        whiffPct:       safe(iWhiff)  !== null ? safe(iWhiff) / 100  : null,
+      };
+    }
   });
   return result;
 }
 
+// Blend current year + prior year weighted by PA count
+// paThreshold = PA at which current year gets 100% weight
+function blend(current, prior, paThreshold = 100) {
+  const blended = {};
+  const allKeys = new Set([...Object.keys(current), ...Object.keys(prior)]);
+  allKeys.forEach(key => {
+    const c = current[key], p = prior[key];
+    if (!c && !p) return;
+    if (!p) { blended[key] = { ...c, source: 'current' }; return; }
+    if (!c || (c.pa || 0) < 10) { blended[key] = { ...p, source: 'prior' }; return; }
+
+    const wC = Math.min(1, (c.pa || 0) / paThreshold);
+    const wP = 1 - wC;
+
+    const blendVal = (cv, pv) => {
+      if (cv === null && pv === null) return null;
+      if (cv === null) return pv;
+      if (pv === null) return cv;
+      return parseFloat((cv * wC + pv * wP).toFixed(4));
+    };
+
+    const merged = { name: c.name || p.name, pa: c.pa || 0, source: `blend(${c.pa}PA)` };
+    const numKeys = new Set([...Object.keys(c), ...Object.keys(p)].filter(k => !['name','pa','source'].includes(k)));
+    numKeys.forEach(k => { merged[k] = blendVal(c[k] ?? null, p[k] ?? null); });
+    blended[key] = merged;
+  });
+  return blended;
+}
+
 export default async function handler(req) {
   const year = parseInt(new URL(req.url).searchParams.get('year')) || new Date().getFullYear();
-  const headers = {
+  const prev = year - 1;
+  const hdrs = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     'Accept': 'text/html,application/xhtml+xml,*/*;q=0.9',
     'Referer': 'https://baseballsavant.mlb.com/',
   };
 
+  const base = 'https://baseballsavant.mlb.com/leaderboard/expected_statistics';
+
+  // 8 fetches in parallel:
+  // Batters overall (current + prior) — for K%, HH%, Barrel% which don't have split versions
+  // Batters vs RHP (current + prior) — split xBA
+  // Batters vs LHP (current + prior) — split xBA
+  // Pitchers overall (current + prior) — SP contact metrics
+  const urls = [
+    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,           // [0] batter current overall
+    `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,          // [1] batter prior overall
+    `${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`,  // [2] batter current vs RHP
+    `${base}?type=batter&year=${prev}&position=&team=&handedness=R&min=50&csv=true`, // [3] batter prior vs RHP
+    `${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`,  // [4] batter current vs LHP
+    `${base}?type=batter&year=${prev}&position=&team=&handedness=L&min=50&csv=true`, // [5] batter prior vs LHP
+    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,           // [6] pitcher current
+    `${base}?type=pitcher&year=${prev}&position=&team=&min=50&csv=true`,          // [7] pitcher prior
+  ];
+
   try {
-    const [resCurrent, resPrior] = await Promise.all([
-      fetch(`https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year=${year}&position=&team=&min=1&csv=true`, { headers }),
-      fetch(`https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year=${year-1}&position=&team=&min=100&csv=true`, { headers }),
-    ]);
+    const responses = await Promise.all(urls.map(u => fetch(u, { headers: hdrs })));
+    const texts     = await Promise.all(responses.map((r, i) => r.ok ? r.text() : ''));
 
-    const current = parseCsv(resCurrent.ok ? await resCurrent.text() : '');
-    const prior   = parseCsv(resPrior.ok   ? await resPrior.text()   : '');
+    const batterOverallCur  = parseCsv(texts[0], 'batter');
+    const batterOverallPrior = parseCsv(texts[1], 'batter');
+    const batterVsRHPCur    = parseCsv(texts[2], 'batter');
+    const batterVsRHPPrior  = parseCsv(texts[3], 'batter');
+    const batterVsLHPCur    = parseCsv(texts[4], 'batter');
+    const batterVsLHPPrior  = parseCsv(texts[5], 'batter');
+    const pitcherCur        = parseCsv(texts[6], 'pitcher');
+    const pitcherPrior      = parseCsv(texts[7], 'pitcher');
 
-    // Blend by PA: <10 PA → prior only; 10-99 → weighted; 100+ → current only
-    const blended = {};
-    const allKeys = new Set([...Object.keys(current), ...Object.keys(prior)]);
-
-    allKeys.forEach(key => {
-      const c = current[key];
-      const p = prior[key];
-      if (!p && !c) return;
-      if (!p) { blended[key] = { ...c, source: 'current' }; return; }
-      if (!c || c.pa < 10) { blended[key] = { ...p, source: 'prior' }; return; }
-
-      const wC = Math.min(1, c.pa / 100);
-      const wP = 1 - wC;
-
-      const blendStat = (cs, ps) => {
-        if (cs === null && ps === null) return null;
-        if (cs === null) return ps;
-        if (ps === null) return cs;
-        return parseFloat((cs * wC + ps * wP).toFixed(4));
-      };
-
-      blended[key] = {
-        name: c.name || p.name,
-        pa: c.pa,
-        source: `blend(${c.pa}PA)`,
-        xba:        parseFloat((c.xba * wC + p.xba * wP).toFixed(3)),
-        kpct:       blendStat(c.kpct,       p.kpct),
-        hardhitpct: blendStat(c.hardhitpct, p.hardhitpct),
-        barrelpct:  blendStat(c.barrelpct,  p.barrelpct),
-      };
-    });
+    // Blend each dataset
+    const battersOverall = blend(batterOverallCur,  batterOverallPrior, 100);
+    const battersVsRHP   = blend(batterVsRHPCur,    batterVsRHPPrior,   80);
+    const battersVsLHP   = blend(batterVsLHPCur,    batterVsLHPPrior,   60); // less PA vs LHP so lower threshold
+    const pitchers       = blend(pitcherCur,         pitcherPrior,       80);
 
     return new Response(JSON.stringify({
-      players: blended,
+      battersOverall,
+      battersVsRHP,
+      battersVsLHP,
+      pitchers,
       meta: {
-        currentYear: year,
-        currentCount: Object.keys(current).length,
-        priorCount: Object.keys(prior).length,
-        blendedCount: Object.keys(blended).length,
+        year,
+        overallCount: Object.keys(battersOverall).length,
+        vsRHPCount:   Object.keys(battersVsRHP).length,
+        vsLHPCount:   Object.keys(battersVsLHP).length,
+        pitcherCount: Object.keys(pitchers).length,
       }
     }), {
       status: 200,
