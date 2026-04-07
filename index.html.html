@@ -5,315 +5,153 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MLB Hit Prop Analyzer</title>
 <style>
-
-:root{
-  --primary:#2563eb;
-  --primary-strong:#1d4ed8;
-  --bg:#f8fafc;
-  --surface:#ffffff;
-  --surface-alt:#f1f5f9;
-  --text:#0f172a;
-  --muted:#64748b;
-  --border:#e2e8f0;
-  --success:#22c55e;
-  --danger:#ef4444;
-  --warning:#f59e0b;
-  --warning-soft:#ffedd5;
-  --success-soft:#dcfce7;
-  --danger-soft:#fee2e2;
-  --blue-soft:#dbeafe;
-  --shadow:0 1px 2px rgba(15,23,42,.04),0 10px 24px rgba(15,23,42,.05);
+:root {
+  --bg:#F5F6F8; --surface:#FFFFFF; --surface2:#F0F1F3;
+  --nav:#1E2A3A; --border:#E2E4E8; --text:#1A1A2E; --muted:#6B7280;
+  --blue:#2563EB; --green:#16A34A; --yellow:#CA8A04; --orange:#EA580C; --red:#DC2626;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  min-height:100vh;
-  line-height:1.5;
-}
-.page{
-  max-width:1120px;
-  margin:0 auto;
-  padding:24px;
-}
-.topbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:16px;
-  padding-bottom:22px;
-  margin-bottom:24px;
-  border-bottom:1px solid var(--border);
-}
-.topbar-copy h1{
-  font-size:31px;
-  line-height:1.08;
-  font-weight:800;
-  letter-spacing:-.03em;
-  margin-bottom:6px;
-}
-.topbar-copy p{
-  font-size:14px;
-  color:var(--muted);
-}
-.topbar-actions{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-}
-.nav-date{
-  font-size:13px;
-  color:var(--muted);
-}
-.tabs{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-bottom:22px;
-}
-.tab{
-  padding:10px 14px;
-  border:1px solid var(--border);
-  border-radius:999px;
-  background:var(--surface);
-  color:var(--muted);
-  font-size:13px;
-  font-weight:700;
-  cursor:pointer;
-  transition:all .18s ease;
-}
-.tab.active{
-  color:var(--primary);
-  background:#eff6ff;
-  border-color:#bfdbfe;
-}
-.tab:hover:not(.active){
-  color:var(--text);
-  border-color:#cbd5e1;
-}
-.panel{display:none;padding:0;max-width:none;margin:0}
-.panel.active{display:block}
-.card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:16px;
-  box-shadow:var(--shadow);
-  margin-bottom:18px;
-  overflow:hidden;
-}
-.card-header{
-  padding:18px 20px 0 20px;
-  font-weight:800;
-  font-size:16px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-}
-.card-body{padding:18px 20px 20px 20px}
-.sbar{
-  display:flex;
-  align-items:flex-start;
-  gap:12px;
-  padding:16px;
-  border-radius:14px;
-  border:1px solid var(--border);
-  margin-bottom:16px;
-  background:var(--surface);
-}
-.sbar-icon{font-size:18px;margin-top:1px;flex-shrink:0}
-.sbar-text{flex:1}
-.sbar-title{font-size:14px;font-weight:800;margin-bottom:3px}
-.sbar-sub{font-size:12px;color:var(--muted);line-height:1.55}
-.sbar.info{background:#f8fbff}
-.sbar.success{background:#fbfffc}
-.sbar.warn{background:#fffdf8}
-.sbar.error{background:#fffafb}
-.step-list{display:flex;flex-direction:column;gap:10px;margin:16px 0 18px}
-.step{display:flex;align-items:center;gap:10px;font-size:13px}
-.step-dot{
-  width:24px;height:24px;border-radius:50%;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:800;
-}
-.step-dot.pending{background:var(--surface-alt);border:1px solid var(--border);color:var(--muted)}
-.step-dot.running{background:var(--blue-soft);border:1px solid #93c5fd;color:var(--primary);animation:spin .8s linear infinite}
-.step-dot.done{background:var(--success-soft);border:1px solid #86efac;color:#15803d}
-.step-dot.error{background:var(--danger-soft);border:1px solid #fca5a5;color:#b91c1c}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+.nav{background:var(--nav);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;}
+.nav-brand{font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.nav-sub{font-size:11px;opacity:.5;font-weight:400;margin-top:1px;}
+.nav-date{font-size:12px;opacity:.6;}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:54px;z-index:99;}
+.tab{padding:12px 18px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab:hover:not(.active){color:var(--text);}
+.panel{display:none;padding:20px 24px;max-width:1100px;margin:0 auto;}
+.panel.active{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-body{padding:18px;}
+.sbar{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:8px;border:1px solid var(--border);margin-bottom:16px;background:var(--surface);}
+.sbar-icon{font-size:18px;margin-top:1px;flex-shrink:0;}
+.sbar-text{flex:1;}
+.sbar-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.sbar-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+.sbar.info{border-left:4px solid var(--blue);}
+.sbar.success{border-left:4px solid var(--green);}
+.sbar.warn{border-left:4px solid var(--yellow);}
+.sbar.error{border-left:4px solid var(--red);}
+/* Status dots */
+.step-list{display:flex;flex-direction:column;gap:8px;margin:14px 0;}
+.step{display:flex;align-items:center;gap:10px;font-size:13px;}
+.step-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.step-dot.pending{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.step-dot.running{background:#dbeafe;border:1px solid #93c5fd;color:var(--blue);animation:spin .8s linear infinite;}
+.step-dot.done{background:#dcfce7;border:1px solid #86efac;color:var(--green);}
+.step-dot.error{background:#fee2e2;border:1px solid #fca5a5;color:var(--red);}
 @keyframes spin{to{transform:rotate(360deg)}}
-.step-label{flex:1}
-.step-detail{font-size:11px;color:var(--muted)}
-.btn{
-  font-family:inherit;
-  font-size:14px;
-  font-weight:700;
-  padding:12px 18px;
-  border-radius:10px;
-  border:none;
-  cursor:pointer;
-  transition:all .18s ease;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
+.step-label{flex:1;}
+.step-detail{font-size:11px;color:var(--muted);}
+/* Buttons */
+.btn{font-family:inherit;font-size:13px;font-weight:600;padding:9px 20px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#1d4ed8;}
+.btn-primary:disabled{background:#93c5fd;cursor:not-allowed;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:var(--border);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+/* Games grid */
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:12px 0 16px;}
+.game-card{background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .15s;user-select:none;}
+.game-card:hover{border-color:#93c5fd;}
+.game-card.selected{border-color:var(--blue);background:#eff6ff;}
+.game-teams{font-size:13px;font-weight:700;margin-bottom:3px;}
+.game-meta{font-size:11px;color:var(--muted);margin-bottom:2px;}
+.game-sp{font-size:11px;color:var(--muted);}
+.game-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:6px;}
+.badge-confirmed{background:#dcfce7;color:#15803d;}
+.badge-projected{background:#fef9c3;color:#854d0e;}
+.badge-none{background:var(--surface2);color:var(--muted);}
+/* Controls */
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.control-group{display:flex;flex-direction:column;gap:4px;}
+.control-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+select{font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;cursor:pointer;}
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;text-align:center;}
+.kpi-val{font-size:28px;font-weight:800;}
+.kpi-lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.filter-bar select{font-size:12px;padding:6px 10px;}
+.result-count{font-size:12px;color:var(--muted);margin-left:auto;}
+/* Player cards */
+.player-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;border-left:5px solid var(--border);margin-bottom:9px;transition:box-shadow .15s;}
+.player-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.player-card.tier-Elite{border-left-color:var(--green);}
+.player-card.tier-Strong{border-left-color:var(--blue);}
+.player-card.tier-Lean{border-left-color:var(--yellow);}
+.player-card.tier-Avoid{border-left-color:var(--red);}
+.p-rank{font-size:15px;font-weight:800;color:var(--muted);text-align:center;padding-top:3px;}
+.p-name{font-size:14px;font-weight:700;}
+.p-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.pill.good{background:#dcfce7;color:#15803d;border-color:#86efac;}
+.pill.warn{background:#fef9c3;color:#854d0e;border-color:#fde047;}
+.pill.bad{background:#fee2e2;color:#b91c1c;border-color:#fca5a5;}
+.pill.info{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;}
+.p-reasoning{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55;border-top:1px solid var(--border);padding-top:8px;}
+.score-wrap{text-align:right;min-width:72px;}
+.score-big{font-size:28px;font-weight:800;}
+.score-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;}
+.tier-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;margin-top:4px;}
+.tier-Elite .tier-badge{background:#dcfce7;color:#15803d;}
+.tier-Strong .tier-badge{background:#dbeafe;color:#1d4ed8;}
+.tier-Lean .tier-badge{background:#fef9c3;color:#854d0e;}
+.tier-Avoid .tier-badge{background:#fee2e2;color:#b91c1c;}
+/* Lineup preview */
+.lu-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;}
+.lu-side{}
+.lu-team-header{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.lu-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.lu-num{font-size:10px;color:var(--muted);width:16px;text-align:right;flex-shrink:0;}
+.lu-name{flex:1;color:var(--text);}
+.lu-pos{font-size:10px;color:var(--muted);}
+.lu-conf{font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;flex-shrink:0;}
+.lu-conf.confirmed{background:#dcfce7;color:#15803d;}
+.lu-conf.projected{background:#fef9c3;color:#854d0e;}
+/* Empty state */
+.empty{text-align:center;padding:52px 24px;color:var(--muted);}
+.empty-icon{font-size:42px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+/* Help table */
+.htable{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+.htable th{background:var(--surface2);text-align:left;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);}
+.htable td{padding:8px 12px;border:1px solid var(--border);vertical-align:top;}
+.htable tr:nth-child(even) td{background:var(--surface2);}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.disc{font-size:11px;color:var(--muted);padding:10px 14px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);margin-top:14px;line-height:1.6;}
+@media(max-width:640px){
+  .kpi-strip{grid-template-columns:repeat(2,1fr);}
+  .lu-grid{grid-template-columns:1fr;}
+  .player-card{grid-template-columns:22px 1fr auto;}
+  .panel{padding:14px 16px;}
 }
-.btn-primary{background:var(--primary);color:#fff}
-.btn-primary:hover{background:var(--primary-strong)}
-.btn-primary:disabled{background:#93c5fd;cursor:not-allowed}
-.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
-.btn-secondary:hover{background:var(--surface-alt)}
-.btn-sm{padding:8px 12px;font-size:12px;border-radius:9px}
-.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin:12px 0 8px}
-.game-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:16px;
-  cursor:pointer;
-  transition:all .18s ease;
-  user-select:none;
-  box-shadow:0 1px 2px rgba(15,23,42,.03);
-}
-.game-card:hover{border-color:#bfdbfe;transform:translateY(-1px)}
-.game-card.selected{border-color:#93c5fd;background:#eff6ff}
-.game-teams{font-size:14px;font-weight:800;margin-bottom:5px}
-.game-meta,.game-sp{font-size:12px;color:var(--muted)}
-.game-meta{margin-bottom:4px}
-.game-badge{display:inline-block;font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;margin-top:10px}
-.badge-confirmed{background:var(--success-soft);color:#166534}
-.badge-projected{background:#fef3c7;color:#92400e}
-.badge-none{background:var(--surface-alt);color:var(--muted)}
-.controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
-.control-group{display:flex;flex-direction:column;gap:5px}
-.control-label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-select{
-  font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);
-  border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer
-}
-.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
-.kpi{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:18px 16px;
-  text-align:center;
-  box-shadow:var(--shadow);
-}
-.kpi-val{font-size:30px;font-weight:800;color:var(--primary)}
-.kpi-lbl{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
-.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.filter-bar select{font-size:12px;padding:8px 10px}
-.result-count{font-size:12px;color:var(--muted);margin-left:auto}
-.player-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:20px;
-  display:grid;
-  grid-template-columns:52px 1fr 110px;
-  gap:16px;
-  align-items:start;
-  margin-bottom:14px;
-  box-shadow:var(--shadow);
-  transition:transform .15s ease, box-shadow .15s ease;
-}
-.player-card:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(15,23,42,.07)}
-.p-rank{
-  width:40px;height:40px;border-radius:50%;
-  background:var(--surface-alt);color:var(--muted);
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:800;text-align:center;padding-top:0
-}
-.p-name{font-size:18px;font-weight:800;line-height:1.2}
-.p-meta{font-size:13px;color:var(--muted);margin-top:4px}
-.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.pill{
-  font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;
-  background:var(--surface-alt);color:#334155;border:none
-}
-.pill.good{background:var(--success-soft);color:#166534}
-.pill.warn{background:var(--warning-soft);color:#9a3412}
-.pill.bad{background:var(--danger-soft);color:#991b1b}
-.pill.info{background:var(--blue-soft);color:#1e40af}
-.p-reasoning{
-  font-size:13px;color:var(--muted);margin-top:12px;line-height:1.6;
-  border-top:1px solid var(--border);padding-top:12px
-}
-.score-wrap{
-  text-align:center;min-width:0;border-left:1px solid var(--border);padding-left:14px
-}
-.score-big{font-size:32px;font-weight:800;color:var(--primary)}
-.score-lbl{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-.tier-badge{
-  display:inline-block;font-size:10px;font-weight:800;padding:4px 9px;border-radius:999px;margin-top:8px
-}
-.tier-Elite .tier-badge{background:var(--success-soft);color:#166534}
-.tier-Strong .tier-badge{background:var(--blue-soft);color:#1e40af}
-.tier-Lean .tier-badge{background:#fef3c7;color:#92400e}
-.tier-Avoid .tier-badge{background:var(--danger-soft);color:#991b1b}
-.lu-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
-.lu-team-header{font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.lu-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
-.lu-num{font-size:10px;color:var(--muted);width:18px;text-align:right;flex-shrink:0}
-.lu-name{flex:1;color:var(--text)}
-.lu-pos{font-size:10px;color:var(--muted)}
-.lu-conf{font-size:9px;font-weight:800;padding:2px 6px;border-radius:999px;flex-shrink:0}
-.lu-conf.confirmed{background:var(--success-soft);color:#166534}
-.lu-conf.projected{background:#fef3c7;color:#92400e}
-.empty{text-align:center;padding:60px 24px;color:var(--muted)}
-.empty-icon{font-size:42px;margin-bottom:12px}
-.empty p{font-size:14px}
-.htable{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
-.htable th{background:var(--surface-alt);text-align:left;padding:10px 12px;font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);border:1px solid var(--border)}
-.htable td{padding:10px 12px;border:1px solid var(--border);vertical-align:top}
-.htable tr:nth-child(even) td{background:#fafcff}
-.divider{height:1px;background:var(--border);margin:16px 0}
-.disc{
-  font-size:11px;color:var(--muted);padding:12px 14px;background:var(--surface-alt);
-  border-radius:12px;border:1px solid var(--border);margin-top:14px;line-height:1.65
-}
-.inline-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.mobile-run{display:none}
-@media(max-width:760px){
-  .page{padding:16px}
-  .topbar{flex-direction:column;align-items:flex-start}
-  .topbar-actions{justify-content:flex-start}
-  .player-card{grid-template-columns:44px 1fr}
-  .score-wrap{grid-column:2;border-left:none;padding-left:0;padding-top:8px;border-top:1px solid var(--border);text-align:left}
-  .lu-grid{grid-template-columns:1fr}
-  .kpi-strip{grid-template-columns:repeat(2,1fr)}
-  .desktop-run{display:none}
-  .mobile-run{display:inline-flex}
-}
-
 </style>
 </head>
-
 <body>
-<div class="page">
 
-<header class="topbar">
-  <div class="topbar-copy">
-    <h1>MLB Hit Prop Analyzer</h1>
-    <p>Live Statcast analysis, lineup projections, and hitter rankings</p>
+<div class="nav">
+  <div class="nav-brand">
+    ⚾
+    <div>MLB Hit Prop Analyzer <div class="nav-sub">Live Data · No API Key Required</div></div>
   </div>
-  <div class="topbar-actions">
-    <div class="nav-date" id="navDate"></div>
-    <button class="btn btn-primary desktop-run" id="btnRunHeader" onclick="runAnalysis()" disabled>Run Analysis</button>
-  </div>
-</header>
+  <div class="nav-date" id="navDate"></div>
+</div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('analyze')">Analyze</div>
-  <div class="tab" onclick="switchTab('lineups')">Lineups</div>
-  <div class="tab" onclick="switchTab('results')">Results</div>
-  <div class="tab" onclick="switchTab('help')">Help</div>
+  <div class="tab active" onclick="switchTab('analyze')">🎯 Analyze</div>
+  <div class="tab" onclick="switchTab('lineups')">📋 Lineups</div>
+  <div class="tab" onclick="switchTab('results')">📊 Results</div>
+  <div class="tab" onclick="switchTab('help')">❓ Help</div>
 </div>
 
 <!-- ANALYZE TAB -->
-
 <div class="panel active" id="panel-analyze">
 
   <div class="card" style="margin-top:8px;">
@@ -388,8 +226,10 @@ select{
         </div>
       </div>
 
-      <div class="inline-actions">
-        <button class="btn btn-primary mobile-run" id="btnRun" onclick="runAnalysis()" disabled>Run Analysis</button>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+          ⚡ Run Analysis
+        </button>
         <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
       </div>
       <div id="errBox" style="display:none;margin-top:12px;"></div>
@@ -446,11 +286,11 @@ select{
       <table class="htable">
         <thead><tr><th>Component</th><th>Weight</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td><strong>Split xBA</strong></td><td>30%</td><td>xBA vs RHP or vs LHP specifically — blended with overall xBA weighted by split PA. Platoon advantage is already baked in here.</td></tr>
-          <tr><td><strong>Batter K%</strong></td><td>22%</td><td>Strikeout = automatic out. &lt;15% excellent, &gt;28% red flag for hit props.</td></tr>
-          <tr><td><strong>Pitcher matchup</strong></td><td>18%</td><td>SP K%, xBA allowed, HH% allowed, whiff% from live Statcast. Switch hitter small bonus.</td></tr>
-          <tr><td><strong>Batting order</strong></td><td>12%</td><td>PA volume by lineup slot — leadoff ~4.7 PA/game, 9-hole ~3.6 PA/game.</td></tr>
-          <tr><td><strong>Hard Hit% + Barrel%</strong></td><td>13%</td><td>Contact quality. Reduced weight since xBA already captures exit velocity and launch angle.</td></tr>
+          <tr><td><strong>Split xBA</strong></td><td>35%</td><td>xBA vs RHP or vs LHP — blended with overall by split PA count. Platoon and K% already baked in (Ks reduce xBA at the season level).</td></tr>
+          <tr><td><strong>Pitcher matchup</strong></td><td>20%</td><td>SP K%, xBA allowed, HH% allowed, whiff% from live Statcast. Biggest swing factor on a given day outside the batter's own profile.</td></tr>
+          <tr><td><strong>Batting order</strong></td><td>13%</td><td>PA volume by slot — leadoff ~4.7 PA/game, 9-hole ~3.6 PA/game. More PAs = more chances.</td></tr>
+          <tr><td><strong>Batter K%</strong></td><td>15%</td><td>Strikeout = automatic out. Partially redundant with xBA but still adds signal for extreme K% cases (&gt;28% or &lt;12%).</td></tr>
+          <tr><td><strong>Hard Hit% + Barrel%</strong></td><td>12%</td><td>Contact quality. Reduced — xBA already captures exit velocity and launch angle.</td></tr>
           <tr><td><strong>Park factor</strong></td><td>5%</td><td>Venue hit environment.</td></tr>
         </tbody>
       </table>
@@ -603,10 +443,7 @@ function selectAll() { todayGames.forEach(g => selectedPks.add(g.gamePk)); docum
 function clearAll() { selectedPks.clear(); document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected')); updateRunBtn(); }
 function updateRunBtn() {
   const btn = document.getElementById('btnRun');
-  const headerBtn = document.getElementById('btnRunHeader');
-  const disabled = selectedPks.size === 0;
-  if (btn) btn.disabled = disabled;
-  if (headerBtn) headerBtn.disabled = disabled;
+  btn.disabled = selectedPks.size === 0;
   document.getElementById('runHint').textContent = selectedPks.size > 0
     ? `${selectedPks.size} game${selectedPks.size > 1 ? 's' : ''} selected`
     : 'Select at least one game above';
@@ -631,9 +468,7 @@ function hideErr() { document.getElementById('errBox').style.display = 'none'; }
 async function runAnalysis() {
   if (!selectedPks.size) return;
   const btn = document.getElementById('btnRun');
-  const headerBtn = document.getElementById('btnRunHeader');
-  if (btn) { btn.disabled = true; btn.textContent = 'Analyzing...'; }
-  if (headerBtn) { headerBtn.disabled = true; headerBtn.textContent = 'Analyzing...'; }
+  btn.disabled = true; btn.textContent = '⏳ Analyzing...';
   hideErr();
 
   const selectedGames = todayGames.filter(g => selectedPks.has(g.gamePk));
@@ -673,8 +508,7 @@ async function runAnalysis() {
   renderResults(top);
   setStep('score', 'done', `${top.length} players ranked`);
 
-  if (btn) { btn.disabled = false; btn.innerHTML = 'Run Analysis'; }
-  if (headerBtn) { headerBtn.disabled = false; headerBtn.innerHTML = 'Run Analysis'; }
+  btn.disabled = false; btn.innerHTML = '⚡ Run Analysis';
   switchTab('results');
 }
 
@@ -1175,13 +1009,13 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC) {
   const orderScore = Math.round(((slotPA - 3.6) / (4.7 - 3.6)) * 100);
 
   // Weighted composite — weights sum to 1.0
-  // xBA is split-specific (vs RHP or vs LHP), so platoon is already baked in
+  // Split xBA already factors in K% (Ks reduce xBA), so K% weight is reduced to avoid double-counting
   const composite = Math.round(
-    xbaScore     * 0.30 +
-    kScore       * 0.22 +
-    matchupScore * 0.18 +
-    orderScore   * 0.12 +
-    contactScore * 0.13 +
+    xbaScore     * 0.35 +
+    matchupScore * 0.20 +
+    orderScore   * 0.13 +
+    kScore       * 0.15 +
+    contactScore * 0.12 +
     pk.score     * 0.05
   );
 
@@ -1308,7 +1142,7 @@ function renderResults(players) {
       <select onchange="sortBy(this.value)">
         <option value="score">Sort: Score</option>
         <option value="xba">Sort: xBA</option>
-        <option value="kpct">Sort: K%</option>
+        <option value="kpct">Sort: K% ↑</option>
       </select>
       <span class="result-count">${players.length} players</span>
     </div>
@@ -1323,53 +1157,39 @@ function renderResults(players) {
 }
 
 function playerCard(p, rank) {
-  const xbaC = p.xba >= 0.280 ? 'good' : p.xba < 0.230 ? 'bad' : 'info';
+  const scColor = p.compositeScore >= 85 ? 'var(--green)' : p.compositeScore >= 70 ? 'var(--blue)' : p.compositeScore >= 55 ? 'var(--yellow)' : 'var(--red)';
+  const xbaC = p.xba >= 0.280 ? 'good' : p.xba < 0.230 ? 'bad' : '';
   const kC = p.kpct <= 0.18 ? 'good' : p.kpct >= 0.28 ? 'bad' : 'warn';
-  const hhC = p.hardhitpct >= 0.45 ? 'good' : p.hardhitpct < 0.33 ? 'bad' : 'info';
-  const bC = p.barrelpct >= 0.08 ? 'good' : 'info';
+  const hhC = p.hardhitpct >= 0.45 ? 'good' : p.hardhitpct < 0.33 ? 'bad' : '';
+  const bC = p.barrelpct >= 0.08 ? 'good' : '';
   const lsPill = p.lineupStatus === 'Confirmed'
-    ? '<span class="pill good">Confirmed</span>'
-    : '<span class="pill warn">Projected</span>';
-  const scPill = p.statcastFound ? '' : '<span class="pill warn">Est. Stats</span>';
-  const splitPill = p.splitUsed && p.splitUsed !== 'overall'
-    ? `<span class="pill info">${p.splitUsed}</span>`
-    : '';
-  const platoonPill = p.platoon?.adv === true
-    ? '<span class="pill good">Platoon Edge</span>'
-    : p.platoon?.adv === false
-      ? '<span class="pill warn">Same-Side</span>'
-      : '<span class="pill info">Neutral Split</span>';
+    ? '<span class="pill good">✓ Confirmed</span>'
+    : '<span class="pill warn">~ Projected</span>';
+  const scPill = p.statcastFound ? '' : '<span class="pill warn">Est. stats</span>';
 
-  return `
-    <div class="player-card tier-${p.tier}" data-tier="${p.tier}" data-score="${p.compositeScore}" data-xba="${p.xba}" data-kpct="${p.kpct}">
-      <div class="p-rank">${rank}</div>
-
-      <div>
-        <div class="p-name">${p.name}</div>
-        <div class="p-meta">${p.team} • ${p.position} • Batting #${p.battingOrder} • vs ${p.pitcher} (${p.opponent})</div>
-
-        <div class="pills">
-          <span class="pill ${xbaC}">xBA ${p.xba.toFixed(3)}</span>
-          <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
-          <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(0)}%</span>
-          <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
-          ${platoonPill}
-          <span class="pill info">${p.parkLabel}</span>
-          ${lsPill}
-          ${splitPill}
-          ${scPill}
-        </div>
-
-        <div class="p-reasoning">${p.reasoning}</div>
+  return `<div class="player-card tier-${p.tier}" data-tier="${p.tier}" data-score="${p.compositeScore}" data-xba="${p.xba}" data-kpct="${p.kpct}">
+    <div class="p-rank">${rank}</div>
+    <div>
+      <div class="p-name">${p.name} <span style="font-size:12px;font-weight:400;color:var(--muted);">${p.team} · #${p.battingOrder} · ${p.position}</span></div>
+      <div class="p-meta">Bats ${p.bats||"?"} · vs ${p.pitcher} (${p.pitcherHand}) — ${p.opponent} · ${p.venue}</div>
+      <div class="pills">
+        ${lsPill}${scPill}
+        <span class="pill ${xbaC}">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span></span>
+        <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
+        <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
+        <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
+        ${p.spStatcast ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span><span class="pill info">xBA vs ${p.spXBA ? p.spXBA.toFixed(3) : 'N/A'}</span>` : `<span class="pill info">SP ERA ${p.era ? p.era.toFixed(2) : 'N/A'}</span>`}
+        <span class="pill ${p.parkCls}">${p.parkLabel}</span>
+        <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
       </div>
-
-      <div class="score-wrap">
-        <div class="score-big">${p.compositeScore}</div>
-        <div class="score-lbl">Rating</div>
-        <div class="tier-badge">${p.tier}</div>
-      </div>
+      <div class="p-reasoning">${p.reasoning}</div>
     </div>
-  `;
+    <div class="score-wrap">
+      <div class="score-big" style="color:${scColor}">${p.compositeScore}</div>
+      <div class="score-lbl">Score</div>
+      <div class="tier-badge">${p.tier}</div>
+    </div>
+  </div>`;
 }
 
 function filterTier(t) { document.querySelectorAll('.player-card').forEach(c => { c.style.display = (t === 'all' || c.dataset.tier === t) ? '' : 'none'; }); }
@@ -1380,6 +1200,5 @@ function sortBy(f) {
   cards.forEach((c, i) => { c.querySelector('.p-rank').textContent = i + 1; grid.appendChild(c); });
 }
 </script>
-</div>
 </body>
 </html>
