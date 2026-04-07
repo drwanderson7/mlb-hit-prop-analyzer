@@ -369,41 +369,17 @@ function switchTab(t) {
 
 // ── Schedule ──────────────────────────────────────────────────────────────────
 async function loadSchedule() {
+  const date = new Date().toLocaleDateString('en-CA');
   try {
-    const date = new Date().toLocaleDateString('en-CA');
-    const url = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=probablePitcher,lineups,team,venue`;
-
-    // Try direct MLB API with 6s timeout, then fall back to our Vercel proxy
-    const fetchWithTimeout = async (fetchUrl, ms) => {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), ms);
-      try {
-        const r = await fetch(fetchUrl, { signal: controller.signal });
-        clearTimeout(id);
-        return r;
-      } catch(e) { clearTimeout(id); throw e; }
-    };
-
-    let res;
-    try {
-      res = await fetchWithTimeout(url, 6000);
-      if (!res.ok) throw new Error('status ' + res.status);
-    } catch(directErr) {
-      // Direct failed — try our proxy
-      try {
-        res = await fetchWithTimeout('/api/schedule?date=' + date, 8000);
-        if (!res.ok) throw new Error('proxy status ' + res.status);
-      } catch(proxyErr) {
-        throw new Error('Both direct and proxy failed. Direct: ' + directErr.message + ' · Proxy: ' + proxyErr.message);
-      }
-    }
-
+    // Always use our Vercel proxy — avoids all CORS issues
+    const res = await fetch('/api/schedule?date=' + date);
+    if (!res.ok) throw new Error('Schedule proxy returned ' + res.status);
     const data = await res.json();
-    const games = (data.dates || [])[0]?.games || [];
+    if (data.error) throw new Error(data.error);
 
+    const games = (data.dates || [])[0]?.games || [];
     if (!games.length) {
       setScheduleStatus('warn', '📅', 'No games today', 'Check back tomorrow.');
-      // Still show manual mode option
       document.getElementById('stepList').style.display = 'flex';
       return;
     }
@@ -411,20 +387,15 @@ async function loadSchedule() {
     todayGames = games;
     const confirmed = games.filter(g => (g.lineups?.homePlayers || []).length > 0).length;
     setScheduleStatus('success', '✅', `${games.length} games loaded`,
-      `${confirmed} with confirmed lineups · ${games.length - confirmed} lineups pending (post ~3–4 hrs before first pitch)`);
+      `${confirmed} with confirmed lineups · ${games.length - confirmed} lineups pending (~3–4 hrs before first pitch)`);
     renderGameCards(games);
     document.getElementById('gamesWrap').style.display = 'block';
     document.getElementById('stepList').style.display = 'flex';
   } catch(e) {
-    // API failed — show manual mode and let user proceed without schedule
-    setScheduleStatus('error', '⚠️', 'Could not load schedule from MLB Stats API',
-      e.message + ' — You can still use Manual mode to analyze specific players.');
+    setScheduleStatus('error', '⚠️', 'Schedule failed to load', e.message);
     document.getElementById('stepList').style.display = 'flex';
-    // Show a retry button
-    const statusDiv = document.getElementById('scheduleStatus');
-    statusDiv.innerHTML += `<div style="margin-top:8px;">
-      <button class="btn btn-secondary btn-sm" onclick="loadSchedule()">🔄 Retry</button>
-    </div>`;
+    document.getElementById('scheduleStatus').innerHTML +=
+      '<div style="margin-top:8px;"><button class="btn btn-secondary btn-sm" onclick="loadSchedule()">🔄 Retry</button></div>';
   }
 }
 
