@@ -687,28 +687,40 @@ function lookupStatcast(name, spHand) {
 // Lookup pitcher Statcast — live first, then SP_STATS hardcoded fallback
 function lookupPitcher(name) {
   const key = normalize(name);
-  // Live Statcast pitcher data
-  if (livePitchers[key]) return { ...livePitchers[key], fromStatcast: true };
-  const parts = key.split(' ');
-  if (parts.length >= 2) {
-    const lLast = parts[parts.length-1], lInit = parts[0][0];
-    const lm = Object.keys(livePitchers).find(k => {
-      const kp = k.split(' ');
-      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
-    });
-    if (lm) return { ...livePitchers[lm], fromStatcast: true };
-  }
-  // Hardcoded SP_STATS fallback — convert to unified format
-  const sp = SP_STATS[name];
+  // 1. Live Statcast pitcher data (from proxy)
+  const liveMatch = lookupInMap(livePitchers, name);
+  if (liveMatch) return { ...liveMatch, fromStatcast: true };
+
+  // 2. SP_STATS hardcoded fallback (normalized lookup)
+  const sp = SP_NORM[key];
   if (sp) return {
-    xbaAllowed: null, // not in SP_STATS
-    kpct: sp[2] / 9,  // k9 → approx kpct (k9/9 * ~0.22 PA ratio)
+    xbaAllowed:     null,
+    kpct:           sp[2] * 0.0275, // K/9 → approx K% (8.5 K/9 ≈ 23%, 12 K/9 ≈ 33%)
     hardHitAllowed: null,
-    barrelAllowed: null,
-    whiffPct: null,
+    barrelAllowed:  null,
+    whiffPct:       null,
     era: sp[0], whip: sp[1], k9: sp[2], hand: sp[3],
     fromStatcast: false,
   };
+
+  // 3. Partial name match in SP_NORM
+  const parts = key.split(' ');
+  if (parts.length >= 2) {
+    const lLast = parts[parts.length-1], lInit = parts[0][0];
+    const match = Object.keys(SP_NORM).find(k => {
+      const kp = k.split(' ');
+      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
+    });
+    if (match) {
+      const sp2 = SP_NORM[match];
+      return {
+        xbaAllowed: null, kpct: sp2[2] * 0.0275,
+        hardHitAllowed: null, barrelAllowed: null, whiffPct: null,
+        era: sp2[0], whip: sp2[1], k9: sp2[2], hand: sp2[3],
+        fromStatcast: false,
+      };
+    }
+  }
   return null;
 }
 
@@ -831,36 +843,105 @@ const DEPTH_CHARTS = {
   'KC':  ['Bobby Witt Jr.','MJ Melendez','Salvador Perez','Vinnie Pasquantino','Hunter Renfroe','Nelson Velázquez','Maikel Garcia','Freddy Fermin','Michael Massey'],
 };
 
+// SP_STATS: [ERA, WHIP, K/9, hand] — covers ~100 active starters
+// K/9 converted to approx K% via: kpct ≈ k9 / (9 * ~4.0 PA/IP * ~0.9 BF/PA) ≈ k9 / 32.4
+// Simpler: kpct ≈ k9 * 0.028  (league avg ~8.5 K/9 = ~24% K%)
 const SP_STATS = {
-  // ERA, WHIP, K/9, hand
-  'Cole Ragans':        [3.14, 1.12, 10.2, 'L'],
-  'Taj Bradley':        [3.85, 1.22, 9.4, 'R'],
-  'Reynaldo López':     [3.20, 1.10, 9.8, 'R'],
-  'Ryne Nelson':        [4.45, 1.31, 8.9, 'R'],
-  'David Peterson':     [4.12, 1.28, 8.4, 'L'],
-  'Robbie Ray':         [3.95, 1.25, 10.1, 'L'],
-  'Corbin Burnes':      [2.94, 1.05, 10.8, 'R'],
-  'Zack Wheeler':       [3.07, 1.08, 10.2, 'R'],
-  'Spencer Strider':    [3.10, 1.00, 13.5, 'R'],
-  'Logan Gilbert':      [3.44, 1.09, 10.8, 'R'],
-  'Luis Castillo':      [3.48, 1.18, 10.1, 'R'],
-  'Gerrit Cole':        [3.12, 1.05, 11.4, 'R'],
-  'Max Fried':          [2.88, 1.06, 9.8, 'L'],
-  'Hunter Brown':       [3.75, 1.19, 10.2, 'R'],
-  'Pablo López':        [3.50, 1.15, 9.8, 'R'],
-  'Seth Lugo':          [3.60, 1.18, 8.4, 'R'],
-  'Freddy Peralta':     [3.92, 1.22, 11.2, 'R'],
-  'Shane Bieber':       [4.10, 1.25, 9.0, 'R'],
-  'Tanner Bibee':       [3.85, 1.20, 9.4, 'R'],
-  'Andrew Painter':     [3.65, 1.15, 10.8, 'R'],
-  'Tarik Skubal':       [2.99, 1.00, 11.2, 'L'],
+  // AL East
+  'Gerrit Cole':[3.12,1.05,11.4,'R'],'Carlos Rodon':[3.85,1.22,10.8,'L'],
+  'Luis Gil':[3.90,1.25,10.2,'R'],'Clarke Schmidt':[4.10,1.28,8.8,'R'],
+  'Tanner Houck':[3.75,1.18,9.8,'R'],'Brayan Bello':[4.20,1.30,8.4,'R'],
+  'Kutter Crawford':[4.35,1.32,8.6,'R'],'Nick Pivetta':[4.45,1.35,9.2,'R'],
+  'Zack Wheeler':[3.07,1.08,10.2,'R'],'Ranger Suárez':[3.45,1.15,7.8,'L'],
+  'Cristopher Sánchez':[3.80,1.22,8.4,'L'],'Aaron Nola':[4.05,1.20,9.6,'R'],
+  'Braxton Garrett':[3.95,1.24,9.0,'L'],'Ryan Weathers':[4.20,1.28,8.2,'L'],
+  'Sandy Alcantara':[3.85,1.20,8.8,'R'],'Edward Cabrera':[4.30,1.32,10.2,'R'],
+  'Kevin Gausman':[3.45,1.12,10.4,'R'],'Jose Berrios':[4.15,1.28,8.6,'R'],
+  'Yusei Kikuchi':[3.80,1.22,10.8,'L'],'Chris Bassitt':[4.25,1.30,8.4,'R'],
+  'Bowden Francis':[4.40,1.35,9.0,'R'],'Yariel Rodriguez':[4.20,1.30,9.8,'R'],
+  'Dean Kremer':[4.35,1.32,7.8,'R'],'Grayson Rodriguez':[3.90,1.22,10.2,'R'],
+  'Trevor Rogers':[4.45,1.38,9.0,'L'],'Zach Eflin':[4.10,1.25,7.6,'R'],
+  // AL Central
+  'Tarik Skubal':[2.99,1.00,11.2,'L'],'Casey Mize':[4.20,1.28,7.8,'R'],
+  'Reese Olson':[4.05,1.24,9.4,'R'],'Kenta Maeda':[4.45,1.35,8.2,'R'],
+  'Gavin Williams':[3.95,1.24,10.2,'R'],'Tanner Bibee':[3.85,1.20,9.4,'R'],
+  'Ben Lively':[4.30,1.32,7.6,'R'],'Matthew Boyd':[4.40,1.35,9.0,'L'],
+  'Pablo López':[3.50,1.15,9.8,'R'],'Bailey Ober':[3.85,1.18,8.8,'R'],
+  'Louie Varland':[4.25,1.30,8.4,'R'],'David Festa':[4.50,1.38,8.6,'R'],
+  'Cole Ragans':[3.14,1.12,10.2,'L'],'Seth Lugo':[3.60,1.18,8.4,'R'],
+  'Michael Wacha':[4.20,1.30,7.8,'R'],'Brady Singer':[4.10,1.25,8.2,'R'],
+  'Jonathan Cannon':[4.55,1.40,7.4,'R'],'Chris Flexen':[4.65,1.42,6.8,'R'],
+  'Garrett Crochet':[3.80,1.20,11.8,'L'],'Sean Burke':[4.45,1.38,8.8,'R'],
+  'Erick Fedde':[4.30,1.32,7.6,'R'],'Davis Martin':[4.60,1.42,7.2,'R'],
+  // AL West
+  'Logan Gilbert':[3.44,1.09,10.8,'R'],'Luis Castillo':[3.48,1.18,10.1,'R'],
+  'George Kirby':[3.65,1.12,8.8,'R'],'Bryan Woo':[4.05,1.24,9.2,'R'],
+  'Hunter Brown':[3.75,1.19,10.2,'R'],'Framber Valdez':[3.45,1.18,8.8,'L'],
+  'Ronel Blanco':[3.95,1.24,9.4,'R'],'Spencer Arrighetti':[4.30,1.32,9.8,'R'],
+  'Taj Bradley':[3.85,1.22,9.4,'R'],'Shane Baz':[4.10,1.26,9.8,'R'],
+  'Zach Littell':[4.40,1.35,7.6,'R'],'Ryan Pepiot':[4.20,1.28,9.0,'R'],
+  'Tyler Anderson':[4.45,1.35,7.8,'L'],'Patrick Sandoval':[4.20,1.30,9.2,'L'],
+  'Reid Detmers':[4.35,1.32,9.0,'L'],'Jose Soriano':[4.25,1.30,9.4,'R'],
+  'Nathan Eovaldi':[4.15,1.28,8.4,'R'],'Andrew Heaney':[4.30,1.32,10.2,'L'],
+  'Kumar Rocker':[4.40,1.35,10.0,'R'],'Jack Leiter':[4.50,1.38,9.6,'R'],
+  'JP Sears':[4.35,1.33,8.6,'L'],'Luis Medina':[4.45,1.38,9.8,'R'],
+  'Aaron Civale':[4.25,1.30,7.8,'R'],'Shota Imanaga':[3.55,1.12,9.6,'L'],
+  // NL East
+  'Spencer Strider':[3.10,1.00,13.5,'R'],'Max Fried':[2.88,1.06,9.8,'L'],
+  'Chris Sale':[3.20,1.08,10.8,'L'],'Reynaldo López':[3.20,1.10,9.8,'R'],
+  'Andrew Painter':[3.65,1.15,10.8,'R'],'Cristopher Sánchez':[3.80,1.22,8.4,'L'],
+  'Jose Quintana':[4.40,1.35,7.8,'L'],'David Peterson':[4.12,1.28,8.4,'L'],
+  'Sean Manaea':[3.95,1.24,9.4,'L'],'Griffin Canning':[4.35,1.33,8.2,'R'],
+  'MacKenzie Gore':[4.05,1.26,10.2,'L'],'Jake Irvin':[4.40,1.35,7.6,'R'],
+  'Patrick Corbin':[5.20,1.55,6.4,'L'],'Trevor Williams':[4.50,1.38,7.8,'R'],
+  'Yoshinobu Yamamoto':[3.00,1.00,11.2,'R'],'Tyler Glasnow':[3.35,1.08,12.0,'R'],
+  'Gavin Stone':[3.90,1.22,9.4,'R'],'River Ryan':[4.20,1.28,9.8,'R'],
+  'Dylan Cease':[3.70,1.18,11.2,'R'],'Michael King':[3.55,1.14,10.4,'R'],
+  'Matt Waldron':[4.30,1.32,7.8,'R'],'Randy Vasquez':[4.55,1.40,8.4,'R'],
+  // NL Central
+  'Corbin Burnes':[2.94,1.05,10.8,'R'],'Freddy Peralta':[3.92,1.22,11.2,'R'],
+  'Colin Rea':[4.35,1.33,7.6,'R'],'Wade Miley':[4.50,1.38,7.2,'L'],
+  'Jameson Taillon':[4.20,1.28,7.8,'R'],'Javier Assad':[4.15,1.26,8.4,'R'],
+  'Kyle Hendricks':[4.65,1.42,6.2,'R'],'Justin Steele':[3.85,1.20,9.2,'L'],
+  'Sonny Gray':[3.75,1.18,9.8,'R'],'Nick Lodolo':[3.95,1.24,10.4,'L'],
+  'Hunter Greene':[3.80,1.20,12.2,'R'],'Graham Ashcraft':[4.35,1.33,7.6,'R'],
+  'Miles Mikolas':[4.30,1.30,7.4,'R'],'Erick Fedde':[4.30,1.32,7.6,'R'],
+  'Kyle Gibson':[4.55,1.40,7.2,'R'],'Paul Skenes':[2.85,1.02,11.8,'R'],
+  'Jared Jones':[4.10,1.26,10.4,'R'],'Marco Gonzales':[4.65,1.42,6.8,'L'],
+  // NL West
+  'Logan Webb':[3.25,1.10,8.4,'R'],'Robbie Ray':[3.95,1.25,10.1,'L'],
+  'Blake Snell':[3.85,1.24,11.4,'L'],'Mason Black':[4.40,1.35,9.0,'R'],
+  'Kyle Freeland':[4.55,1.40,7.2,'L'],'Cal Quantrill':[4.35,1.33,7.4,'R'],
+  'Ryan Feltner':[5.10,1.52,7.8,'R'],'Austin Gomber':[4.80,1.48,7.4,'L'],
+  'Zac Gallen':[3.65,1.14,9.8,'R'],'Merrill Kelly':[3.95,1.24,8.4,'R'],
+  'Eduardo Rodriguez':[4.25,1.30,8.8,'L'],'Brandon Pfaadt':[4.15,1.26,9.2,'R'],
+  'Ryne Nelson':[4.45,1.31,8.9,'R'],'Joe Musgrove':[3.80,1.20,9.4,'R'],
+  'Yu Darvish':[3.75,1.18,9.0,'R'],'Adam Mazur':[4.35,1.33,8.6,'R'],
+  'Clayton Kershaw':[3.95,1.22,8.8,'L'],'Bobby Miller':[4.10,1.26,9.4,'R'],
+  'Tony Gonsolin':[4.30,1.30,8.2,'R'],'Walker Buehler':[4.20,1.28,9.0,'R'],
 };
+
+// Normalize SP_STATS keys for accent-insensitive lookup
+const SP_NORM = {};
+Object.keys(SP_STATS).forEach(k => { SP_NORM[normalize(k)] = SP_STATS[k]; });
 
 function getSPStats(name) {
   if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: 'R' };
-  const s = SP_STATS[name];
+  // Use normalized lookup so accented names match (e.g. "Reynaldo López")
+  const key = normalize(name);
+  const s = SP_NORM[key];
   if (s) return { era: s[0], whip: s[1], k9: s[2], hand: s[3] };
-  return { era: 4.20, whip: 1.28, k9: 8.8, hand: 'R' };
+  // Partial match — last name + first initial
+  const parts = key.split(' ');
+  if (parts.length >= 2) {
+    const lLast = parts[parts.length-1], lInit = parts[0][0];
+    const match = Object.keys(SP_NORM).find(k => {
+      const kp = k.split(' ');
+      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
+    });
+    if (match) { const s2 = SP_NORM[match]; return { era: s2[0], whip: s2[1], k9: s2[2], hand: s2[3] }; }
+  }
+  return { era: 4.20, whip: 1.28, k9: 8.8, hand: 'R' }; // true unknown SP
 }
 
 function buildLineups(gameLineups, rawGames) {
@@ -950,6 +1031,7 @@ function scoreAllPlayers(games, maxOrder, minPA) {
           pitcher: opponentSP,
           pitcherHand: opponentSPHand,
           venue: g.venue,
+          impliedRuns: impliedRuns,
         });
       });
     });
@@ -1164,7 +1246,23 @@ function renderResults(players) {
   const strong = players.filter(p => p.tier === 'Strong').length;
   const avg = Math.round(players.reduce((a, p) => a + p.compositeScore, 0) / players.length);
 
-  let html = `
+  // Data status bar — shows what actually loaded
+  const statcastCount = Object.keys(liveStatcast).length;
+  const pitcherCount  = Object.keys(livePitchers).length;
+  const oddsCount     = Object.keys(liveOdds).length;
+  const oddsLoaded    = players.some(p => p.impliedRuns !== null && p.impliedRuns !== undefined);
+  const statcastSrc   = statcastCount > 50 ? 'live' : statcastCount > 0 ? 'partial' : 'embedded';
+
+  const dataStatus = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
+    <span style="padding:3px 9px;border-radius:20px;background:${statcastCount>50?'#dcfce7':'#fef9c3'};color:${statcastCount>50?'#15803d':'#854d0e'};">
+      Batter Statcast: ${statcastCount} players (${statcastSrc})</span>
+    <span style="padding:3px 9px;border-radius:20px;background:${pitcherCount>20?'#dcfce7':'#fef9c3'};color:${pitcherCount>20?'#15803d':'#854d0e'};">
+      Pitcher Statcast: ${pitcherCount > 0 ? pitcherCount + ' live' : 'SP_STATS fallback'}</span>
+    <span style="padding:3px 9px;border-radius:20px;background:${oddsLoaded?'#dcfce7':'#fee2e2'};color:${oddsLoaded?'#15803d':'#b91c1c'};">
+      Odds: ${oddsLoaded ? 'loaded ✓' : 'not loaded — add ODDS_API_KEY to Vercel env vars'}</span>
+  </div>`;
+
+  let html = dataStatus + \`
     <div class="kpi-strip">
       <div class="kpi"><div class="kpi-val">${players.length}</div><div class="kpi-lbl">Analyzed</div></div>
       <div class="kpi"><div class="kpi-val" style="color:var(--green)">${elite}</div><div class="kpi-lbl">Elite</div></div>
@@ -1215,7 +1313,7 @@ function playerCard(p, rank) {
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
         ${p.spStatcast ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span><span class="pill info">xBA vs ${p.spXBA ? p.spXBA.toFixed(3) : 'N/A'}</span>` : `<span class="pill info">SP ERA ${p.era ? p.era.toFixed(2) : 'N/A'}</span>`}
-        ${p.impliedRuns !== null && p.impliedRuns !== undefined ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : ''}">${p.impliedRuns.toFixed(1)} proj runs</span>` : ''}
+        ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
         <span class="pill ${p.parkCls}">${p.parkLabel}</span>
         <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
       </div>
