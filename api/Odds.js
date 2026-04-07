@@ -1,6 +1,5 @@
 export const config = { runtime: 'edge' };
 
-// Team name normalization — Odds API uses full names, MLB API uses abbreviations
 const TEAM_MAP = {
   'Arizona Diamondbacks':'AZ','Atlanta Braves':'ATL','Baltimore Orioles':'BAL',
   'Boston Red Sox':'BOS','Chicago Cubs':'CHC','Chicago White Sox':'CHW',
@@ -16,108 +15,127 @@ const TEAM_MAP = {
 };
 
 function impliedProb(americanOdds) {
-  if (!americanOdds) return 0.5;
   const o = parseFloat(americanOdds);
-  if (isNaN(o)) return 0.5;
-  if (o > 0) return 100 / (o + 100);
-  return Math.abs(o) / (Math.abs(o) + 100);
+  if (!isFinite(o)) return 0.5;
+  return o > 0 ? 100 / (o + 100) : Math.abs(o) / (Math.abs(o) + 100);
 }
+
+function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
 
 export default async function handler(req) {
   const apiKey = process.env.ODDS_API_KEY;
-  if (!apiKey) return new Response(JSON.stringify({ error: 'ODDS_API_KEY not set' }), {
+  if (!apiKey) return new Response(JSON.stringify({ error: 'ODDS_API_KEY env var not set in Vercel' }), {
     status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
   });
 
   try {
-    // Fetch h2h (moneyline) + totals + team_totals in one call
-    const url = `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals,team_totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Odds API returned ${res.status}`);
-    const games = await res.json();
+    // Fetch h2h + totals first (team_totals may not always be available)
+    const [resH2h, resTeam] = await Promise.all([
+      fetch(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`),
+      fetch(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=team_totals&oddsFormat=american&bookmakers=draftkings,fanduel`),
+    ]);
+
+    // Log remaining requests for debugging
+    const remainingH2h = resH2h.headers.get('x-requests-remaining') || '?';
+
+    if (!resH2h.ok) {
+      const errText = await resH2h.text();
+      throw new Error(`Odds API ${resH2h.status}: ${errText.substring(0,200)}`);
+    }
+
+    const gamesH2h  = await resH2h.json();
+    const gamesTeam = resTeam.ok ? await resTeam.json() : [];
+
+    // Build team totals map from second call
+    const teamTotalsMap = {}; // "HomeAbbr|AwayAbbr|TeamAbbr" -> implied runs
+    if (Array.isArray(gamesTeam)) {
+      gamesTeam.forEach(game => {
+        const homeAbbr = TEAM_MAP[game.home_team];
+        const awayAbbr = TEAM_MAP[game.away_team];
+        if (!homeAbbr || !awayAbbr) return;
+        const homeSamples = [], awaySamples = [];
+        (game.bookmakers||[]).forEach(bk => {
+          (bk.markets||[]).forEach(mkt => {
+            if (mkt.key !== 'team_totals') return;
+            (mkt.outcomes||[]).forEach(o => {
+              if (o.name !== 'Over') return;
+              const teamName = o.description || '';
+              if (teamName === game.home_team) homeSamples.push(o.point);
+              if (teamName === game.away_team) awaySamples.push(o.point);
+            });
+          });
+        });
+        if (homeSamples.length) teamTotalsMap[homeAbbr] = avg(homeSamples);
+        if (awaySamples.length) teamTotalsMap[awayAbbr] = avg(awaySamples);
+      });
+    }
 
     const result = {};
 
-    games.forEach(game => {
-      const homeAbbr = TEAM_MAP[game.home_team] || game.home_team;
-      const awayAbbr = TEAM_MAP[game.away_team] || game.away_team;
+    if (!Array.isArray(gamesH2h)) throw new Error('Unexpected response: ' + JSON.stringify(gamesH2h).substring(0,200));
 
-      let gameTotal = null;
-      let homeImplied = null;
-      let awayImplied = null;
-      let homeTeamTotal = null;
-      let awayTeamTotal = null;
+    gamesH2h.forEach(game => {
+      const homeAbbr = TEAM_MAP[game.home_team];
+      const awayAbbr = TEAM_MAP[game.away_team];
+      if (!homeAbbr || !awayAbbr) return;
 
-      // Average across bookmakers for stability
-      const totalSamples = [], homeMLSamples = [], awayMLSamples = [];
-      const homeTeamTotalSamples = [], awayTeamTotalSamples = [];
+      const gameTotals = [], homeProbSamples = [], awayProbSamples = [];
 
-      (game.bookmakers || []).forEach(bk => {
-        (bk.markets || []).forEach(mkt => {
+      (game.bookmakers||[]).forEach(bk => {
+        (bk.markets||[]).forEach(mkt => {
           if (mkt.key === 'totals') {
-            const over = mkt.outcomes.find(o => o.name === 'Over');
-            if (over?.point) totalSamples.push(over.point);
+            const over = (mkt.outcomes||[]).find(o => o.name === 'Over');
+            if (over?.point) gameTotals.push(over.point);
           }
           if (mkt.key === 'h2h') {
-            const homeO = mkt.outcomes.find(o => o.name === game.home_team);
-            const awayO = mkt.outcomes.find(o => o.name === game.away_team);
-            if (homeO?.price) homeMLSamples.push(impliedProb(homeO.price));
-            if (awayO?.price) awayMLSamples.push(impliedProb(awayO.price));
-          }
-          if (mkt.key === 'team_totals') {
-            const homeO = mkt.outcomes.find(o => o.name === game.home_team && o.description === 'Over' || o.description?.includes('Over') && o.name === game.home_team);
-            const awayO = mkt.outcomes.find(o => o.name === game.away_team && o.description === 'Over' || o.description?.includes('Over') && o.name === game.away_team);
-            // team_totals outcomes have {name: 'Over'/'Under', description: team name, point: X}
-            mkt.outcomes.forEach(o => {
-              if (o.description === game.home_team && o.name === 'Over') homeTeamTotalSamples.push(o.point);
-              if (o.description === game.away_team && o.name === 'Over') awayTeamTotalSamples.push(o.point);
-            });
+            const homeO = (mkt.outcomes||[]).find(o => o.name === game.home_team);
+            const awayO = (mkt.outcomes||[]).find(o => o.name === game.away_team);
+            if (homeO?.price) homeProbSamples.push(impliedProb(homeO.price));
+            if (awayO?.price) awayProbSamples.push(impliedProb(awayO.price));
           }
         });
       });
 
-      const avg = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+      const gameTotal   = avg(gameTotals);
+      const homeWinProb = avg(homeProbSamples);
+      const awayWinProb = avg(awayProbSamples);
 
-      gameTotal = avg(totalSamples);
-      const homeWinProb = avg(homeMLSamples);
-      const awayWinProb = avg(awayMLSamples);
+      // Team implied runs: prefer direct team totals, derive from game total + ML if missing
+      let homeImplied = teamTotalsMap[homeAbbr] || null;
+      let awayImplied = teamTotalsMap[awayAbbr] || null;
 
-      // Team totals: prefer direct team total lines, fall back to deriving from game total + moneyline
-      homeTeamTotal = avg(homeTeamTotalSamples);
-      awayTeamTotal = avg(awayTeamTotalSamples);
-
-      // Fallback derivation if team totals not available:
-      // Implied runs ≈ game total × team's share of run probability
-      // Simple approximation: home_runs = total * home_win_prob * 0.95 (rough but reasonable)
-      if (!homeTeamTotal && gameTotal && homeWinProb) {
-        // Better method: use pythagorean-style split
-        // If total = 8.5 and home ML implies 55% win, home gets ~55% of scoring
-        homeTeamTotal = parseFloat((gameTotal * (homeWinProb || 0.5)).toFixed(1));
-        awayTeamTotal = parseFloat((gameTotal * (awayWinProb || 0.5)).toFixed(1));
+      if (!homeImplied && gameTotal && homeWinProb) {
+        // Normalize probs (remove vig)
+        const total = (homeWinProb||0.5) + (awayWinProb||0.5);
+        const normHome = (homeWinProb||0.5) / total;
+        const normAway = (awayWinProb||0.5) / total;
+        homeImplied = parseFloat((gameTotal * normHome).toFixed(1));
+        awayImplied = parseFloat((gameTotal * normAway).toFixed(1));
       }
 
       const gameKey = `${awayAbbr}@${homeAbbr}`;
       result[gameKey] = {
-        homeTeam: homeAbbr,
-        awayTeam: awayAbbr,
-        gameTotal:      gameTotal      ? parseFloat(gameTotal.toFixed(1))      : null,
-        homeImplied:    homeTeamTotal  ? parseFloat(homeTeamTotal.toFixed(1))  : null,
-        awayImplied:    awayTeamTotal  ? parseFloat(awayTeamTotal.toFixed(1))  : null,
-        homeWinProb:    homeWinProb    ? parseFloat(homeWinProb.toFixed(3))    : null,
-        awayWinProb:    awayWinProb    ? parseFloat(awayWinProb.toFixed(3))    : null,
-        commence:       game.commence_time,
+        homeTeam: homeAbbr, awayTeam: awayAbbr,
+        gameTotal:   gameTotal   ? parseFloat(gameTotal.toFixed(1))   : null,
+        homeImplied: homeImplied ? parseFloat(homeImplied.toFixed(1)) : null,
+        awayImplied: awayImplied ? parseFloat(awayImplied.toFixed(1)) : null,
       };
-      // Also index by each team abbr for easy lookup
-      result[homeAbbr] = { impliedRuns: result[gameKey].homeImplied, gameTotal: result[gameKey].gameTotal, opponent: awayAbbr };
-      result[awayAbbr] = { impliedRuns: result[gameKey].awayImplied, gameTotal: result[gameKey].gameTotal, opponent: homeAbbr };
+      // Index by team abbr for easy lookup
+      if (homeImplied) result[homeAbbr] = { impliedRuns: parseFloat(homeImplied.toFixed(1)), gameTotal, opponent: awayAbbr };
+      if (awayImplied) result[awayAbbr] = { impliedRuns: parseFloat(awayImplied.toFixed(1)), gameTotal, opponent: homeAbbr };
     });
 
-    return new Response(JSON.stringify({ games: result, count: games.length }), {
+    return new Response(JSON.stringify({
+      games: result,
+      count: gamesH2h.length,
+      requestsRemaining: remainingH2h,
+      teamTotalsFound: Object.keys(teamTotalsMap).length,
+    }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=1800', // 30 min cache — odds move
+        'Cache-Control': 'public, max-age=1800',
       }
     });
 
