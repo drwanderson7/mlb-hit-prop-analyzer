@@ -350,6 +350,7 @@ let selectedPks = new Set();
 let statcastData = {}; // name -> stats
 let lineupResults = [];
 let scoredPlayers = [];
+let allScoredPlayers = []; // full pool including beyond topN
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -547,6 +548,8 @@ async function runAnalysis() {
   scoredPlayers = scoreAllPlayers(lineupResults, maxOrder, minPA);
   scoredPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
   scoredPlayers.forEach((p, i) => p.rank = i + 1);
+  // Store full pool for search, but only render topN by default
+  allScoredPlayers = [...scoredPlayers];
   const top = scoredPlayers.slice(0, topN);
   renderResults(top);
   setStep('score', 'done', `${top.length} players ranked`);
@@ -1318,7 +1321,8 @@ function renderResults(players) {
         <option value="xba">Sort: xBA</option>
         <option value="kpct">Sort: K% ↑</option>
       </select>
-      <span class="result-count">${players.length} players</span>
+      <input type="text" id="playerSearch" placeholder="🔍 Search player..." oninput="filterSearch(this.value)" style="padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;width:160px;font-family:inherit;outline:none;">
+      <span class="result-count" id="resultCount">${players.length} players</span>
     </div>
     <div id="resultsGrid">`;
   players.forEach((p, i) => { html += playerCard(p, i + 1); });
@@ -1341,7 +1345,7 @@ function playerCard(p, rank) {
     : '<span class="pill warn">~ Projected</span>';
   const scPill = p.statcastFound ? '' : '<span class="pill warn">Est. stats</span>';
 
-  return `<div class="player-card tier-${p.tier}" data-tier="${p.tier}" data-score="${p.compositeScore}" data-xba="${p.xba}" data-kpct="${p.kpct}">
+  return `<div class="player-card tier-${p.tier}" data-tier="${p.tier}" data-score="${p.compositeScore}" data-xba="${p.xba}" data-kpct="${p.kpct}" data-name="${p.name.toLowerCase()}" data-team="${(p.team||'').toLowerCase()}">
     <div class="p-rank">${rank}</div>
     <div>
       <div class="p-name">${p.name} <span style="font-size:12px;font-weight:400;color:var(--muted);">${p.team} · #${p.battingOrder} · ${p.position}</span></div>
@@ -1352,7 +1356,8 @@ function playerCard(p, rank) {
         <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
-        ${p.spStatcast ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span><span class="pill info">xBA vs ${p.spXBA ? p.spXBA.toFixed(3) : 'N/A'}</span>` : `<span class="pill info">SP ERA ${p.era ? p.era.toFixed(2) : 'N/A'}</span>`}
+        ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
+        ${p.spStatcast && p.spXBA ? `<span class="pill info">xBA vs ${p.spXBA.toFixed(3)}</span>` : ''}
         ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
         <span class="pill ${p.parkCls}">${p.parkLabel}</span>
         <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
@@ -1367,7 +1372,49 @@ function playerCard(p, rank) {
   </div>`;
 }
 
-function filterTier(t) { document.querySelectorAll('.player-card').forEach(c => { c.style.display = (t === 'all' || c.dataset.tier === t) ? '' : 'none'; }); }
+function filterTier(t) {
+  const search = document.getElementById('playerSearch');
+  if (search) search.value = '';
+  document.querySelectorAll('.player-card').forEach(c => { c.style.display = (t === 'all' || c.dataset.tier === t) ? '' : 'none'; });
+  updateResultCount();
+}
+
+function filterSearch(q) {
+  const term = q.toLowerCase().trim();
+  const grid = document.getElementById('resultsGrid');
+  if (!grid) return;
+
+  if (!term) {
+    // Restore top N display
+    const topN = parseInt(document.getElementById('topN')?.value || 25);
+    const top = allScoredPlayers.slice(0, topN);
+    grid.innerHTML = '';
+    top.forEach((p, i) => { grid.insertAdjacentHTML('beforeend', playerCard(p, i + 1)); });
+    updateResultCount();
+    return;
+  }
+
+  // Search full pool
+  const matches = allScoredPlayers.filter(p =>
+    p.name.toLowerCase().includes(term) ||
+    (p.team || '').toLowerCase().includes(term) ||
+    (p.teamFull || '').toLowerCase().includes(term)
+  );
+
+  grid.innerHTML = '';
+  if (matches.length === 0) {
+    grid.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;">No players found matching \"' + q + '\"</div>';
+  } else {
+    matches.forEach((p, i) => { grid.insertAdjacentHTML('beforeend', playerCard(p, i + 1)); });
+  }
+  updateResultCount();
+}
+
+function updateResultCount() {
+  const visible = [...document.querySelectorAll('.player-card')].filter(c => c.style.display !== 'none').length;
+  const el = document.getElementById('resultCount');
+  if (el) el.textContent = visible + ' players';
+}
 function sortBy(f) {
   const grid = document.getElementById('resultsGrid');
   const cards = [...grid.querySelectorAll('.player-card')];
