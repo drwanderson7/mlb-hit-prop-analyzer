@@ -132,6 +132,31 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   .player-card{grid-template-columns:22px 1fr auto;}
   .panel{padding:14px 16px;}
 }
+  /* Pool styles */
+  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+  .pool-header{padding:12px 16px;display:flex;align-items:center;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .pool-name-el{font-size:14px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;}
+  .pool-body{padding:14px 16px;}
+  .used-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .used-tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;display:flex;align-items:center;gap:4px;cursor:pointer;}
+  .used-tag:hover{opacity:.75;}
+  .player-card.used-pool{opacity:.45;border-left-color:var(--muted)!important;}
+  .pill.used{background:#fee2e2;color:var(--red);border-color:#fecaca;}
+  /* Schedule view */
+  .sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .sched-row:last-child{border-bottom:none;}
+  .sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
+  .sched-day.great{background:#dcfce7;color:#15803d;}
+  .sched-day.good{background:#d1fae5;color:#065f46;}
+  .sched-day.ok{background:var(--surface2);color:var(--muted);}
+  .sched-day.tough{background:#fef9c3;color:#854d0e;}
+  .sched-day.brutal{background:#fee2e2;color:#b91c1c;}
+  .sched-day.off{background:var(--surface2);color:var(--muted);font-size:10px;}
+  .future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+  .future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+  .future-badge.good{background:#dbeafe;color:var(--blue);border:1px solid #bfdbfe;}
+  .future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
 </style>
 </head>
 <body>
@@ -148,6 +173,8 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   <div class="tab active" onclick="switchTab('analyze')">🎯 Analyze</div>
   <div class="tab" onclick="switchTab('lineups')">📋 Lineups</div>
   <div class="tab" onclick="switchTab('results')">📊 Results</div>
+  <div class="tab" onclick="switchTab('pools')">🏆 Pools</div>
+  <div class="tab" onclick="switchTab('schedule')">📅 Schedule</div>
   <div class="tab" onclick="switchTab('help')">❓ Help</div>
 </div>
 
@@ -319,6 +346,44 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   </div>
 </div>
 
+<!-- POOLS TAB -->
+<div class="panel" id="panel-pools">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;">
+      🏆 Survivor Pools
+      <button class="btn btn-secondary btn-sm" onclick="createPool()">+ New Pool</button>
+    </div>
+    <div class="card-body" id="poolsContent">
+      <div class="empty" id="poolsEmpty"><div class="empty-icon">🏆</div><p>No pools yet. Create one to start tracking used players.</p></div>
+      <div id="poolsList"></div>
+    </div>
+  </div>
+  <div class="card" id="crossPoolCard" style="display:none;">
+    <div class="card-header">🔄 Cross-Pool Availability</div>
+    <div class="card-body" id="crossPoolContent"></div>
+  </div>
+</div>
+
+<!-- SCHEDULE TAB -->
+<div class="panel" id="panel-schedule">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;">
+      📅 3-Day Schedule &amp; Matchup Difficulty
+      <button class="btn btn-secondary btn-sm" onclick="loadScheduleView()">🔄 Refresh</button>
+    </div>
+    <div class="card-body">
+      <div class="sbar info" style="margin-bottom:14px;">
+        <div class="sbar-icon">💡</div>
+        <div class="sbar-text">
+          <div class="sbar-title">How to use this</div>
+          <div class="sbar-sub">Green = favorable matchup (soft SP + high implied runs). Red = avoid. Use this to decide whether to use a player today or save them for a better spot.</div>
+        </div>
+      </div>
+      <div id="scheduleViewContent"><div class="empty"><div class="empty-icon">📅</div><p>Click Refresh to load the 3-day schedule.</p></div></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -363,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function switchTab(t) {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
-  const idx = ['analyze','lineups','results','help'].indexOf(t);
+  const idx = ['analyze','lineups','results','pools','schedule','help'].indexOf(t);
   document.querySelectorAll('.tab')[idx].classList.add('active');
   document.getElementById('panel-' + t).classList.add('active');
 }
@@ -1332,6 +1397,8 @@ function renderResults(players) {
   document.getElementById('resEmpty').style.display = 'none';
   document.getElementById('resContent').style.display = 'block';
   document.getElementById('resContent').innerHTML = html;
+  // Refresh pool status badges on cards
+  setTimeout(refreshResultPoolStatus, 50);
 }
 
 function playerCard(p, rank) {
@@ -1421,6 +1488,337 @@ function sortBy(f) {
   cards.sort((a, b) => f === 'score' ? +b.dataset.score - +a.dataset.score : f === 'xba' ? +b.dataset.xba - +a.dataset.xba : +a.dataset.kpct - +b.dataset.kpct);
   cards.forEach((c, i) => { c.querySelector('.p-rank').textContent = i + 1; grid.appendChild(c); });
 }
+// ── POOL MANAGEMENT ──────────────────────────────────────────────────────────
+// Pools stored in localStorage: { pools: [{id, name, used: [playerName, ...]}, ...] }
+
+const MAX_POOLS = 6;
+let pools = [];
+let activePoolId = null; // currently selected pool for marking players
+
+function loadPools() {
+  try { pools = JSON.parse(localStorage.getItem('survivorPools') || '[]'); }
+  catch(e) { pools = []; }
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function savePools() {
+  localStorage.setItem('survivorPools', JSON.stringify(pools));
+}
+
+function createPool() {
+  if (pools.length >= MAX_POOLS) { alert('Maximum ' + MAX_POOLS + ' pools supported.'); return; }
+  const id = 'pool_' + Date.now();
+  const name = 'Pool ' + (pools.length + 1);
+  pools.push({ id, name, used: [] });
+  savePools();
+  renderPools();
+}
+
+function deletePool(id) {
+  if (!confirm('Delete this pool and all used player history?')) return;
+  pools = pools.filter(p => p.id !== id);
+  if (activePoolId === id) activePoolId = null;
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function renamePool(id, newName) {
+  const pool = pools.find(p => p.id === id);
+  if (pool) { pool.name = newName; savePools(); }
+}
+
+function markUsed(playerName, poolId) {
+  const pool = pools.find(p => p.id === poolId);
+  if (!pool) return;
+  if (!pool.used.includes(playerName)) {
+    pool.used.push(playerName);
+    savePools();
+    renderPools();
+    refreshResultPoolStatus();
+  }
+}
+
+function unmarkUsed(playerName, poolId) {
+  const pool = pools.find(p => p.id === poolId);
+  if (!pool) return;
+  pool.used = pool.used.filter(n => n !== playerName);
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function isUsedInPool(playerName, poolId) {
+  const pool = pools.find(p => p.id === poolId);
+  return pool ? pool.used.includes(playerName) : false;
+}
+
+function getUsedPools(playerName) {
+  return pools.filter(p => p.used.includes(playerName)).map(p => p.name);
+}
+
+function renderPools() {
+  const list = document.getElementById('poolsList');
+  const empty = document.getElementById('poolsEmpty');
+  const crossCard = document.getElementById('crossPoolCard');
+  if (!list) return;
+
+  if (!pools.length) { empty.style.display='block'; list.innerHTML=''; crossCard.style.display='none'; return; }
+  empty.style.display = 'none';
+  crossCard.style.display = pools.length > 1 ? 'block' : 'none';
+
+  list.innerHTML = pools.map(pool => {
+    const usedHtml = pool.used.length
+      ? pool.used.map(name => `<span class="used-tag" onclick="unmarkUsed('${name.replace(/'/g,"\'")}','${pool.id}')" title="Click to unmark">
+          ${name} <span class="undo">✕</span>
+        </span>`).join('')
+      : '<span style="font-size:12px;color:var(--muted);">No players used yet</span>';
+
+    return `<div class="pool-card">
+      <div class="pool-header">
+        <input class="pool-name-el" value="${pool.name}" onchange="renamePool('${pool.id}',this.value)" onblur="renamePool('${pool.id}',this.value)">
+        <span style="font-size:12px;color:var(--muted);">${pool.used.length} used</span>
+        <button class="btn btn-secondary btn-sm" onclick="setActivePool('${pool.id}')" style="${activePoolId===pool.id?'background:var(--blue);color:#fff;':''}">
+          ${activePoolId===pool.id ? '✓ Active' : 'Set Active'}
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="deletePool('${pool.id}')" style="color:var(--red);">✕</button>
+      </div>
+      <div class="pool-body">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Used Players (click to unmark)</div>
+        <div class="used-list">${usedHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderCrossPool();
+}
+
+function setActivePool(id) {
+  activePoolId = activePoolId === id ? null : id;
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function renderCrossPool() {
+  if (pools.length < 2) return;
+  const content = document.getElementById('crossPoolContent');
+  if (!content) return;
+
+  // Find players used in multiple pools
+  const allUsed = {};
+  pools.forEach(pool => {
+    pool.used.forEach(name => {
+      if (!allUsed[name]) allUsed[name] = [];
+      allUsed[name].push(pool.name);
+    });
+  });
+
+  const multiUsed = Object.entries(allUsed).filter(([,p]) => p.length > 1);
+  const available = allScoredPlayers.filter(p => !allUsed[p.name] || allUsed[p.name].length === 0).slice(0, 10);
+
+  let html = '';
+  if (multiUsed.length) {
+    html += '<div style="margin-bottom:14px;"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px;">Used in multiple pools:</div>';
+    html += multiUsed.map(([name, pools]) =>
+      `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;">
+        <span style="font-weight:600;">${name}</span>
+        <span style="font-size:11px;color:var(--muted);">${pools.join(', ')}</span>
+      </div>`).join('');
+    html += '</div>';
+  }
+
+  if (available.length) {
+    html += '<div><div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;">Still available in all pools (top by score):</div>';
+    html += available.map(p =>
+      `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;">
+        <span style="font-weight:600;">${p.name}</span>
+        <span style="font-size:11px;color:var(--muted);">${p.team} · Score ${p.compositeScore}</span>
+      </div>`).join('');
+    html += '</div>';
+  }
+
+  content.innerHTML = html || '<div style="font-size:13px;color:var(--muted);">No cross-pool conflicts.</div>';
+}
+
+// Refresh result cards to show used/available status for active pool
+function refreshResultPoolStatus() {
+  document.querySelectorAll('.player-card').forEach(card => {
+    const name = card.dataset.name ? 
+      allScoredPlayers.find(p => p.name.toLowerCase() === card.dataset.name)?.name : null;
+    if (!name) return;
+    const usedPools = getUsedPools(name);
+    card.classList.toggle('used-pool', activePoolId ? isUsedInPool(name, activePoolId) : false);
+    // Update or add pool status pill
+    let poolPill = card.querySelector('.pool-pill');
+    if (usedPools.length) {
+      if (!poolPill) {
+        poolPill = document.createElement('span');
+        poolPill.className = 'pill used pool-pill';
+        card.querySelector('.pills').appendChild(poolPill);
+      }
+      poolPill.textContent = 'Used: ' + usedPools.join(', ');
+    } else if (poolPill) {
+      poolPill.remove();
+    }
+    // Update mark-used button
+    let markBtn = card.querySelector('.mark-used-btn');
+    if (activePoolId) {
+      if (!markBtn) {
+        markBtn = document.createElement('button');
+        markBtn.className = 'btn btn-secondary btn-sm mark-used-btn';
+        markBtn.style.cssText = 'font-size:10px;padding:3px 8px;margin-top:6px;';
+        card.querySelector('div:nth-child(2)').appendChild(markBtn);
+      }
+      const isUsed = isUsedInPool(name, activePoolId);
+      const pool = pools.find(p => p.id === activePoolId);
+      markBtn.textContent = isUsed ? '✓ Used in ' + pool?.name : '+ Mark used in ' + pool?.name;
+      markBtn.onclick = () => {
+        if (isUsed) unmarkUsed(name, activePoolId);
+        else markUsed(name, activePoolId);
+      };
+      markBtn.style.color = isUsed ? 'var(--red)' : 'var(--blue)';
+    } else if (markBtn) {
+      markBtn.remove();
+    }
+  });
+}
+
+// ── 3-DAY SCHEDULE VIEW ───────────────────────────────────────────────────────
+const SCHEDULE_SP_DIFFICULTY = {
+  // Known tough SPs (high K%, low xBA allowed) — score 0-100 for batter (lower = tougher)
+  // Uses same SP_STATS data: [ERA, WHIP, K/9, hand]
+};
+
+async function loadScheduleView() {
+  const content = document.getElementById('scheduleViewContent');
+  content.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-msg">Loading 3-day schedule...</div></div>';
+
+  const today = new Date();
+  const dates = [0, 1, 2].map(offset => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString('en-CA');
+  });
+
+  const dateLabels = [0, 1, 2].map(offset => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    return offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  });
+
+  try {
+    // Fetch all 3 days in parallel
+    const schedules = await Promise.all(dates.map(date =>
+      fetch('/api/schedule?date=' + date).then(r => r.ok ? r.json() : {dates:[]}).catch(() => ({dates:[]}))
+    ));
+
+    // Build matchup map: teamAbbr -> [day0matchup, day1matchup, day2matchup]
+    // matchup: {opponent, spName, spHand, impliedRuns, difficulty}
+    const teamMatchups = {}; // teamAbbr -> array of 3 (null if off)
+
+    schedules.forEach((data, dayIdx) => {
+      const games = (data.dates || [])[0]?.games || [];
+      games.forEach(g => {
+        const homeAbbr = g.teams?.home?.team?.abbreviation;
+        const awayAbbr = g.teams?.away?.team?.abbreviation;
+        const homeSP = g.teams?.home?.probablePitcher?.fullName || 'TBD';
+        const awaySP = g.teams?.away?.probablePitcher?.fullName || 'TBD';
+
+        const processTeam = (myAbbr, opponentSP, opponentAbbr) => {
+          if (!teamMatchups[myAbbr]) teamMatchups[myAbbr] = [null, null, null];
+          // Score difficulty: SP K/9 + implied runs
+          const spData = SP_NORM[normalize(opponentSP)];
+          const k9 = spData ? spData[2] : 8.5;
+          // SP difficulty: higher K9 = harder (0=easy, 100=brutal)
+          const spScore = Math.min(100, Math.max(0, ((k9 - 5.0) / (14.0 - 5.0)) * 100));
+          // Implied runs from odds (if loaded)
+          const oddsEntry = liveOdds[myAbbr];
+          const impliedRuns = oddsEntry?.impliedRuns || null;
+          const runsScore = impliedRuns ? Math.min(100, Math.max(0, ((impliedRuns - 2.0) / (6.5 - 2.0)) * 100)) : 50;
+          // Batter matchup score: higher = easier for batter (inverted SP difficulty + runs)
+          const matchupScore = Math.round((1 - spScore/100) * 0.5 * 100 + runsScore * 0.5);
+
+          let cls = 'ok', label = opponentSP === 'TBD' ? 'TBD' : '';
+          if (matchupScore >= 70) cls = 'great';
+          else if (matchupScore >= 55) cls = 'good';
+          else if (matchupScore >= 40) cls = 'ok';
+          else if (matchupScore >= 25) cls = 'tough';
+          else cls = 'brutal';
+
+          const spHand = spData ? spData[3] : '?';
+          teamMatchups[myAbbr][dayIdx] = {
+            opponent: opponentAbbr, spName: opponentSP, spHand,
+            k9: k9.toFixed(1), impliedRuns, matchupScore, cls,
+          };
+        };
+
+        if (homeAbbr) processTeam(homeAbbr, awaySP, awayAbbr);
+        if (awayAbbr) processTeam(awayAbbr, homeSP, homeAbbr);
+      });
+    });
+
+    // Get top players from allScoredPlayers to show their schedule
+    const topPlayers = allScoredPlayers.slice(0, 40);
+    if (!topPlayers.length) {
+      content.innerHTML = '<div class="empty"><div class="empty-icon">⚾</div><p>Run an analysis first to see player schedules.</p></div>';
+      return;
+    }
+
+    // Build table
+    const cols = `160px repeat(3, 1fr)`;
+    let html = `<div style="overflow-x:auto;">
+      <div class="sched-header" style="grid-template-columns:${cols};">
+        <div>Player</div>
+        ${dateLabels.map(l => `<div style="text-align:center;">${l}</div>`).join('')}
+      </div>`;
+
+    topPlayers.forEach(p => {
+      const matchups = teamMatchups[p.team] || [null, null, null];
+      const usedInActive = activePoolId ? isUsedInPool(p.name, activePoolId) : false;
+      const usedStyle = usedInActive ? 'opacity:.4;' : '';
+
+      html += `<div class="sched-row" style="grid-template-columns:${cols};${usedStyle}">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${p.name} ${usedInActive ? '<span style="font-size:10px;color:var(--red);">(used)</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--muted);">${p.team} · Today #${p.battingOrder}</div>
+        </div>`;
+
+      matchups.forEach((m, i) => {
+        if (!m) {
+          html += `<div class="sched-day off">OFF</div>`;
+        } else {
+          const runsStr = m.impliedRuns ? m.impliedRuns.toFixed(1) + 'R' : '';
+          html += `<div class="sched-day ${m.cls}" title="vs ${m.spName} (${m.spHand}) · K/9: ${m.k9}${m.impliedRuns ? ' · ' + m.impliedRuns.toFixed(1) + ' proj runs' : ''}">
+            <div>vs ${m.opponent}</div>
+            <div style="font-size:10px;opacity:.8;">${m.spName !== 'TBD' ? m.spName.split(' ').slice(-1)[0] : 'TBD'} ${runsStr}</div>
+          </div>`;
+        }
+      });
+
+      html += `</div>`;
+    });
+
+    html += `</div>
+      <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;font-size:11px;">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#dcfce7;margin-right:4px;"></span>Great</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#d1fae5;margin-right:4px;"></span>Good</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--surface2);margin-right:4px;"></span>Neutral</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#fef9c3;margin-right:4px;"></span>Tough</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#fee2e2;margin-right:4px;"></span>Brutal</span>
+      </div>
+      <div class="disc" style="margin-top:10px;">Difficulty based on opposing SP K/9 + team implied runs. Hover cells for full SP details. Run analysis first to populate player list.</div>`;
+
+    content.innerHTML = html;
+
+  } catch(e) {
+    content.innerHTML = '<div class="err"><strong>Error:</strong> ' + e.message + '</div>';
+  }
+}
+
+// Load pools on startup and after results render
+document.addEventListener('DOMContentLoaded', loadPools);
+
 </script>
 </body>
 </html>
