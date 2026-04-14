@@ -369,7 +369,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
     </div>
   </div>
   <div class="card" id="crossPoolCard" style="display:none;">
-    <div class="card-header">🔄 Cross-Pool Availability</div>
+    <div class="card-header">📊 Pool Summary</div>
     <div class="card-body" id="crossPoolContent"></div>
   </div>
 </div>
@@ -1760,7 +1760,7 @@ function renderPools() {
     return;
   }
   empty.style.display = 'none';
-  crossCard.style.display = pools.length > 1 ? 'block' : 'none';
+  crossCard.style.display = pools.length ? 'block' : 'none';
 
   const today = new Date().toLocaleDateString('en-CA');
 
@@ -1869,11 +1869,132 @@ function setActivePool(id) {
 }
 
 function renderCrossPool() {
-  if (pools.length < 2) return;
   const content = document.getElementById('crossPoolContent');
-  if (!content) return;
+  const crossCard = document.getElementById('crossPoolCard');
+  if (!content || !pools.length) return;
+  crossCard.style.display = 'block';
 
-  // Find players used in multiple pools
+  const today = new Date().toLocaleDateString('en-CA');
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+  const totalPools = pools.length;
+
+  // Build map: playerName -> { usedIn: [poolNames], availIn: [poolNames], usedToday: bool }
+  const playerMap = {};
+
+  const allUsedNames = new Set();
+  pools.forEach(pool => {
+    pool.used.forEach(u => {
+      const name = typeof u === 'string' ? u : u.name;
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      allUsedNames.add(name);
+      if (!playerMap[name]) playerMap[name] = { usedIn: [], availIn: [], todayPools: [] };
+      playerMap[name].usedIn.push(pool.name);
+      if (date === today) playerMap[name].todayPools.push(pool.name);
+    });
+  });
+
+  // Mark available pools for each player
+  Object.keys(playerMap).forEach(name => {
+    playerMap[name].availIn = pools
+      .filter(p => !p.used.some(u => (typeof u === 'string' ? u : u.name) === name))
+      .map(p => p.name);
+  });
+
+  // Sort: most burned first, then alpha
+  const players = Object.entries(playerMap).sort((a, b) => b[1].usedIn.length - a[1].usedIn.length || a[0].localeCompare(b[0]));
+
+  // Today's picks summary
+  const todayRows = players.filter(([, d]) => d.todayPools.length > 0);
+
+  let html = '';
+
+  // ── TODAY'S PICKS ──────────────────────────────────────────────────
+  html += `<div style="margin-bottom:18px;">
+    <div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📅 Today — ${todayLabel}</div>`;
+
+  if (todayRows.length) {
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;">`;
+    todayRows.forEach(([name, d]) => {
+      const scored = allScoredPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
+      const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=75?'var(--green)':scored.compositeScore>=60?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
+      html += `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;">
+        <div style="font-weight:600;">${name}${scoreStr}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${d.todayPools.join(' · ')}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div style="font-size:13px;color:var(--muted);font-style:italic;">No picks logged for today yet.</div>`;
+  }
+  html += `</div>`;
+
+  // ── PLAYER AVAILABILITY TABLE ──────────────────────────────────────
+  if (players.length) {
+    html += `<div style="padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🔄 Player Availability Across All Pools</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);background:var(--surface2);">
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Player</th>
+            <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Available</th>
+            <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Burned</th>
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Used In</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    players.forEach(([name, d], i) => {
+      const availCount = totalPools - d.usedIn.length;
+      const burnedCount = d.usedIn.length;
+      const allBurned = burnedCount === totalPools;
+      const bg = i % 2 === 0 ? '' : 'background:var(--surface2);';
+
+      // Availability bar
+      const pct = Math.round((availCount / totalPools) * 100);
+      const barColor = allBurned ? 'var(--red)' : availCount <= 1 ? 'var(--orange)' : availCount <= totalPools/2 ? 'var(--yellow)' : 'var(--green)';
+
+      const availCell = allBurned
+        ? `<span style="font-weight:700;color:var(--red);">❌ All burned</span>`
+        : `<span style="font-weight:700;color:${barColor};">${availCount}/${totalPools}</span>`;
+
+      html += `<tr style="${bg}border-bottom:1px solid var(--border);">
+        <td style="padding:8px 12px;font-weight:600;">${name}</td>
+        <td style="padding:8px 10px;text-align:center;">${availCell}</td>
+        <td style="padding:8px 10px;text-align:center;font-weight:600;color:${burnedCount>0?'var(--red)':'var(--muted)'};">${burnedCount}</td>
+        <td style="padding:8px 12px;font-size:12px;color:var(--muted);">${d.usedIn.join(' · ')}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  }
+
+  content.innerHTML = html || '<div style="font-size:13px;color:var(--muted);">No picks recorded yet.</div>';
+}
+
+function setActivePool(id) {
+  activePoolId = activePoolId === id ? null : id;
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function renderCrossPool() {
+  const content = document.getElementById('crossPoolContent');
+  const crossCard = document.getElementById('crossPoolCard');
+  if (!content || !pools.length) return;
+  crossCard.style.display = 'block';
+
+  const today = new Date().toLocaleDateString('en-CA');
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+
+  // Today's picks per pool
+  const todayPicks = pools.map(pool => {
+    const todayEntries = pool.used
+      .map(u => typeof u === 'string' ? { name: u, date: '' } : u)
+      .filter(u => u.date === today);
+    return { poolName: pool.name, picks: todayEntries };
+  }).filter(p => p.picks.length > 0);
+
+  // Cross-pool conflicts (used in 2+ pools on any date)
   const allUsed = {};
   pools.forEach(pool => {
     pool.used.forEach(u => {
@@ -1882,32 +2003,74 @@ function renderCrossPool() {
       allUsed[name].push(pool.name);
     });
   });
-
   const multiUsed = Object.entries(allUsed).filter(([,p]) => p.length > 1);
-  const available = allScoredPlayers.filter(p => !allUsed[p.name] || allUsed[p.name].length === 0).slice(0, 10);
 
   let html = '';
+
+  // ── Today's summary ──────────────────────────────────────────────
+  html += `<div style="margin-bottom:18px;">
+    <div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📅 Today's Picks — ${todayLabel}</div>`;
+
+  if (todayPicks.length) {
+    html += `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);background:var(--surface2);">
+          <th style="text-align:left;padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Pool</th>
+          <th style="text-align:left;padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Pick(s)</th>
+          <th style="text-align:center;padding:7px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Score</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    todayPicks.forEach((row, i) => {
+      const bg = i % 2 === 0 ? '' : 'background:var(--surface2);';
+      row.picks.forEach((pick, j) => {
+        // Try to find score from allScoredPlayers
+        const scored = allScoredPlayers.find(p => p.name.toLowerCase() === pick.name.toLowerCase());
+        const scoreHtml = scored
+          ? `<span style="font-weight:700;color:${scored.compositeScore>=75?'var(--green)':scored.compositeScore>=60?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>`
+          : '<span style="color:var(--muted);">—</span>';
+        const poolCell = j === 0
+          ? `<td style="padding:7px 12px;font-weight:600;${bg}" rowspan="${row.picks.length}">${row.poolName}</td>`
+          : '';
+        html += `<tr style="${bg}border-bottom:1px solid var(--border);">
+          ${poolCell}
+          <td style="padding:7px 12px;${bg}">${pick.name}</td>
+          <td style="padding:7px 12px;text-align:center;${bg}">${scoreHtml}</td>
+        </tr>`;
+      });
+    });
+
+    html += `</tbody></table>`;
+  } else {
+    html += `<div style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">
+      No picks logged for today yet. Use the + Add rows above to record today's picks.
+    </div>`;
+  }
+  html += `</div>`;
+
+  // ── Cross-pool conflicts ──────────────────────────────────────────
   if (multiUsed.length) {
-    html += '<div style="margin-bottom:14px;"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px;">Used in multiple pools:</div>';
-    html += multiUsed.map(([name, pools]) =>
-      `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;">
-        <span style="font-weight:600;">${name}</span>
-        <span style="font-size:11px;color:var(--muted);">${pools.join(', ')}</span>
-      </div>`).join('');
-    html += '</div>';
+    html += `<div style="padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">⚠️ Used in Multiple Pools</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);background:var(--surface2);">
+            <th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Player</th>
+            <th style="text-align:left;padding:6px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;">Pools</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    multiUsed.forEach(([name, poolNames], i) => {
+      html += `<tr style="${i%2===0?'':'background:var(--surface2);'}border-bottom:1px solid var(--border);">
+        <td style="padding:6px 12px;font-weight:600;">${name}</td>
+        <td style="padding:6px 12px;color:var(--muted);">${poolNames.join(' · ')}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
   }
 
-  if (available.length) {
-    html += '<div><div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;">Still available in all pools (top by score):</div>';
-    html += available.map(p =>
-      `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;">
-        <span style="font-weight:600;">${p.name}</span>
-        <span style="font-size:11px;color:var(--muted);">${p.team} · Score ${p.compositeScore}</span>
-      </div>`).join('');
-    html += '</div>';
-  }
-
-  content.innerHTML = html || '<div style="font-size:13px;color:var(--muted);">No cross-pool conflicts.</div>';
+  content.innerHTML = html || '<div style="font-size:13px;color:var(--muted);">No pools or picks yet.</div>';
 }
 
 // Refresh result cards to show used/available status for active pool
