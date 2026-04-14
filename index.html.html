@@ -465,49 +465,55 @@ function switchTab(t) {
 // Format: {id, away, awayAbbr, home, homeAbbr, time, venue, awaySP, homeSP}
 // Updated: Tue Apr 7, 2026
 const TODAYS_GAMES = [
-  {id:'efde5549',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Chicago White Sox',homeAbbr:'CWS',time:'2:10 PM CDT',venue:'Rate Field',awaySP:'',homeSP:''},
-  {id:'d08b3522',away:'Kansas City Royals',awayAbbr:'KC',home:'Cleveland Guardians',homeAbbr:'CLE',time:'12:10 PM CDT',venue:'Progressive Field',awaySP:'',homeSP:''},
-  {id:'6cfa7b81',away:'Arizona Diamondbacks',awayAbbr:'AZ',home:'New York Mets',homeAbbr:'NYM',time:'3:10 PM CDT',venue:'Citi Field',awaySP:'',homeSP:''},
-  {id:'77da2e46',away:'Chicago Cubs',awayAbbr:'CHC',home:'Tampa Bay Rays',homeAbbr:'TB',time:'5:40 PM CDT',venue:'Tropicana Field',awaySP:'',homeSP:''},
-  {id:'a789df03',away:'Cincinnati Reds',awayAbbr:'CIN',home:'Miami Marlins',homeAbbr:'MIA',time:'5:40 PM CDT',venue:'loanDepot park',awaySP:'',homeSP:''},
-  {id:'d7965a18',away:'San Diego Padres',awayAbbr:'SD',home:'Pittsburgh Pirates',homeAbbr:'PIT',time:'5:40 PM CDT',venue:'PNC Park',awaySP:'',homeSP:''},
-  {id:'de1f9a9d',away:'Milwaukee Brewers',awayAbbr:'MIL',home:'Boston Red Sox',homeAbbr:'BOS',time:'5:45 PM CDT',venue:'Fenway Park',awaySP:'',homeSP:''},
-  {id:'eda6f56c',away:'St. Louis Cardinals',awayAbbr:'STL',home:'Washington Nationals',homeAbbr:'WSH',time:'5:45 PM CDT',venue:'Nationals Park',awaySP:'',homeSP:''},
-  {id:'28f5618d',away:'Athletics',awayAbbr:'ATH',home:'New York Yankees',homeAbbr:'NYY',time:'6:05 PM CDT',venue:'Yankee Stadium',awaySP:'',homeSP:''},
-  {id:'eefa98d0',away:'Los Angeles Dodgers',awayAbbr:'LAD',home:'Toronto Blue Jays',homeAbbr:'TOR',time:'6:07 PM CDT',venue:'Rogers Centre',awaySP:'',homeSP:''},
-  {id:'e19c45e9',away:'Detroit Tigers',awayAbbr:'DET',home:'Minnesota Twins',homeAbbr:'MIN',time:'6:40 PM CDT',venue:'Target Field',awaySP:'',homeSP:''},
-  {id:'1b292a84',away:'Seattle Mariners',awayAbbr:'SEA',home:'Texas Rangers',homeAbbr:'TEX',time:'7:05 PM CDT',venue:'Globe Life Field',awaySP:'',homeSP:''},
-  {id:'bd765a80',away:'Houston Astros',awayAbbr:'HOU',home:'Colorado Rockies',homeAbbr:'COL',time:'7:40 PM CDT',venue:'Coors Field',awaySP:'',homeSP:''},
-  {id:'9dd9ee86',away:'Atlanta Braves',awayAbbr:'ATL',home:'Los Angeles Angels',homeAbbr:'LAA',time:'8:38 PM CDT',venue:'Angel Stadium',awaySP:'',homeSP:''},
-  {id:'7c11391d',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'San Francisco Giants',homeAbbr:'SF',time:'8:45 PM CDT',venue:'Oracle Park',awaySP:'',homeSP:''},
+  // Auto-updated: Apr 14, 2026
+  // Tool will try live MLB API first; this is the fallback
+  {id:'g1',away:'New York Yankees',awayAbbr:'NYY',home:'Pittsburgh Pirates',homeAbbr:'PIT',time:'6:40 PM ET',venue:'PNC Park',awaySP:'',homeSP:''},
+  {id:'g2',away:'Boston Red Sox',awayAbbr:'BOS',home:'Baltimore Orioles',homeAbbr:'BAL',time:'6:35 PM ET',venue:'Oriole Park',awaySP:'',homeSP:''},
+  {id:'g3',away:'Tampa Bay Rays',awayAbbr:'TB',home:'Toronto Blue Jays',homeAbbr:'TOR',time:'7:07 PM ET',venue:'Rogers Centre',awaySP:'',homeSP:''},
+  {id:'g4',away:'Miami Marlins',awayAbbr:'MIA',home:'Philadelphia Phillies',homeAbbr:'PHI',time:'6:40 PM ET',venue:'Citizens Bank Park',awaySP:'',homeSP:''},
+  {id:'g5',away:'Atlanta Braves',awayAbbr:'ATL',home:'New York Mets',homeAbbr:'NYM',time:'7:10 PM ET',venue:'Citi Field',awaySP:'',homeSP:''},
+  {id:'g6',away:'Chicago Cubs',awayAbbr:'CHC',home:'Cincinnati Reds',homeAbbr:'CIN',time:'6:40 PM ET',venue:'Great American Ball Park',awaySP:'',homeSP:''},
+  {id:'g7',away:'Milwaukee Brewers',awayAbbr:'MIL',home:'St. Louis Cardinals',homeAbbr:'STL',time:'7:45 PM ET',venue:'Busch Stadium',awaySP:'',homeSP:''},
+  {id:'g8',away:'Cleveland Guardians',awayAbbr:'CLE',home:'Kansas City Royals',homeAbbr:'KC',time:'7:40 PM ET',venue:'Kauffman Stadium',awaySP:'',homeSP:''},
+  {id:'g9',away:'Detroit Tigers',awayAbbr:'DET',home:'Minnesota Twins',homeAbbr:'MIN',time:'7:40 PM ET',venue:'Target Field',awaySP:'',homeSP:''},
+  {id:'g10',away:'Chicago White Sox',awayAbbr:'CHW',home:'Texas Rangers',homeAbbr:'TEX',time:'8:05 PM ET',venue:'Globe Life Field',awaySP:'',homeSP:''},
+  {id:'g11',away:'Washington Nationals',awayAbbr:'WSH',home:'Colorado Rockies',homeAbbr:'COL',time:'8:40 PM ET',venue:'Coors Field',awaySP:'',homeSP:''},
+  {id:'g12',away:'San Diego Padres',awayAbbr:'SD',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'9:40 PM ET',venue:'Chase Field',awaySP:'',homeSP:''},
+  {id:'g13',away:'San Francisco Giants',awayAbbr:'SF',home:'Los Angeles Dodgers',homeAbbr:'LAD',time:'10:10 PM ET',venue:'Dodger Stadium',awaySP:'',homeSP:''},
+  {id:'g14',away:'Houston Astros',awayAbbr:'HOU',home:'Los Angeles Angels',homeAbbr:'LAA',time:'9:38 PM ET',venue:'Angel Stadium',awaySP:'',homeSP:''},
+  {id:'g15',away:'Oakland Athletics',awayAbbr:'ATH',home:'Seattle Mariners',homeAbbr:'SEA',time:'9:40 PM ET',venue:'T-Mobile Park',awaySP:'',homeSP:''},
 ];
 
 async function loadSchedule() {
-  // Try to enrich with probable pitchers + lineups from proxy
-  // If proxy fails, just use the hardcoded game list
-  try {
-    const date = new Date().toLocaleDateString('en-CA');
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 6000);
-    const res = await fetch('/api/schedule?date=' + date, { signal: controller.signal });
-    if (res.ok) {
-      const data = await res.json();
-      const games = (data.dates || [])[0]?.games || [];
-      if (games.length > 0) {
-        // Successfully got MLB data — use it
-        todayGames = games;
-        const confirmed = games.filter(g => (g.lineups?.homePlayers || []).length > 0).length;
-        setScheduleStatus('success', '✅', games.length + ' games loaded',
-          confirmed + ' with confirmed lineups · ' + (games.length - confirmed) + ' lineups pending (~3–4 hrs before first pitch)');
-        renderGameCards(games);
-        document.getElementById('gamesWrap').style.display = 'block';
-        document.getElementById('stepList').style.display = 'flex';
-        return;
-      }
-    }
-  } catch(e) { /* fall through to hardcoded */ }
+  const date = new Date().toLocaleDateString('en-CA');
 
-  // Fallback: use hardcoded today's games (always works, no SP or lineup data)
+  // Always load hardcoded games instantly so UI never hangs
+  loadHardcodedGames();
+
+  // Then try to enrich with live data in the background (4s timeout)
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch('/api/schedule?date=' + date, { signal: controller.signal });
+    clearTimeout(tid);
+    if (!res.ok) throw new Error('status ' + res.status);
+    const data = await res.json();
+    const games = (data.dates || [])[0]?.games || [];
+    if (games.length > 0) {
+      todayGames = games;
+      const confirmed = games.filter(g => (g.lineups?.homePlayers || []).length > 0).length;
+      setScheduleStatus('success', '✅', games.length + ' games loaded (live)',
+        confirmed + ' confirmed lineups · ' + (games.length - confirmed) + ' pending (~3–4 hrs before first pitch)');
+      renderGameCards(games);
+    }
+  } catch(e) {
+    // Hardcoded already loaded — just note it in status
+    setScheduleStatus('success', '✅', TODAYS_GAMES.length + ' games loaded',
+      'Live API unavailable — using hardcoded schedule. SP from SP_STATS, lineups projected.');
+  }
+}
+
+function loadHardcodedGames() {
   todayGames = TODAYS_GAMES.map(g => ({
     gamePk: g.id,
     gameDate: new Date().toISOString(),
@@ -519,9 +525,8 @@ async function loadSchedule() {
     lineups: { homePlayers: [], awayPlayers: [] },
     _simple: g,
   }));
-
   setScheduleStatus('success', '✅', TODAYS_GAMES.length + ' games loaded',
-    'Using hardcoded schedule · SP data from SP_STATS · Lineups will be projected');
+    'Loading live data...');
   renderGameCards(todayGames);
   document.getElementById('gamesWrap').style.display = 'block';
   document.getElementById('stepList').style.display = 'flex';
