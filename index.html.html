@@ -1917,9 +1917,15 @@ function renderCrossPool() {
     todayRows.forEach(([name, d]) => {
       const scored = allScoredPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
       const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=75?'var(--green)':scored.compositeScore>=60?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
+      const pickCount = d.todayPools.length;
+      const pickLabel = `${pickCount}/${totalPools} pool${totalPools !== 1 ? 's' : ''}`;
+      const pickColor = pickCount === totalPools ? 'var(--blue)' : 'var(--muted)';
       html += `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;">
-        <div style="font-weight:600;">${name}${scoreStr}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${d.todayPools.join(' · ')}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-weight:600;">${name}</span>${scoreStr}
+          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--blue);color:#fff;">${pickLabel}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">${d.todayPools.join(' · ')}</div>
       </div>`;
     });
     html += `</div>`;
