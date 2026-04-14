@@ -134,8 +134,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 }
   /* Pool styles */
   /* Pool grid */
-  .pools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:4px;}
-  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;}
+  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
   .pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-bottom:1px solid var(--border);}
   .pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;min-width:0;}
   .pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue);color:#fff;white-space:nowrap;}
@@ -1757,68 +1756,92 @@ function renderPools() {
   if (!pools.length) {
     empty.style.display = 'block';
     list.innerHTML = '';
-    list.className = '';
     crossCard.style.display = 'none';
     return;
   }
   empty.style.display = 'none';
-  list.className = 'pools-grid';
   crossCard.style.display = pools.length > 1 ? 'block' : 'none';
 
   const today = new Date().toLocaleDateString('en-CA');
 
-  list.innerHTML = pools.map(pool => {
+  let tableHtml = `
+  <div style="overflow-x:auto;">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="border-bottom:2px solid var(--border);background:var(--surface2);">
+        <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Pool</th>
+        <th style="text-align:center;padding:10px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Used</th>
+        <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Players Used (click to remove)</th>
+        <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;min-width:320px;">Add Player</th>
+        <th style="padding:10px 8px;"></th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  pools.forEach((pool, i) => {
+    const isActive = activePoolId === pool.id;
     const usedEntries = pool.used
       .map(u => typeof u === 'string' ? { name: u, date: '' } : u)
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-    const isActive = activePoolId === pool.id;
-
-    const usedHtml = usedEntries.length
+    const usedTags = usedEntries.length
       ? usedEntries.map(u => {
           const safeN = u.name.replace(/'/g, "\'");
-          const dateLabel = u.date
-            ? `<span style="font-size:9px;opacity:.7;margin-left:2px;">${formatDate(u.date)}</span>`
-            : '';
-          return `<span class="used-tag" onclick="unmarkUsed('${safeN}','${pool.id}')" title="${u.date || 'unknown date'} — click to remove">
-            ${u.name}${dateLabel} <span class="undo">✕</span>
+          const dateStr = u.date ? ` <span style="font-size:9px;opacity:.65;">${formatDate(u.date)}</span>` : '';
+          return `<span class="used-tag" onclick="unmarkUsed('${safeN}','${pool.id}')" title="${u.date || ''} — click to remove">
+            ${u.name}${dateStr} <span class="undo">✕</span>
           </span>`;
         }).join('')
-      : `<span style="font-size:12px;color:var(--muted);font-style:italic;">None yet</span>`;
+      : `<span style="color:var(--muted);font-style:italic;font-size:12px;">None</span>`;
 
-    return `<div class="pool-card${isActive ? ' pool-card-active' : ''}" style="${isActive ? 'border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.15);' : ''}">
-      <div class="pool-header">
-        <input class="pool-name-el" value="${pool.name}"
-          onchange="renamePool('${pool.id}',this.value)"
-          onblur="renamePool('${pool.id}',this.value)">
-        ${isActive ? '<span class="pool-active-badge">✓ Active</span>' : ''}
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap;">${usedEntries.length} used</span>
-        <button class="btn btn-secondary btn-sm" onclick="setActivePool('${pool.id}')"
-          style="font-size:10px;padding:2px 8px;${isActive ? 'color:var(--red);' : 'color:var(--blue);'}">
-          ${isActive ? 'Deactivate' : 'Set Active'}
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="deletePool('${pool.id}')"
-          style="font-size:10px;padding:2px 8px;color:var(--red);" title="Delete pool">✕</button>
-      </div>
-      <div class="pool-body">
-        <div class="pool-used-section">
-          <div class="pool-section-label">Used Players</div>
-          <div class="used-list">${usedHtml}</div>
-        </div>
-        <div class="pool-add-row">
-          <input type="text" class="pool-add-input" id="addName_${pool.id}"
-            placeholder="Add player..."
-            onkeydown="if(event.key==='Enter')addPlayerManually('${pool.id}')">
-          <input type="date" class="pool-date-input" id="addDate_${pool.id}" value="${today}">
-          <button class="btn btn-secondary btn-sm" onclick="addPlayerManually('${pool.id}')"
-            style="color:var(--blue);white-space:nowrap;">+ Add</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+    const rowBg = isActive ? 'background:rgba(37,99,235,.04);' : (i % 2 === 0 ? '' : 'background:var(--surface2);');
+    const activeBorder = isActive ? 'border-left:3px solid var(--blue);' : 'border-left:3px solid transparent;';
 
+    tableHtml += `
+      <tr style="${rowBg}${activeBorder}border-bottom:1px solid var(--border);">
+        <td style="padding:10px 12px;white-space:nowrap;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${isActive ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;background:var(--blue);color:#fff;">ACTIVE</span>' : ''}
+            <input class="pool-name-el" value="${pool.name}"
+              onchange="renamePool('${pool.id}',this.value)"
+              onblur="renamePool('${pool.id}',this.value)"
+              style="font-weight:600;font-size:13px;width:110px;">
+          </div>
+        </td>
+        <td style="padding:10px 8px;text-align:center;font-weight:700;color:${usedEntries.length > 0 ? 'var(--red)' : 'var(--muted)'};">
+          ${usedEntries.length}
+        </td>
+        <td style="padding:10px 12px;">
+          <div class="used-list" style="gap:4px;">${usedTags}</div>
+        </td>
+        <td style="padding:8px 12px;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" class="pool-add-input" id="addName_${pool.id}"
+              placeholder="Player name..."
+              style="flex:1;min-width:130px;"
+              onkeydown="if(event.key==='Enter')addPlayerManually('${pool.id}')">
+            <input type="date" class="pool-date-input" id="addDate_${pool.id}"
+              value="${today}" style="width:125px;">
+            <button class="btn btn-secondary btn-sm" onclick="addPlayerManually('${pool.id}')"
+              style="color:var(--blue);white-space:nowrap;">+ Add</button>
+          </div>
+        </td>
+        <td style="padding:8px;white-space:nowrap;">
+          <button class="btn btn-secondary btn-sm" onclick="setActivePool('${pool.id}')"
+            style="font-size:10px;color:${isActive ? 'var(--red)' : 'var(--blue)'};">
+            ${isActive ? 'Deactivate' : 'Activate'}
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="deletePool('${pool.id}')"
+            style="font-size:10px;color:var(--muted);margin-left:4px;" title="Delete">✕</button>
+        </td>
+      </tr>`;
+  });
+
+  tableHtml += `</tbody></table></div>`;
+  list.innerHTML = tableHtml;
   renderCrossPool();
 }
+
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
