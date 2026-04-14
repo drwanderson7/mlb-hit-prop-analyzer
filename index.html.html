@@ -391,7 +391,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
     <div class="card-header" style="justify-content:space-between;">
       📈 Pick Results Tracker
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-secondary btn-sm" onclick="checkYesterdayResults()">🔄 Check Yesterday's Results</button>
+        <button class="btn btn-secondary btn-sm" onclick="checkYesterdayResults()">🔄 Auto-fetch Results</button>
         <button class="btn btn-secondary btn-sm" onclick="saveCurrentPicks()">💾 Save Today's Top 10</button>
       </div>
     </div>
@@ -2018,18 +2018,27 @@ function saveCurrentPicks() {
 async function checkYesterdayResults() {
   // Find the most recent saved picks that don't have results yet
   const pending = trackerData.picks.find(p => p.players.some(pl => pl.gotHit === null));
-  if (!pending) { setTrackerStatus('warn', '📋', 'No pending results', 'All saved picks already have results, or no picks saved yet.'); return; }
+  if (!pending) {
+    setTrackerStatus('warn', '📋', 'No pending results', 'All saved picks already have results, or no picks saved yet.');
+    return;
+  }
 
   setTrackerStatus('info', '⏳', 'Fetching box scores...', 'Checking MLB Stats API for ' + pending.date);
 
   const names = pending.players.map(p => p.name).join(',');
   try {
-    const res = await fetch('/api/results?date=' + pending.date + '&players=' + encodeURIComponent(names));
+    // 8-second timeout on results fetch
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch('/api/results?date=' + pending.date + '&players=' + encodeURIComponent(names), {
+      signal: controller.signal
+    });
+    clearTimeout(tid);
+
     if (!res.ok) throw new Error('Results API returned ' + res.status);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    // Update stored picks with results
     let updated = 0;
     pending.players.forEach(pick => {
       const result = data.players.find(r => r.name.toLowerCase() === pick.name.toLowerCase());
@@ -2046,14 +2055,18 @@ async function checkYesterdayResults() {
     renderTracker();
 
     if (updated === 0 && data.gamesChecked === 0) {
-      setTrackerStatus('warn', '⚠️', 'No completed games found for ' + pending.date, 'Games may still be in progress or date has no MLB games.');
+      setTrackerStatus('warn', '⚠️', 'No completed games found for ' + pending.date,
+        'Games may still be in progress. Use the ✓/✗ buttons to enter results manually.');
     } else {
       const hits = pending.players.filter(p => p.gotHit === true).length;
       const total = pending.players.filter(p => p.gotHit !== null).length;
-      setTrackerStatus('success', '✅', `Results loaded: ${hits}/${total} hit`, `${updated} players updated from ${data.gamesChecked} box scores.`);
+      setTrackerStatus('success', '✅', hits + '/' + total + ' hit on ' + pending.date,
+        updated + ' players updated automatically. Use ✓/✗ buttons to correct any errors.');
     }
   } catch(e) {
-    setTrackerStatus('error', '⚠️', 'Failed to fetch results', e.message);
+    const msg = e.name === 'AbortError' ? 'Request timed out — use ✓/✗ buttons to enter results manually' : e.message;
+    setTrackerStatus('warn', '⚠️', 'Auto-fetch failed', msg);
+    // Don't block — tracker is still fully functional with manual entry
   }
 }
 
