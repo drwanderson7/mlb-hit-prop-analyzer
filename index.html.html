@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -359,9 +360,16 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 <!-- POOLS TAB -->
 <div class="panel" id="panel-pools">
   <div class="card" style="margin-top:8px;">
-    <div class="card-header" style="justify-content:space-between;">
+    <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
       🏆 Survivor Pools
-      <button class="btn btn-secondary btn-sm" onclick="createPool()">+ New Pool</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="exportData()" title="Download all pools + tracker data as backup">⬇️ Export Backup</button>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;" title="Restore from backup file">
+          ⬆️ Import Backup
+          <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="createPool()">+ New Pool</button>
+      </div>
     </div>
     <div class="card-body" id="poolsContent">
       <div class="empty" id="poolsEmpty"><div class="empty-icon">🏆</div><p>No pools yet. Create one to start tracking used players.</p></div>
@@ -2497,6 +2505,65 @@ function renderTrackerStats() {
 }
 
 document.addEventListener('DOMContentLoaded', loadTracker);
+
+// ── DATA EXPORT / IMPORT ─────────────────────────────────────────────────────
+
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    pools: JSON.parse(localStorage.getItem('survivorPools') || '[]'),
+    tracker: JSON.parse(localStorage.getItem('hitPropTracker') || '{"picks":[]}'),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mlb-hit-prop-backup-' + new Date().toLocaleDateString('en-CA') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.version) throw new Error('Invalid backup file format');
+
+      const poolCount = (data.pools || []).length;
+      const pickDays  = (data.tracker?.picks || []).length;
+
+      if (!confirm(`Import backup from ${new Date(data.exportedAt).toLocaleDateString()}?
+
+` +
+        `This will REPLACE your current data with:
+` +
+        `• ${poolCount} pool${poolCount !== 1 ? 's' : ''}
+` +
+        `• ${pickDays} day${pickDays !== 1 ? 's' : ''} of tracker history
+
+` +
+        `Your current data will be overwritten.`)) return;
+
+      if (data.pools)   localStorage.setItem('survivorPools',    JSON.stringify(data.pools));
+      if (data.tracker) localStorage.setItem('hitPropTracker',   JSON.stringify(data.tracker));
+
+      // Reload state
+      loadPools();
+      loadTracker();
+      alert(`✅ Import successful!
+${poolCount} pools and ${pickDays} days of tracker history restored.`);
+    } catch(err) {
+      alert('❌ Import failed: ' + err.message + '\nMake sure you selected a valid backup file.');
+    }
+  };
+  reader.readAsText(file);
+  // Reset input so same file can be re-imported if needed
+  event.target.value = '';
+}
 
 </script>
 </body>
