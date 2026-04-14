@@ -133,15 +133,25 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   .panel{padding:14px 16px;}
 }
   /* Pool styles */
-  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;}
-  .pool-header{padding:12px 16px;display:flex;align-items:center;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border);}
-  .pool-name-el{font-size:14px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;}
-  .pool-body{padding:14px 16px;}
-  .used-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-  .used-tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;display:flex;align-items:center;gap:4px;cursor:pointer;}
+  /* Pool grid */
+  .pools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:4px;}
+  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;}
+  .pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;min-width:0;}
+  .pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue);color:#fff;white-space:nowrap;}
+  .pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
+  .pool-used-section{flex:1;}
+  .pool-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .used-list{display:flex;flex-wrap:wrap;gap:5px;}
+  .used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
   .used-tag:hover{opacity:.75;}
+  .pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
+  .pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
+  .pool-add-input:focus{border-color:var(--blue);}
+  .pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
   .player-card.used-pool{opacity:.45;border-left-color:var(--muted)!important;}
   .pill.used{background:#fee2e2;color:var(--red);border-color:#fecaca;}
+  @media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
   /* Schedule view */
   .sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
   .sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
@@ -1650,7 +1660,7 @@ function lookupStreak(name) {
 // ── POOL MANAGEMENT ──────────────────────────────────────────────────────────
 // Pools stored in localStorage: { pools: [{id, name, used: [playerName, ...]}, ...] }
 
-const MAX_POOLS = 6;
+const MAX_POOLS = 20;
 let pools = [];
 let activePoolId = null; // currently selected pool for marking players
 
@@ -1688,11 +1698,15 @@ function renamePool(id, newName) {
   if (pool) { pool.name = newName; savePools(); }
 }
 
-function markUsed(playerName, poolId) {
+function markUsed(playerName, poolId, date) {
   const pool = pools.find(p => p.id === poolId);
   if (!pool) return;
-  if (!pool.used.includes(playerName)) {
-    pool.used.push(playerName);
+  const usedDate = date || new Date().toLocaleDateString('en-CA');
+  // Normalize to objects
+  pool.used = pool.used.map(u => typeof u === 'string' ? { name: u, date: '' } : u);
+  // Check if already in pool (by name)
+  if (!pool.used.find(u => u.name === playerName)) {
+    pool.used.push({ name: playerName, date: usedDate });
     savePools();
     renderPools();
     refreshResultPoolStatus();
@@ -1702,7 +1716,10 @@ function markUsed(playerName, poolId) {
 function unmarkUsed(playerName, poolId) {
   const pool = pools.find(p => p.id === poolId);
   if (!pool) return;
-  pool.used = pool.used.filter(n => n !== playerName);
+  pool.used = pool.used.filter(u => {
+    const name = typeof u === 'string' ? u : u.name;
+    return name !== playerName;
+  });
   savePools();
   renderPools();
   refreshResultPoolStatus();
@@ -1710,11 +1727,25 @@ function unmarkUsed(playerName, poolId) {
 
 function isUsedInPool(playerName, poolId) {
   const pool = pools.find(p => p.id === poolId);
-  return pool ? pool.used.includes(playerName) : false;
+  if (!pool) return false;
+  return pool.used.some(u => {
+    const name = typeof u === 'string' ? u : u.name;
+    return name === playerName;
+  });
 }
 
 function getUsedPools(playerName) {
-  return pools.filter(p => p.used.includes(playerName)).map(p => p.name);
+  return pools.filter(p =>
+    p.used.some(u => (typeof u === 'string' ? u : u.name) === playerName)
+  ).map(p => p.name);
+}
+
+function getUsedDate(playerName, poolId) {
+  const pool = pools.find(p => p.id === poolId);
+  if (!pool) return '';
+  const entry = pool.used.find(u => (typeof u === 'string' ? u : u.name) === playerName);
+  if (!entry || typeof entry === 'string') return '';
+  return entry.date ? formatDate(entry.date) : '';
 }
 
 function renderPools() {
@@ -1723,34 +1754,89 @@ function renderPools() {
   const crossCard = document.getElementById('crossPoolCard');
   if (!list) return;
 
-  if (!pools.length) { empty.style.display='block'; list.innerHTML=''; crossCard.style.display='none'; return; }
+  if (!pools.length) {
+    empty.style.display = 'block';
+    list.innerHTML = '';
+    list.className = '';
+    crossCard.style.display = 'none';
+    return;
+  }
   empty.style.display = 'none';
+  list.className = 'pools-grid';
   crossCard.style.display = pools.length > 1 ? 'block' : 'none';
 
-  list.innerHTML = pools.map(pool => {
-    const usedHtml = pool.used.length
-      ? pool.used.map(name => `<span class="used-tag" onclick="unmarkUsed('${name.replace(/'/g,"\'")}','${pool.id}')" title="Click to unmark">
-          ${name} <span class="undo">✕</span>
-        </span>`).join('')
-      : '<span style="font-size:12px;color:var(--muted);">No players used yet</span>';
+  const today = new Date().toLocaleDateString('en-CA');
 
-    return `<div class="pool-card">
+  list.innerHTML = pools.map(pool => {
+    const usedEntries = pool.used
+      .map(u => typeof u === 'string' ? { name: u, date: '' } : u)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    const isActive = activePoolId === pool.id;
+
+    const usedHtml = usedEntries.length
+      ? usedEntries.map(u => {
+          const safeN = u.name.replace(/'/g, "\'");
+          const dateLabel = u.date
+            ? `<span style="font-size:9px;opacity:.7;margin-left:2px;">${formatDate(u.date)}</span>`
+            : '';
+          return `<span class="used-tag" onclick="unmarkUsed('${safeN}','${pool.id}')" title="${u.date || 'unknown date'} — click to remove">
+            ${u.name}${dateLabel} <span class="undo">✕</span>
+          </span>`;
+        }).join('')
+      : `<span style="font-size:12px;color:var(--muted);font-style:italic;">None yet</span>`;
+
+    return `<div class="pool-card${isActive ? ' pool-card-active' : ''}" style="${isActive ? 'border-color:var(--blue);box-shadow:0 0 0 2px rgba(37,99,235,.15);' : ''}">
       <div class="pool-header">
-        <input class="pool-name-el" value="${pool.name}" onchange="renamePool('${pool.id}',this.value)" onblur="renamePool('${pool.id}',this.value)">
-        <span style="font-size:12px;color:var(--muted);">${pool.used.length} used</span>
-        <button class="btn btn-secondary btn-sm" onclick="setActivePool('${pool.id}')" style="${activePoolId===pool.id?'background:var(--blue);color:#fff;':''}">
-          ${activePoolId===pool.id ? '✓ Active' : 'Set Active'}
+        <input class="pool-name-el" value="${pool.name}"
+          onchange="renamePool('${pool.id}',this.value)"
+          onblur="renamePool('${pool.id}',this.value)">
+        ${isActive ? '<span class="pool-active-badge">✓ Active</span>' : ''}
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap;">${usedEntries.length} used</span>
+        <button class="btn btn-secondary btn-sm" onclick="setActivePool('${pool.id}')"
+          style="font-size:10px;padding:2px 8px;${isActive ? 'color:var(--red);' : 'color:var(--blue);'}">
+          ${isActive ? 'Deactivate' : 'Set Active'}
         </button>
-        <button class="btn btn-secondary btn-sm" onclick="deletePool('${pool.id}')" style="color:var(--red);">✕</button>
+        <button class="btn btn-secondary btn-sm" onclick="deletePool('${pool.id}')"
+          style="font-size:10px;padding:2px 8px;color:var(--red);" title="Delete pool">✕</button>
       </div>
       <div class="pool-body">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">Used Players (click to unmark)</div>
-        <div class="used-list">${usedHtml}</div>
+        <div class="pool-used-section">
+          <div class="pool-section-label">Used Players</div>
+          <div class="used-list">${usedHtml}</div>
+        </div>
+        <div class="pool-add-row">
+          <input type="text" class="pool-add-input" id="addName_${pool.id}"
+            placeholder="Add player..."
+            onkeydown="if(event.key==='Enter')addPlayerManually('${pool.id}')">
+          <input type="date" class="pool-date-input" id="addDate_${pool.id}" value="${today}">
+          <button class="btn btn-secondary btn-sm" onclick="addPlayerManually('${pool.id}')"
+            style="color:var(--blue);white-space:nowrap;">+ Add</button>
+        </div>
       </div>
     </div>`;
   }).join('');
 
   renderCrossPool();
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch(e) { return dateStr; }
+}
+
+function addPlayerManually(poolId) {
+  const nameEl = document.getElementById('addName_' + poolId);
+  const dateEl = document.getElementById('addDate_' + poolId);
+  if (!nameEl) return;
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const date = dateEl?.value || new Date().toLocaleDateString('en-CA');
+  markUsed(name, poolId, date);
+  nameEl.value = '';
 }
 
 function setActivePool(id) {
@@ -1767,7 +1853,8 @@ function renderCrossPool() {
   // Find players used in multiple pools
   const allUsed = {};
   pools.forEach(pool => {
-    pool.used.forEach(name => {
+    pool.used.forEach(u => {
+      const name = typeof u === 'string' ? u : u.name;
       if (!allUsed[name]) allUsed[name] = [];
       allUsed[name].push(pool.name);
     });
