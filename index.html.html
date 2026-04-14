@@ -175,6 +175,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   <div class="tab" onclick="switchTab('results')">📊 Results</div>
   <div class="tab" onclick="switchTab('pools')">🏆 Pools</div>
   <div class="tab" onclick="switchTab('schedule')">📅 Schedule</div>
+  <div class="tab" onclick="switchTab('tracker')">📈 Tracker</div>
   <div class="tab" onclick="switchTab('help')">❓ Help</div>
 </div>
 
@@ -313,13 +314,13 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
       <table class="htable">
         <thead><tr><th>Component</th><th>Weight</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td><strong>Split xBA</strong></td><td>33%</td><td>xBA vs RHP or vs LHP specifically — blended with overall by PA count. Platoon and K% already baked in.</td></tr>
-          <tr><td><strong>Pitcher matchup</strong></td><td>18%</td><td>SP K%, xBA allowed, HH%, whiff% from live Statcast. Biggest daily swing factor.</td></tr>
-          <tr><td><strong>Implied team runs</strong></td><td>10%</td><td>Vegas-implied runs for that team. Low totals reduce PA for bottom of order. Effect dampened for leadoff/2-hole who always get their PAs.</td></tr>
+          <tr><td><strong>Split xBA</strong></td><td>28%</td><td>xBA vs RHP or vs LHP — confidence-weighted by split PA count (needs 80+ PA for full weight). Low-PA splits regress toward league average.</td></tr>
+          <tr><td><strong>Pitcher matchup</strong></td><td>22%</td><td>K% (38%) + xBA allowed (35%) + HH% allowed (15%) + whiff% (8%) + barrel% (4%). ERA excluded. Accounts for reverse-split pitchers.</td></tr>
+          <tr><td><strong>Implied team runs</strong></td><td>14%</td><td>Vegas-implied runs. Effect is order-dependent: slots 1-2 get 20% of effect (always get PAs), slots 3-5 get 55%, slots 6-9 get full effect.</td></tr>
           <tr><td><strong>Batting order</strong></td><td>10%</td><td>PA volume by slot — leadoff ~4.7 PA/game, 9-hole ~3.6 PA/game.</td></tr>
           <tr><td><strong>Batter K%</strong></td><td>14%</td><td>Strikeout = automatic out. Partially redundant with xBA but adds signal for extremes.</td></tr>
           <tr><td><strong>Hard Hit% + Barrel%</strong></td><td>10%</td><td>Contact quality. Reduced — xBA already captures exit velo and launch angle.</td></tr>
-          <tr><td><strong>Park factor</strong></td><td>5%</td><td>Venue hit environment.</td></tr>
+          <tr><td><strong>Park factor</strong></td><td>3%</td><td>Venue hit environment — reduced since xBA already captures exit velocity context.</td></tr>
         </tbody>
       </table>
 
@@ -384,6 +385,32 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   </div>
 </div>
 
+<!-- TRACKER TAB -->
+<div class="panel" id="panel-tracker">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;">
+      📈 Pick Results Tracker
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="checkYesterdayResults()">🔄 Check Yesterday's Results</button>
+        <button class="btn btn-secondary btn-sm" onclick="saveCurrentPicks()">💾 Save Today's Top 10</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="trackerStatus" style="margin-bottom:14px;"></div>
+      <div id="trackerContent">
+        <div class="empty"><div class="empty-icon">📈</div>
+          <p>Run an analysis and click "Save Today's Top 10" to start tracking.<br>
+          Click "Check Yesterday's Results" to auto-fetch box scores.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="trackerStatsCard" style="display:none;">
+    <div class="card-header">📊 Model Performance</div>
+    <div class="card-body" id="trackerStats"></div>
+  </div>
+</div>
+
 <script>
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -428,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function switchTab(t) {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
-  const idx = ['analyze','lineups','results','pools','schedule','help'].indexOf(t);
+  const idx = ['analyze','lineups','results','pools','schedule','tracker','help'].indexOf(t);
   document.querySelectorAll('.tab')[idx].classList.add('active');
   document.getElementById('panel-' + t).classList.add('active');
 }
@@ -650,6 +677,8 @@ let liveVsRHP = {};      // batter xBA + stats vs RHP only
 let liveVsLHP = {};      // batter xBA + stats vs LHP only
 let livePitchers = {};   // pitcher Statcast: xBA allowed, K%, HH%, whiff%
 let liveOdds = {};       // implied team run totals keyed by team abbreviation
+let streak7 = {};        // rolling 7-day batter streak data
+let streak14 = {};       // rolling 14-day batter streak data
 const LIVE_NORM = {};
 
 async function fetchStatcast() {
@@ -699,6 +728,17 @@ async function fetchStatcast() {
   });
 
   if (Object.keys(liveStatcast).length < 10) throw new Error('too few players parsed');
+
+  // Parse rolling streak data
+  streak7 = {}; streak14 = {};
+  const loadStreak = (source, target) => {
+    Object.keys(source || {}).forEach(key => {
+      const p = source[key];
+      if (p && p.streakScore !== undefined) target[normalize(key)] = p;
+    });
+  };
+  loadStreak(json.streak7,  streak7);
+  loadStreak(json.streak14, streak14);
 }
 
 async function fetchOdds() {
@@ -772,12 +812,24 @@ function lookupStatcast(name, spHand) {
   let splitUsed = 'overall';
   if (splitXBA !== null && overallXBA !== null) {
     const splitPA = splitStats?.pa || 0;
-    const wSplit = Math.min(1, splitPA / 60); // full split weight at 60 PA in that split
+    // Confidence ramp: 0 PA = 0% split, 80+ PA = 100% split
+    // More aggressive than before — need 80 PA for full confidence vs 60
+    const wSplit = Math.min(1, splitPA / 80);
     const wOverall = 1 - wSplit;
     xba = parseFloat((splitXBA * wSplit + overallXBA * wOverall).toFixed(3));
-    splitUsed = splitPA >= 60 ? (spHand === 'R' ? 'vsRHP' : 'vsLHP')
-               : splitPA >= 15 ? `blend(${splitPA}PA)`
+    splitUsed = splitPA >= 80 ? (spHand === 'R' ? 'vsRHP' : 'vsLHP')
+               : splitPA >= 20 ? `blend(${splitPA}PA)`
                : 'overall';
+    // Store split PA count so scoring can apply a confidence penalty
+    return {
+      xba,
+      kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+      hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
+      barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+      splitUsed,
+      splitPA,      // expose PA count for confidence weighting in score
+      splitConfidence: parseFloat(wSplit.toFixed(2)), // 0-1
+    };
   } else if (splitXBA !== null) {
     xba = splitXBA;
     splitUsed = spHand === 'R' ? 'vsRHP' : 'vsLHP';
@@ -789,6 +841,8 @@ function lookupStatcast(name, spHand) {
     hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
     barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
     splitUsed,
+    splitPA:         splitStats?.pa ?? 0,
+    splitConfidence: splitXBA !== null ? Math.min(1, (splitStats?.pa || 0) / 80) : 0,
   };
 }
 
@@ -907,13 +961,17 @@ const BATS = {
 
 function getBats(name) { return BATS[name] || '?'; }
 
-function platoonLabel(bats, spHand) {
+function platoonLabel(bats, spHand, spPlatoon) {
   if (bats === 'S') return { label: 'Switch', cls: 'good', adv: true };
   if (!bats || bats === '?' || !spHand || spHand === '?') return { label: '?', cls: '', adv: null };
-  const fav = bats !== spHand;
+  // Normal: same hand = pitcher advantage. Reverse split: opposite applies.
+  const isReverse = spPlatoon === 'reverse';
+  const normallyFav = bats !== spHand; // L vs R or R vs L = normally favorable
+  const fav = isReverse ? !normallyFav : normallyFav;
+  const reverseNote = isReverse ? ' (rev)' : '';
   return fav
-    ? { label: bats + ' vs ' + spHand + ' ✓', cls: 'good', adv: true }
-    : { label: bats + ' vs ' + spHand, cls: 'bad', adv: false };
+    ? { label: bats + ' vs ' + spHand + ' ✓' + reverseNote, cls: 'good', adv: true }
+    : { label: bats + ' vs ' + spHand + reverseNote, cls: 'bad', adv: false };
 }
 
 // Known 2026 typical batting orders per team
@@ -1033,13 +1091,19 @@ const SP_STATS = {
 const SP_NORM = {};
 Object.keys(SP_STATS).forEach(k => { SP_NORM[normalize(k)] = SP_STATS[k]; });
 
+// Pitchers with notable reverse platoon splits
+const REVERSE_SPLIT_PITCHERS = new Set([
+  'corbin burnes','kyle hendricks','andrew heaney',
+  'jose quintana','wade miley','marco gonzales','patrick sandoval',
+]);
+
 function getSPStats(name) {
-  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: 'R' };
-  // Use normalized lookup so accented names match (e.g. "Reynaldo López")
+  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: 'R', platoon: 'normal' };
   const key = normalize(name);
+  const platoon = REVERSE_SPLIT_PITCHERS.has(key) ? 'reverse' : 'normal';
+  const toObj = s => ({ era: s[0], whip: s[1], k9: s[2], hand: s[3], platoon });
   const s = SP_NORM[key];
-  if (s) return { era: s[0], whip: s[1], k9: s[2], hand: s[3] };
-  // Partial match — last name + first initial
+  if (s) return toObj(s);
   const parts = key.split(' ');
   if (parts.length >= 2) {
     const lLast = parts[parts.length-1], lInit = parts[0][0];
@@ -1047,9 +1111,9 @@ function getSPStats(name) {
       const kp = k.split(' ');
       return kp[kp.length-1] === lLast && kp[0][0] === lInit;
     });
-    if (match) { const s2 = SP_NORM[match]; return { era: s2[0], whip: s2[1], k9: s2[2], hand: s2[3] }; }
+    if (match) return toObj(SP_NORM[match]);
   }
-  return { era: 4.20, whip: 1.28, k9: 8.8, hand: 'R' }; // true unknown SP
+  return { era: 4.20, whip: 1.28, k9: 8.8, hand: 'R', platoon: 'normal' };
 }
 
 function buildLineups(gameLineups, rawGames) {
@@ -1126,7 +1190,8 @@ function scoreAllPlayers(games, maxOrder, minPA) {
         if (sc && sc.pa < minPA && sc.pa > 0) return; // filter low PA
 
         const spSC = lookupPitcher(opponentSP);
-        const scored = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC, impliedRuns);
+        const streak = lookupStreak(p.name);
+        const scored = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
         players.push({
           ...scored,
           name: p.name,
@@ -1147,10 +1212,15 @@ function scoreAllPlayers(games, maxOrder, minPA) {
   return players;
 }
 
-function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns) {
-  // --- Batter xBA (28%) ---
+function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns, streak) {
+  // --- Batter split xBA (30%) ---
   const xba = (sc?.xba != null && sc.xba > 0) ? sc.xba : 0.255;
-  const xbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  // Split confidence: when split PA is low, regress xBA score toward league avg (50)
+  // Full confidence at 80+ split PA, pure regression at 0 PA
+  const splitConf = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
+  const leagueAvgXbaScore = 50;
+  const xbaScore = Math.round(rawXbaScore * splitConf + leagueAvgXbaScore * (1 - splitConf));
 
   // --- Batter Hard Hit% + Barrel% (22%) ---
   const hh     = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
@@ -1177,28 +1247,48 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     const spWh   = spSC.whiffPct       ?? 0.25;  // higher = harder for batter
 
     // Score from batter's perspective: higher = better matchup for batter
-    const kComp    = Math.min(100, Math.max(0, (1 - (spK   - 0.10) / (0.40 - 0.10)) * 100)); // low K% = good for batter
-    const xbaComp  = Math.min(100, Math.max(0, ((spXBA - 0.150) / (0.320 - 0.150)) * 100));  // high xBA allowed = good
-    const hhComp   = Math.min(100, Math.max(0, ((spHH  - 0.25)  / (0.60 - 0.25))   * 100));  // high HH allowed = good
-    const barComp  = Math.min(100, Math.max(0, ((spBar  - 0.02)  / (0.18 - 0.02))   * 100));  // high barrel allowed = good
-    const whComp   = Math.min(100, Math.max(0, (1 - (spWh - 0.15) / (0.40 - 0.15)) * 100));  // low whiff = good for batter
+    //
+    // For HIT PROPS specifically:
+    // K% is most important — K = guaranteed no hit
+    // xBA allowed = best contact quality metric (exit velo + launch angle)
+    // HH% allowed = high means batters making quality contact = more hits
+    // Whiff% = high means fewer balls in play = fewer hit opportunities  
+    // Barrel% = power metric, less relevant for singles/hit props specifically
+    // NOTE: ERA intentionally excluded — park/defense dependent, poor hit predictor
 
-    spScore = kComp * 0.35 + xbaComp * 0.30 + hhComp * 0.15 + barComp * 0.10 + whComp * 0.10;
+    const kComp   = Math.min(100, Math.max(0, (1 - (spK  - 0.10) / (0.40 - 0.10)) * 100));
+    // xBA allowed: most direct hit predictor — high xBA against = more hits expected
+    const xbaComp = Math.min(100, Math.max(0, ((spXBA - 0.150) / (0.330 - 0.150)) * 100));
+    // HH% allowed: high = batters squaring up = more hits
+    const hhComp  = Math.min(100, Math.max(0, ((spHH  - 0.25)  / (0.60 - 0.25))   * 100));
+    // Whiff%: high whiff = fewer balls in play = fewer hit chances
+    const whComp  = Math.min(100, Math.max(0, (1 - (spWh - 0.15) / (0.42 - 0.15)) * 100));
+    // Barrel% allowed: least relevant for hit props (power ≠ singles)
+    const barComp = Math.min(100, Math.max(0, ((spBar - 0.02)  / (0.18 - 0.02))   * 100));
+
+    // Weights: K% and xBA dominate since they most directly predict hit suppression
+    spScore = kComp   * 0.38 +   // K% — most direct no-hit predictor
+              xbaComp * 0.35 +   // xBA allowed — best contact quality metric
+              hhComp  * 0.15 +   // HH% allowed — contact quality signal
+              whComp  * 0.08 +   // Whiff% — balls-in-play suppression
+              barComp * 0.04;    // Barrel% — least relevant for hit props
   } else {
-    // Fallback: use hardcoded ERA/WHIP/K9 from SP_STATS
-    const era  = spSC?.era  || spStats.era  || 4.50;
-    const whip = spSC?.whip || spStats.whip || 1.35;
+    // Fallback: SP_STATS has ERA/WHIP/K9 — use K/9 and WHIP only, skip ERA
+    // K/9 → approx K%: 9 K/9 ≈ 24%, 12 K/9 ≈ 32%, 6 K/9 ≈ 16%
     const k9   = spSC?.k9   || spStats.k9   || 8.5;
-    spScore = Math.min(100, Math.max(0,
-      ((era  - 2.0) / (6.5  - 2.0)) * 45 +
-      ((whip - 0.90) / (1.80 - 0.90)) * 35 -
-      Math.max(0, (k9 - 7.0) / (14.0 - 7.0)) * 20
-    ));
+    const whip = spSC?.whip || spStats.whip  || 1.35;
+    // K/9: higher = harder for batter (fewer balls in play)
+    const k9Comp   = Math.min(100, Math.max(0, (1 - (k9   - 4.0) / (14.0 - 4.0)) * 100));
+    // WHIP: higher = better for batter (more baserunners = pitcher struggles)
+    const whipComp = Math.min(100, Math.max(0, ((whip - 0.80) / (1.90 - 0.80)) * 100));
+    // K/9 gets 65% weight since it's the most reliable hit-prop predictor from SP_STATS
+    spScore = k9Comp * 0.65 + whipComp * 0.35;
   }
 
   // No flat platoon bonus — split xBA already encodes platoon advantage.
   // Switch hitters get a small bonus since they always have the favorable side.
-  const platoon = platoonLabel(bats, spHand);
+  const spPlatoon = spStats?.platoon || 'normal';
+  const platoon = platoonLabel(bats, spHand, spPlatoon);
   const switchBonus = (bats === 'S') ? 5 : 0;
   const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
 
@@ -1211,33 +1301,45 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   const slotPA = paBySlot[Math.min(player.order - 1, 8)];
   const orderScore = Math.round(((slotPA - 3.6) / (4.7 - 3.6)) * 100);
 
-  // --- Implied team runs (10%) ---
-  // Low implied runs = fewer PA for bottom of order + generally suppressed offense
-  // Effect is strongest for hitters batting 6-9 (may not bat in 9th in a blowout loss)
-  // Range: <3.0 runs = very suppressed, 5.5+ = high offense environment
+  // --- Implied team runs (14%) ---
+  // Two effects: (1) PA volume — more runs = more innings = more PA for bottom order
+  // (2) Offensive environment — high run games mean pitcher is struggling = more hits
+  // Effect is strongly order-dependent:
+  //   Slots 1-2: minimal effect — almost always get 4+ PA regardless
+  //   Slots 3-5: moderate effect
+  //   Slots 6-9: full effect — these hitters lose PA in low-scoring blowout losses
   let impliedScore = 50; // neutral default when no odds data
   if (impliedRuns !== null && impliedRuns !== undefined) {
-    // Scale 2.0 → 6.5 runs to 0 → 100
-    impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.0) / (6.5 - 2.0)) * 100));
-    // Dampen effect for top of order (leadoff/2-hole always get their PAs)
-    // Bottom of order feels more of the low-run-environment PA squeeze
-    const orderDampener = player.order <= 2 ? 0.3 : player.order <= 4 ? 0.6 : 1.0;
-    // Blend dampened implied score toward neutral (50) for top of order
-    impliedScore = 50 + (impliedScore - 50) * orderDampener;
-    impliedScore = Math.round(impliedScore);
+    // Scale 2.0 → 7.0 runs to 0 → 100 (extended upper range for big offensive games)
+    impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.0) / (7.0 - 2.0)) * 100));
+    // Order-based dampening — more aggressive differentiation
+    // Leadoff/2-hole: only 20% of the implied runs effect (always get their PAs)
+    // 3-5 hole: 55% of effect
+    // 6-9 hole: 100% of effect (real PA risk in low-scoring games)
+    const orderDampener = player.order <= 2 ? 0.20
+                        : player.order <= 5 ? 0.55
+                        : 1.0;
+    impliedScore = Math.round(50 + (impliedScore - 50) * orderDampener);
   }
 
+  // Streak adjustment: ±5 points based on hot/cold rolling windows
+  // combinedScore: -2 (very cold) to +2 (very hot) → map to -5 to +5 points
+  const streakAdj = streak ? Math.round((streak.combinedScore / 2) * 5) : 0;
+
   // Weighted composite — weights sum to 1.0
-  // Split xBA already factors in K% (Ks reduce xBA), so K% weight is reduced to avoid double-counting
-  const composite = Math.round(
-    xbaScore      * 0.33 +
-    matchupScore  * 0.18 +
-    orderScore    * 0.10 +
-    impliedScore  * 0.10 +
-    kScore        * 0.14 +
-    contactScore  * 0.10 +
-    pk.score      * 0.05
-  );
+  // Weights — pitcher matchup bumped to 22% since K%/xBA allowed are strong hit predictors
+  // xBA reduced slightly since pitcher matchup now captures more of that signal
+  // ERA is NOT used anywhere in this model
+  const rawComposite =
+    xbaScore      * 0.28 +   // split xBA — confidence-weighted, regresses toward mean with low PA
+    matchupScore  * 0.22 +   // pitcher K%, xBA allowed, HH%, whiff% — no ERA
+    impliedScore  * 0.14 +   // team implied runs — order-dampened, full effect slots 6-9
+    orderScore    * 0.10 +   // PA volume by batting slot
+    kScore        * 0.13 +   // batter K% — partial redundancy with xBA
+    contactScore  * 0.10 +   // HH% + Barrel%
+    pk.score      * 0.03;    // park factor — reduced (partially captured in xBA)
+
+  const composite = Math.min(100, Math.max(0, Math.round(rawComposite + streakAdj)));
 
   let tier = 'Avoid';
   if (composite >= 85) tier = 'Elite';
@@ -1258,20 +1360,33 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // Platoon
   if (platoon.adv === true && bats !== 'S') reasons.push('favorable platoon (' + platoon.label + ')');
   if (platoon.adv === false) reasons.push('same-side platoon (' + platoon.label + ')');
-  // Pitcher — use Statcast if available
+  // Pitcher reasoning — ERA intentionally excluded
   if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
     const spK = spSC.kpct;
-    if (spK <= 0.17) reasons.push('low K% SP (' + (spK*100).toFixed(0) + '% K)');
-    if (spK >= 0.28) reasons.push('high K% SP (' + (spK*100).toFixed(0) + '% K) — tough');
-    if (spSC.xbaAllowed !== null && spSC.xbaAllowed >= 0.270) reasons.push('high xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ')');
-    if (spSC.xbaAllowed !== null && spSC.xbaAllowed <= 0.220) reasons.push('low xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ') — tough SP');
-    if (spSC.hardHitAllowed !== null && spSC.hardHitAllowed >= 0.42) reasons.push('allows hard contact (' + (spSC.hardHitAllowed*100).toFixed(0) + '% HH)');
+    // K% first — most direct hit suppression metric
+    if (spK >= 0.30) reasons.push('elite K% SP (' + (spK*100).toFixed(0) + '%) — tough');
+    else if (spK >= 0.24) reasons.push('high K% SP (' + (spK*100).toFixed(0) + '%)');
+    else if (spK <= 0.16) reasons.push('low K% SP (' + (spK*100).toFixed(0) + '%) — favorable');
+    // xBA allowed — best contact quality signal
+    if (spSC.xbaAllowed !== null) {
+      if (spSC.xbaAllowed >= 0.275) reasons.push('high xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ') — favorable');
+      else if (spSC.xbaAllowed <= 0.215) reasons.push('low xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ') — tough');
+    }
+    // HH% allowed
+    if (spSC.hardHitAllowed !== null) {
+      if (spSC.hardHitAllowed >= 0.44) reasons.push('allows hard contact (' + (spSC.hardHitAllowed*100).toFixed(0) + '% HH)');
+      else if (spSC.hardHitAllowed <= 0.28) reasons.push('suppresses contact (' + (spSC.hardHitAllowed*100).toFixed(0) + '% HH)');
+    }
+    // Whiff%
+    if (spSC.whiffPct !== null && spSC.whiffPct >= 0.32) reasons.push('high whiff% (' + (spSC.whiffPct*100).toFixed(0) + '%) — fewer balls in play');
   } else {
-    const era  = spSC?.era  || spStats.era  || 4.50;
+    // Fallback: K/9 + WHIP, no ERA
     const k9   = spSC?.k9   || spStats.k9   || 8.5;
-    if (era >= 4.50) reasons.push('soft SP (ERA ' + era.toFixed(2) + ')');
-    if (era <= 3.20) reasons.push('tough SP (ERA ' + era.toFixed(2) + ', ' + k9.toFixed(1) + ' K/9)');
+    const whip = spSC?.whip || spStats.whip  || 1.35;
     if (k9 >= 11.0) reasons.push('high K/9 SP (' + k9.toFixed(1) + ') — tough');
+    else if (k9 <= 6.5) reasons.push('low K/9 SP (' + k9.toFixed(1) + ') — favorable');
+    if (whip >= 1.50) reasons.push('high WHIP (' + whip.toFixed(2) + ') — favorable');
+    else if (whip <= 1.05) reasons.push('low WHIP (' + whip.toFixed(2) + ') — tough');
   }
   // Park
   if (pk.score >= 75) reasons.push('hitter park (' + venue + ')');
@@ -1280,6 +1395,15 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   if (impliedRuns !== null && impliedRuns !== undefined) {
     if (impliedRuns >= 5.5) reasons.push('high run env (' + impliedRuns.toFixed(1) + ' proj)');
     if (impliedRuns < 3.5) reasons.push('low run env (' + impliedRuns.toFixed(1) + ' proj)' + (player.order >= 6 ? ' — PA risk' : ''));
+  }
+  // Streak
+  if (streak && streak.combinedScore >= 1) {
+    const xbaStr7 = streak.xba7 ? ' (xBA ' + streak.xba7.toFixed(3) + ' L7)' : '';
+    reasons.push((streak.combinedScore >= 2 ? '🔥 hot streak' : '↑ warm form') + xbaStr7);
+  }
+  if (streak && streak.combinedScore <= -1) {
+    const xbaStr7 = streak.xba7 ? ' (xBA ' + streak.xba7.toFixed(3) + ' L7)' : '';
+    reasons.push((streak.combinedScore <= -2 ? '🧊 cold streak' : '↓ cool form') + xbaStr7);
   }
   // Negatives
   if (kpct >= 0.28) reasons.push('high K% risk (' + kStr + ')');
@@ -1297,6 +1421,12 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     parkCls: pk.cls,
     era: spStats.era,
     statcastFound: !!sc,
+    streakAdj,
+    streak7Label:  streak?.label7  || '',
+    streak14Label: streak?.label14 || '',
+    xba7:          streak?.xba7    ?? null,
+    xba14:         streak?.xba14   ?? null,
+    streakPa7:     streak?.pa7     ?? 0,
     splitUsed: sc?.splitUsed || 'overall',
     spStatcast: !!(spSC?.fromStatcast && spSC.kpct !== null),
     spKpct:  spSC?.kpct           ?? null,
@@ -1428,6 +1558,8 @@ function playerCard(p, rank) {
         ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
         <span class="pill ${p.parkCls}">${p.parkLabel}</span>
         <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
+        ${p.streak7Label ? `<span class="pill ${p.streakAdj > 0 ? 'good' : p.streakAdj < 0 ? 'bad' : ''}" title="7-day: ${p.xba7 ? 'xBA ' + p.xba7.toFixed(3) : ''} · 14-day: ${p.xba14 ? 'xBA ' + p.xba14.toFixed(3) : ''}">${p.streak7Label}${p.streak14Label && p.streak14Label !== p.streak7Label ? ' / ' + p.streak14Label : ''}</span>` : ''}
+        ${p.streakAdj !== 0 ? `<span class="pill ${p.streakAdj > 0 ? 'good' : 'bad'}" style="font-size:10px;">${p.streakAdj > 0 ? '+' : ''}${p.streakAdj}pts streak</span>` : ''}
       </div>
       <div class="p-reasoning">${p.reasoning}</div>
     </div>
@@ -1488,6 +1620,28 @@ function sortBy(f) {
   cards.sort((a, b) => f === 'score' ? +b.dataset.score - +a.dataset.score : f === 'xba' ? +b.dataset.xba - +a.dataset.xba : +a.dataset.kpct - +b.dataset.kpct);
   cards.forEach((c, i) => { c.querySelector('.p-rank').textContent = i + 1; grid.appendChild(c); });
 }
+
+// Lookup streak data — 7-day primary, 14-day fallback
+function lookupStreak(name) {
+  const s7  = lookupInMap(streak7,  name);
+  const s14 = lookupInMap(streak14, name);
+  if (!s7 && !s14) return null;
+  return {
+    streakScore7:  s7?.streakScore  ?? 0,
+    streakScore14: s14?.streakScore ?? 0,
+    label7:   s7?.label  || '',
+    label14:  s14?.label || '',
+    xba7:     s7?.xba    ?? null,
+    xba14:    s14?.xba   ?? null,
+    ba7:      s7?.ba     ?? null,
+    ba14:     s14?.ba    ?? null,
+    pa7:      s7?.pa     ?? 0,
+    pa14:     s14?.pa    ?? 0,
+    combinedScore: s7 && s14 ? Math.round(s7.streakScore * 0.6 + s14.streakScore * 0.4) :
+                   s7 ? s7.streakScore : s14 ? s14.streakScore : 0,
+  };
+}
+
 // ── POOL MANAGEMENT ──────────────────────────────────────────────────────────
 // Pools stored in localStorage: { pools: [{id, name, used: [playerName, ...]}, ...] }
 
@@ -1818,6 +1972,234 @@ async function loadScheduleView() {
 
 // Load pools on startup and after results render
 document.addEventListener('DOMContentLoaded', loadPools);
+
+// ── RESULTS TRACKER ───────────────────────────────────────────────────────────
+// Stored in localStorage: { picks: [{date, players: [{name, team, score, tier, pitcher, gotHit}]}] }
+
+let trackerData = { picks: [] };
+
+function loadTracker() {
+  try { trackerData = JSON.parse(localStorage.getItem('hitPropTracker') || '{"picks":[]}'); }
+  catch(e) { trackerData = { picks: [] }; }
+  renderTracker();
+}
+
+function saveTracker() {
+  localStorage.setItem('hitPropTracker', JSON.stringify(trackerData));
+}
+
+function saveCurrentPicks() {
+  if (!allScoredPlayers.length) { alert('Run an analysis first.'); return; }
+  const today = new Date().toLocaleDateString('en-CA');
+  // Don't double-save same date
+  if (trackerData.picks.find(p => p.date === today)) {
+    if (!confirm('Picks already saved for today. Overwrite?')) return;
+    trackerData.picks = trackerData.picks.filter(p => p.date !== today);
+  }
+  const top10 = allScoredPlayers.slice(0, 10).map(p => ({
+    name: p.name, team: p.team, score: p.compositeScore, tier: p.tier,
+    pitcher: p.pitcher, pitcherHand: p.pitcherHand,
+    gotHit: null, hits: null, atBats: null,
+  }));
+  trackerData.picks.unshift({ date: today, players: top10, savedAt: new Date().toISOString() });
+  // Keep last 60 days
+  trackerData.picks = trackerData.picks.slice(0, 60);
+  saveTracker();
+  renderTracker();
+  switchTab('tracker');
+  setTrackerStatus('success', '✅', 'Today's top 10 saved', 'Click "Check Yesterday's Results" tomorrow to auto-fetch box scores.');
+}
+
+async function checkYesterdayResults() {
+  // Find the most recent saved picks that don't have results yet
+  const pending = trackerData.picks.find(p => p.players.some(pl => pl.gotHit === null));
+  if (!pending) { setTrackerStatus('warn', '📋', 'No pending results', 'All saved picks already have results, or no picks saved yet.'); return; }
+
+  setTrackerStatus('info', '⏳', 'Fetching box scores...', 'Checking MLB Stats API for ' + pending.date);
+
+  const names = pending.players.map(p => p.name).join(',');
+  try {
+    const res = await fetch('/api/results?date=' + pending.date + '&players=' + encodeURIComponent(names));
+    if (!res.ok) throw new Error('Results API returned ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Update stored picks with results
+    let updated = 0;
+    pending.players.forEach(pick => {
+      const result = data.players.find(r => r.name.toLowerCase() === pick.name.toLowerCase());
+      if (result && result.gotHit !== null) {
+        pick.gotHit = result.gotHit;
+        pick.hits = result.hits;
+        pick.atBats = result.atBats;
+        pick.gameStatus = result.gameStatus;
+        updated++;
+      }
+    });
+
+    saveTracker();
+    renderTracker();
+
+    if (updated === 0 && data.gamesChecked === 0) {
+      setTrackerStatus('warn', '⚠️', 'No completed games found for ' + pending.date, 'Games may still be in progress or date has no MLB games.');
+    } else {
+      const hits = pending.players.filter(p => p.gotHit === true).length;
+      const total = pending.players.filter(p => p.gotHit !== null).length;
+      setTrackerStatus('success', '✅', `Results loaded: ${hits}/${total} hit`, `${updated} players updated from ${data.gamesChecked} box scores.`);
+    }
+  } catch(e) {
+    setTrackerStatus('error', '⚠️', 'Failed to fetch results', e.message);
+  }
+}
+
+function setTrackerStatus(type, icon, title, sub) {
+  document.getElementById('trackerStatus').innerHTML =
+    `<div class="sbar ${type}"><div class="sbar-icon">${icon}</div><div class="sbar-text"><div class="sbar-title">${title}</div><div class="sbar-sub">${sub}</div></div></div>`;
+}
+
+function renderTracker() {
+  const content = document.getElementById('trackerContent');
+  const statsCard = document.getElementById('trackerStatsCard');
+  if (!content) return;
+
+  if (!trackerData.picks.length) {
+    content.innerHTML = '<div class="empty"><div class="empty-icon">📈</div><p>No picks saved yet. Run an analysis and click "Save Today's Top 10".</p></div>';
+    statsCard.style.display = 'none';
+    return;
+  }
+
+  // Render each day's picks
+  let html = '';
+  trackerData.picks.forEach(day => {
+    const withResults = day.players.filter(p => p.gotHit !== null);
+    const hits = withResults.filter(p => p.gotHit).length;
+    const pending = day.players.filter(p => p.gotHit === null).length;
+    const hitRate = withResults.length ? Math.round((hits / withResults.length) * 100) : null;
+
+    const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+    html += `<div class="card" style="margin-bottom:12px;">
+      <div class="card-header" style="justify-content:space-between;">
+        <span>${dateLabel}</span>
+        <span style="font-size:12px;font-weight:400;color:var(--muted);">
+          ${withResults.length > 0 ? `${hits}/${withResults.length} hit (${hitRate}%)` : ''}
+          ${pending > 0 ? `<span style="color:var(--yellow);">${pending} pending</span>` : ''}
+        </span>
+      </div>
+      <div class="card-body" style="padding:12px 16px;">`;
+
+    day.players.forEach(p => {
+      const resultIcon = p.gotHit === true ? '✅' : p.gotHit === false ? '❌' : '⏳';
+      const resultStyle = p.gotHit === true ? 'color:var(--green)' : p.gotHit === false ? 'color:var(--red)' : 'color:var(--muted)';
+      const tierColor = p.tier === 'Elite' ? 'var(--green)' : p.tier === 'Strong' ? 'var(--blue)' : p.tier === 'Lean' ? 'var(--yellow)' : 'var(--red)';
+      const hitStr = p.hits !== null ? `${p.hits}-${p.atBats}` : '';
+
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <span style="font-size:16px;">${resultIcon}</span>
+        <span style="flex:1;font-weight:600;">${p.name}</span>
+        <span style="font-size:11px;color:var(--muted);">${p.team} · vs ${p.pitcher||'?'}</span>
+        <span style="font-size:11px;font-weight:700;color:${tierColor};">${p.score}</span>
+        <span style="font-size:12px;font-weight:600;${resultStyle};">${hitStr}</span>
+        ${p.gotHit === null ? `<button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 7px;" onclick="manualResult('${day.date}','${p.name.replace(/'/g,"\'")}',true)">✓ Hit</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 7px;" onclick="manualResult('${day.date}','${p.name.replace(/'/g,"\'")}',false)">✗ No hit</button>` : ''}
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  content.innerHTML = html;
+
+  // Render model performance stats
+  renderTrackerStats();
+}
+
+function manualResult(date, playerName, gotHit) {
+  const day = trackerData.picks.find(p => p.date === date);
+  if (!day) return;
+  const pick = day.players.find(p => p.name === playerName);
+  if (!pick) return;
+  pick.gotHit = gotHit;
+  pick.hits = gotHit ? 1 : 0;
+  pick.atBats = 1;
+  pick.gameStatus = 'Manual';
+  saveTracker();
+  renderTracker();
+}
+
+function renderTrackerStats() {
+  const statsCard = document.getElementById('trackerStatsCard');
+  const statsDiv = document.getElementById('trackerStats');
+  if (!statsCard || !statsDiv) return;
+
+  // Collect all picks with results
+  const allPicks = trackerData.picks.flatMap(d => d.players).filter(p => p.gotHit !== null);
+  if (allPicks.length < 5) { statsCard.style.display = 'none'; return; }
+
+  statsCard.style.display = 'block';
+
+  // Hit rate by tier
+  const tiers = ['Elite','Strong','Lean','Avoid'];
+  const tierStats = {};
+  tiers.forEach(t => {
+    const tp = allPicks.filter(p => p.tier === t);
+    tierStats[t] = { total: tp.length, hits: tp.filter(p => p.gotHit).length };
+  });
+
+  // Hit rate by score range
+  const ranges = [{label:'85+',min:85,max:100},{label:'70-84',min:70,max:84},{label:'55-69',min:55,max:69},{label:'<55',min:0,max:54}];
+  const rangeStats = ranges.map(r => {
+    const rp = allPicks.filter(p => p.score >= r.min && p.score <= r.max);
+    return { label: r.label, total: rp.length, hits: rp.filter(p => p.gotHit).length };
+  });
+
+  const overall = allPicks.filter(p => p.gotHit).length;
+  const overallRate = Math.round((overall / allPicks.length) * 100);
+
+  let html = `<div class="kpi-strip" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+    <div class="kpi"><div class="kpi-val">${allPicks.length}</div><div class="kpi-lbl">Tracked picks</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green);">${overall}</div><div class="kpi-lbl">Total hits</div></div>
+    <div class="kpi"><div class="kpi-val">${overallRate}%</div><div class="kpi-lbl">Overall hit rate</div></div>
+  </div>`;
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+
+  // Tier breakdown
+  html += '<div><div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">By Tier</div>';
+  tiers.forEach(t => {
+    const s = tierStats[t];
+    if (!s.total) return;
+    const rate = Math.round((s.hits/s.total)*100);
+    const color = t==='Elite'?'var(--green)':t==='Strong'?'var(--blue)':t==='Lean'?'var(--yellow)':'var(--red)';
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="font-weight:700;color:${color};width:60px;">${t}</span>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;">
+        <div style="width:${rate}%;background:${color};height:100%;border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:600;">${s.hits}/${s.total} (${rate}%)</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Score range breakdown
+  html += '<div><div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">By Score</div>';
+  rangeStats.forEach(r => {
+    if (!r.total) return;
+    const rate = Math.round((r.hits/r.total)*100);
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="font-weight:700;width:55px;">${r.label}</span>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;">
+        <div style="width:${rate}%;background:var(--blue);height:100%;border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:600;">${r.hits}/${r.total} (${rate}%)</span>
+    </div>`;
+  });
+  html += '</div></div>';
+
+  statsDiv.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', loadTracker);
 
 </script>
 </body>
