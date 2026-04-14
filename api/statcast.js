@@ -28,6 +28,7 @@ function parseCsv(csv, type = 'batter') {
   const iHH     = col('hard_hit_percent');
   const iBarrel = col('barrel_batted_rate', 'brl_percent');
   const iWhiff  = col('whiff_percent');
+  const iBA     = col('ba', 'batting_average', 'avg');
   const iPA     = col('pa');
 
   if (iName < 0 || iXBA < 0) return {};
@@ -48,23 +49,20 @@ function parseCsv(csv, type = 'batter') {
 
     const xba = safe(iXBA);
     if (xba === null || xba < 0 || xba > 0.500) return;
-
     const pa = iPA >= 0 ? (parseInt(cols[iPA]) || 0) : 0;
     const key = name.toLowerCase();
 
     if (type === 'batter') {
       result[key] = {
-        name, pa,
-        xba,
+        name, pa, xba,
         kpct:       safe(iK)      !== null ? safe(iK) / 100      : null,
         hardhitpct: safe(iHH)     !== null ? safe(iHH) / 100     : null,
         barrelpct:  safe(iBarrel) !== null ? safe(iBarrel) / 100 : null,
+        ba:         safe(iBA)     !== null ? safe(iBA)           : null,
       };
     } else {
-      // pitcher — xba here is xBA allowed
       result[key] = {
-        name, pa,
-        xbaAllowed:     xba,
+        name, pa, xbaAllowed: xba,
         kpct:           safe(iK)      !== null ? safe(iK) / 100      : null,
         hardHitAllowed: safe(iHH)     !== null ? safe(iHH) / 100     : null,
         barrelAllowed:  safe(iBarrel) !== null ? safe(iBarrel) / 100 : null,
@@ -75,8 +73,6 @@ function parseCsv(csv, type = 'batter') {
   return result;
 }
 
-// Blend current year + prior year weighted by PA count
-// paThreshold = PA at which current year gets 100% weight
 function blend(current, prior, paThreshold = 100) {
   const blended = {};
   const allKeys = new Set([...Object.keys(current), ...Object.keys(prior)]);
@@ -85,17 +81,14 @@ function blend(current, prior, paThreshold = 100) {
     if (!c && !p) return;
     if (!p) { blended[key] = { ...c, source: 'current' }; return; }
     if (!c || (c.pa || 0) < 10) { blended[key] = { ...p, source: 'prior' }; return; }
-
     const wC = Math.min(1, (c.pa || 0) / paThreshold);
     const wP = 1 - wC;
-
     const blendVal = (cv, pv) => {
       if (cv === null && pv === null) return null;
       if (cv === null) return pv;
       if (pv === null) return cv;
       return parseFloat((cv * wC + pv * wP).toFixed(4));
     };
-
     const merged = { name: c.name || p.name, pa: c.pa || 0, source: `blend(${c.pa}PA)` };
     const numKeys = new Set([...Object.keys(c), ...Object.keys(p)].filter(k => !['name','pa','source'].includes(k)));
     numKeys.forEach(k => { merged[k] = blendVal(c[k] ?? null, p[k] ?? null); });
@@ -114,53 +107,82 @@ export default async function handler(req) {
   };
 
   const base = 'https://baseballsavant.mlb.com/leaderboard/expected_statistics';
+  const rolling = 'https://baseballsavant.mlb.com/leaderboard/rolling';
 
-  // 8 fetches in parallel:
-  // Batters overall (current + prior) — for K%, HH%, Barrel% which don't have split versions
-  // Batters vs RHP (current + prior) — split xBA
-  // Batters vs LHP (current + prior) — split xBA
-  // Pitchers overall (current + prior) — SP contact metrics
   const urls = [
-    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,           // [0] batter current overall
-    `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,          // [1] batter prior overall
-    `${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`,  // [2] batter current vs RHP
-    `${base}?type=batter&year=${prev}&position=&team=&handedness=R&min=50&csv=true`, // [3] batter prior vs RHP
-    `${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`,  // [4] batter current vs LHP
-    `${base}?type=batter&year=${prev}&position=&team=&handedness=L&min=50&csv=true`, // [5] batter prior vs LHP
-    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,           // [6] pitcher current
-    `${base}?type=pitcher&year=${prev}&position=&team=&min=50&csv=true`,          // [7] pitcher prior
+    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,
+    `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`,
+    `${base}?type=batter&year=${prev}&position=&team=&handedness=R&min=50&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`,
+    `${base}?type=batter&year=${prev}&position=&team=&handedness=L&min=50&csv=true`,
+    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,
+    `${base}?type=pitcher&year=${prev}&position=&team=&min=50&csv=true`,
+    // Rolling 7-day and 14-day batter stats
+    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=14&csv=true`,
   ];
 
   try {
     const responses = await Promise.all(urls.map(u => fetch(u, { headers: hdrs })));
-    const texts     = await Promise.all(responses.map((r, i) => r.ok ? r.text() : ''));
+    const texts = await Promise.all(responses.map(r => r.ok ? r.text() : ''));
 
-    const batterOverallCur  = parseCsv(texts[0], 'batter');
-    const batterOverallPrior = parseCsv(texts[1], 'batter');
-    const batterVsRHPCur    = parseCsv(texts[2], 'batter');
-    const batterVsRHPPrior  = parseCsv(texts[3], 'batter');
-    const batterVsLHPCur    = parseCsv(texts[4], 'batter');
-    const batterVsLHPPrior  = parseCsv(texts[5], 'batter');
-    const pitcherCur        = parseCsv(texts[6], 'pitcher');
-    const pitcherPrior      = parseCsv(texts[7], 'pitcher');
+    const batterCur     = parseCsv(texts[0], 'batter');
+    const batterPrior   = parseCsv(texts[1], 'batter');
+    const vsRHPCur      = parseCsv(texts[2], 'batter');
+    const vsRHPPrior    = parseCsv(texts[3], 'batter');
+    const vsLHPCur      = parseCsv(texts[4], 'batter');
+    const vsLHPPrior    = parseCsv(texts[5], 'batter');
+    const pitcherCur    = parseCsv(texts[6], 'pitcher');
+    const pitcherPrior  = parseCsv(texts[7], 'pitcher');
+    const rolling7      = parseCsv(texts[8], 'batter');
+    const rolling14     = parseCsv(texts[9], 'batter');
 
-    // Blend each dataset
-    const battersOverall = blend(batterOverallCur,  batterOverallPrior, 100);
-    const battersVsRHP   = blend(batterVsRHPCur,    batterVsRHPPrior,   80);
-    const battersVsLHP   = blend(batterVsLHPCur,    batterVsLHPPrior,   60); // less PA vs LHP so lower threshold
-    const pitchers       = blend(pitcherCur,         pitcherPrior,       80);
+    const battersOverall = blend(batterCur,   batterPrior,  100);
+    const battersVsRHP   = blend(vsRHPCur,    vsRHPPrior,   80);
+    const battersVsLHP   = blend(vsLHPCur,    vsLHPPrior,   60);
+    const pitchers       = blend(pitcherCur,  pitcherPrior, 80);
+
+    // Rolling windows — no blending, current season only
+    // Compute streak: hot/cold based on xBA and BA over rolling window
+    const streak7 = {}, streak14 = {};
+
+    const computeStreak = (rollingData, target) => {
+      Object.keys(rollingData).forEach(key => {
+        const p = rollingData[key];
+        if (!p || p.pa < 5) return; // need at least 5 PA to be meaningful
+        const xba = p.xba;
+        const ba  = p.ba;
+        // Streak score: compare rolling xBA to season average
+        // Hot: xBA >= .300 in window, Cold: xBA <= .200
+        let streakScore = 0;
+        if (xba !== null) {
+          if (xba >= .320) streakScore = 2;       // very hot
+          else if (xba >= .290) streakScore = 1;  // hot
+          else if (xba <= .180) streakScore = -2; // very cold
+          else if (xba <= .220) streakScore = -1; // cold
+        }
+        target[key] = {
+          xba, ba, pa: p.pa, kpct: p.kpct, hardhitpct: p.hardhitpct,
+          streakScore, // -2 to +2
+          label: streakScore >= 2 ? '🔥 Hot' : streakScore === 1 ? '↑ Warm' :
+                 streakScore <= -2 ? '🧊 Cold' : streakScore === -1 ? '↓ Cool' : '',
+        };
+      });
+    };
+
+    computeStreak(rolling7, streak7);
+    computeStreak(rolling14, streak14);
 
     return new Response(JSON.stringify({
-      battersOverall,
-      battersVsRHP,
-      battersVsLHP,
-      pitchers,
+      battersOverall, battersVsRHP, battersVsLHP, pitchers,
+      streak7, streak14,
       meta: {
         year,
-        overallCount: Object.keys(battersOverall).length,
-        vsRHPCount:   Object.keys(battersVsRHP).length,
-        vsLHPCount:   Object.keys(battersVsLHP).length,
+        batterCount:  Object.keys(battersOverall).length,
         pitcherCount: Object.keys(pitchers).length,
+        streak7Count: Object.keys(streak7).length,
+        streak14Count: Object.keys(streak14).length,
       }
     }), {
       status: 200,
