@@ -186,11 +186,11 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
     <div class="card-header">📅 Today's Games</div>
     <div class="card-body">
       <div id="scheduleStatus">
-        <div class="sbar info">
+        <div class="sbar info" id="scheduleStatus">
           <div class="sbar-icon">⏳</div>
           <div class="sbar-text">
             <div class="sbar-title">Loading schedule...</div>
-            <div class="sbar-sub">Fetching from MLB Stats API</div>
+            <div class="sbar-sub">Starting up...</div>
           </div>
         </div>
       </div>
@@ -2012,7 +2012,7 @@ function saveCurrentPicks() {
   saveTracker();
   renderTracker();
   switchTab('tracker');
-  setTrackerStatus('success', '✅', 'Today's top 10 saved', 'Click "Check Yesterday's Results" tomorrow to auto-fetch box scores.');
+  setTrackerStatus('success', '✅', 'Today\'s top 10 saved', 'Click \'Auto-fetch Results\' tomorrow to check box scores.');
 }
 
 async function checkYesterdayResults() {
@@ -2081,7 +2081,7 @@ function renderTracker() {
   if (!content) return;
 
   if (!trackerData.picks.length) {
-    content.innerHTML = '<div class="empty"><div class="empty-icon">📈</div><p>No picks saved yet. Run an analysis and click "Save Today's Top 10".</p></div>';
+    content.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><p>No picks saved yet. Run an analysis and click "Save Today's Top 10".</p></div>`;
     statsCard.style.display = 'none';
     return;
   }
