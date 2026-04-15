@@ -1011,10 +1011,10 @@ function platoonLabel(bats, spHand, spPlatoon) {
     : { label: bats + ' vs ' + spHand + reverseNote, cls: 'bad', adv: false };
 }
 
-// Known 2026 batting orders — sourced from MLB.com Opening Day lineups + updates
+// Known 2026 batting orders — current tendencies from RotoWire + MLB.com (Apr 15 2026)
 const DEPTH_CHARTS = {
   // AL East
-  'NYY': ['Trent Grisham','Aaron Judge','Cody Bellinger','Ben Rice','Giancarlo Stanton','Jazz Chisholm Jr.','Ryan McMahon','José Caballero','Austin Wells'],
+  'NYY': ['Trent Grisham','Aaron Judge','Cody Bellinger','Ben Rice','Giancarlo Stanton','Jazz Chisholm Jr.','José Caballero','Ryan McMahon','Austin Wells'],
   'BOS': ['Roman Anthony','Trevor Story','Jarren Duran','Willson Contreras','Wilyer Abreu','Caleb Durbin','Marcelo Mayer','Ceddanne Rafaela','Carlos Narváez'],
   'TOR': ['George Springer','Daulton Varsho','Vladimir Guerrero Jr.','Addison Barger','Alejandro Kirk','Jesús Sánchez','Kazuma Okamoto','Ernie Clement','Andrés Giménez'],
   'BAL': ['Gunnar Henderson','Adley Rutschman','Pete Alonso','Taylor Ward','Samuel Basallo',"Tyler O'Neill",'Coby Mayo','Colton Cowser','Blaze Alexander'],
@@ -1033,22 +1033,22 @@ const DEPTH_CHARTS = {
   'SEA': ['Brendan Donovan','Julio Rodríguez','Cal Raleigh','Mitch Garver','Eugenio Suárez','Luke Raley','Jorge Polanco','Josh Rojas','Cole Young'],
   // NL East
   'NYM': ['Francisco Lindor','Pete Crow-Armstrong','Jesse Winker','Mark Vientos','Marcus Semien','Jeff McNeil','Francisco Alvarez','Luisangel Acuña','Jose Iglesias'],
-  'ATL': ['Ronald Acuña Jr.','Ozzie Albies','Austin Riley','Matt Olson','Drake Baldwin','Michael Harris II','Orlando Arcia','Jorge Soler','Jarred Kelenic'],
+  'ATL': ['Ronald Acuña Jr.','Drake Baldwin','Matt Olson','Austin Riley','Ozzie Albies','Michael Harris II','Orlando Arcia','Mauricio Dubón','Jorge Soler'],
   'PHI': ['Trea Turner','Bryce Harper','Kyle Schwarber','Nick Castellanos','Alec Bohm','Brandon Marsh','J.T. Realmuto','Bryson Stott','Johan Rojas'],
   'MIA': ['Xavier Edwards','Jake Burger','Bryan De La Cruz','Jesús Sánchez','Nick Fortes','Peyton Burdick','Griffin Conine','Jonah Bride','Jacob Stallings'],
-  'WSH': ['CJ Abrams','Daylen Lile','James Wood','Luis García Jr.','Brady House','Keibert Ruiz','Dylan Crews','Andrés Chaparro','Jacob Young'],
+  'WSH': ['James Wood','Curtis Mead','Brady House','Daylen Lile','CJ Abrams','Joey Wiemer','Luis García Jr.','Keibert Ruiz','Nasim Nunez'],
   // NL Central
   'CHC': ['Nico Hoerner','Ian Happ','Alex Bregman','Michael Busch','Pete Crow-Armstrong','Seiya Suzuki','Dansby Swanson','Carson Kelly','Moisés Ballesteros'],
   'STL': ['Lars Nootbaar','Jordan Walker','Masyn Winn','Alec Burleson','Iván Herrera','Nolan Gorman','JJ Wetherholt','Pedro Pagés','Victor Scott II'],
   'MIL': ['Jackson Chourio','William Contreras','Christian Yelich','Rhys Hoskins','Sal Frelick','Joey Wiemer','Owen Miller','Tyrone Taylor','Brian Anderson'],
-  'CIN': ['TJ Friedl','Noelvi Marte','Elly De La Cruz','Spencer Steer','Sal Stewart','Gavin Lux','Tyler Stephenson','Matt McLain','Ke\'Bryan Hayes'],
+  'CIN': ['TJ Friedl','Noelvi Marte','Elly De La Cruz','Spencer Steer','Sal Stewart','Gavin Lux','Tyler Stephenson','Matt McLain',"Ke\'Bryan Hayes"],
   'PIT': ['Oneil Cruz','Ji Hwan Bae','Bryan Reynolds','Brandon Lowe','Marcell Ozuna','Henry Davis','Connor Joe','Rowdy Tellez','Ji-Man Choi'],
   // NL West
   'AZ':  ['Corbin Carroll','Ketel Marte','Lourdes Gurriel Jr.','Gabriel Moreno','Christian Walker','Randal Grichuk','Geraldo Perdomo','Jake McCarthy','Adrian Del Castillo'],
   'SF':  ['Luis Arraez','Matt Chapman','Rafael Devers','Willy Adames','Jung Hoo Lee','Heliot Ramos','Casey Schmitt','Patrick Bailey','Harrison Bader'],
   'LAD': ['Mookie Betts','Freddie Freeman','Shohei Ohtani','Will Smith','Teoscar Hernandez','Andy Pages','Max Muncy','Gavin Lux','Miguel Rojas'],
   'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jake Cronenworth','Jurickson Profar','Jackson Merrill','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
-  'COL': ['Charlie Blackmon','Ryan McMahon','C.J. Cron','Ezequiel Tovar','Elias Díaz','Randal Grichuk','Sean Bouchard','Brenton Doyle','Alan Trejo'],
+  'COL': ['Charlie Blackmon','Ryan McMahon','C.J. Cron','Ezequiel Tovar','Elias Díaz','Brenton Doyle','Sean Bouchard','Alan Trejo','Nolan Jones'],
 };
 
 // SP_STATS: [ERA, WHIP, K/9, hand] — covers ~100 active starters
