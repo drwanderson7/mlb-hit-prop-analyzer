@@ -1789,114 +1789,122 @@ function renderPools() {
   }
   empty.style.display = 'none';
 
-  list.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px;" id="poolsTable">
+  // Collect all unique dates across all pools, sorted desc
+  const allDates = new Set();
+  pools.forEach(pool => {
+    pool.used.forEach(u => {
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      if (date) allDates.add(date);
+    });
+  });
+  const sortedDates = [...allDates].sort((a,b) => b.localeCompare(a)); // newest first
+
+  const today = new Date().toLocaleDateString('en-CA');
+
+  // Format date header: "Apr 16"
+  function fmtDate(d) {
+    return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+
+  let tableHtml = `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px;">
       <thead>
-        <tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
-          <th style="width:28px;padding:8px 6px;text-align:center;color:var(--muted);font-size:11px;" title="Drag to reorder">⠿</th>
-          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Pool Name</th>
-          <th style="text-align:center;padding:8px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;width:48px;">Used</th>
-          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Players Used</th>
-          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;min-width:260px;">Add Player</th>
-          <th style="text-align:center;padding:8px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;width:120px;">Actions</th>
+        <tr style="background:var(--surface2);">
+          <th style="text-align:left;padding:9px 14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:130px;position:sticky;left:0;background:var(--surface2);z-index:2;">Pool</th>
+          <th style="text-align:center;padding:9px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:48px;">Used</th>`;
+
+  sortedDates.forEach(d => {
+    const isToday = d === today;
+    tableHtml += `<th style="text-align:center;padding:9px 10px;font-size:11px;font-weight:700;color:${isToday?'var(--blue)':'var(--muted)'};text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:110px;${isToday?'background:rgba(37,99,235,0.06);':''}">${fmtDate(d)}${isToday?' ★':''}</th>`;
+  });
+
+  tableHtml += `<th style="text-align:center;padding:9px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:220px;">Add Pick</th>
+          <th style="text-align:center;padding:9px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:110px;">Actions</th>
         </tr>
       </thead>
-      <tbody id="poolsTableBody">
-      </tbody>
-    </table>`;
-
-  const tbody = document.getElementById('poolsTableBody');
-  const today = new Date().toLocaleDateString('en-CA');
+      <tbody>`;
 
   pools.forEach((pool, i) => {
     const isActive = activePoolId === pool.id;
-    const usedCount = pool.used.length;
-    const tr = document.createElement('tr');
-    tr.dataset.poolId = pool.id;
-    tr.dataset.poolIndex = i;
-    tr.draggable = true;
-    tr.style.cssText = `border-bottom:1px solid var(--border);background:${isActive ? 'rgba(37,99,235,0.04)' : (i%2===0?'':'var(--surface2)')};transition:background .15s;`;
+    const bg = isActive ? 'rgba(37,99,235,0.04)' : (i%2===0 ? '' : 'background:var(--surface2)');
 
-    // Build used player tags
-    const tags = pool.used.map((u, ui) => {
+    // Build date→picks map
+    const dateMap = {};
+    pool.used.forEach((u, ui) => {
       const name = typeof u === 'string' ? u : u.name;
-      const date = typeof u === 'string' ? '' : (u.date||'');
-      const isToday = date === today;
-      const shortDate = date ? new Date(date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-      return `<span style="display:inline-flex;align-items:center;gap:3px;background:${isToday?'rgba(220,38,38,0.12)':'var(--surface2)'};border:1px solid ${isToday?'rgba(220,38,38,0.3)':'var(--border)'};border-radius:20px;padding:2px 8px 2px 8px;margin:2px;font-size:11px;white-space:nowrap;">
-        <span style="font-weight:600;">${name}</span>${shortDate?`<span style="color:var(--muted);font-size:10px;">${shortDate}</span>`:''}
-        <span onclick="removeUsed(${i},${ui})" style="cursor:pointer;color:var(--muted);margin-left:2px;font-size:11px;line-height:1;" title="Remove">×</span>
-      </span>`;
-    }).join('');
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      if (!dateMap[date]) dateMap[date] = [];
+      dateMap[date].push({ name, ui });
+    });
 
-    tr.innerHTML = `
-      <td style="padding:10px 6px;text-align:center;cursor:grab;color:var(--muted);font-size:16px;user-select:none;" class="drag-handle" title="Drag to reorder">⠿</td>
-      <td style="padding:10px 12px;">
+    tableHtml += `<tr style="border-bottom:1px solid var(--border);${bg}" 
+      draggable="true" 
+      ondragstart="window._dragPoolIdx=${i};this.style.opacity='.4'"
+      ondragend="this.style.opacity='1'"
+      ondragover="event.preventDefault();this.style.background='rgba(37,99,235,0.08)'"
+      ondragleave="this.style.background=''"
+      ondrop="event.preventDefault();this.style.background='';if(window._dragPoolIdx!==${i}){const m=pools.splice(window._dragPoolIdx,1)[0];pools.splice(${i},0,m);savePools();renderPools();}">
+
+      <td style="padding:10px 14px;font-weight:600;position:sticky;left:0;background:${isActive?'rgba(37,99,235,0.08)':'white'};z-index:1;cursor:grab;" title="Drag to reorder">
+        <span style="color:var(--muted);margin-right:6px;font-size:14px;">⠿</span>
         <input type="text" value="${pool.name}"
           onchange="renamePool(${i}, this.value)"
-          style="font-weight:600;font-size:13px;border:1px solid transparent;border-radius:4px;padding:3px 6px;background:transparent;width:100%;min-width:80px;font-family:inherit;color:var(--text);"
+          style="font-weight:600;font-size:13px;border:1px solid transparent;border-radius:4px;padding:2px 4px;background:transparent;font-family:inherit;color:var(--text);max-width:110px;"
           onfocus="this.style.borderColor='var(--blue)';this.style.background='var(--surface)'"
           onblur="this.style.borderColor='transparent';this.style.background='transparent'">
-        ${isActive ? '<div style="font-size:10px;font-weight:700;color:var(--blue);letter-spacing:.5px;margin-top:2px;">● ACTIVE</div>' : ''}
+        ${isActive ? '<div style="font-size:10px;font-weight:700;color:var(--blue);letter-spacing:.4px;margin-top:1px;">● ACTIVE</div>' : ''}
       </td>
-      <td style="padding:10px 8px;text-align:center;font-weight:700;color:${usedCount>0?'var(--red)':'var(--muted)'};">${usedCount}</td>
-      <td style="padding:10px 12px;max-width:340px;">
-        <div style="display:flex;flex-wrap:wrap;gap:0;">${tags || '<span style="color:var(--muted);font-size:12px;font-style:italic;">None yet</span>'}</div>
-      </td>
-      <td style="padding:10px 12px;">
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input type="text" id="addName_${i}" placeholder="Player name..."
-            style="padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:5px;font-family:inherit;flex:1;min-width:120px;outline:none;"
+
+      <td style="padding:10px 8px;text-align:center;font-weight:700;color:${pool.used.length>0?'var(--red)':'var(--muted)'};">${pool.used.length}</td>`;
+
+    // One cell per date
+    sortedDates.forEach(d => {
+      const picks = dateMap[d] || [];
+      const isToday = d === today;
+      const cellBg = isToday ? 'rgba(37,99,235,0.04)' : '';
+      tableHtml += `<td style="padding:8px 10px;text-align:center;vertical-align:middle;${cellBg?'background:'+cellBg:''}">`;
+      if (picks.length) {
+        picks.forEach(p => {
+          tableHtml += `<div style="display:inline-flex;align-items:center;gap:3px;background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.25);border-radius:20px;padding:3px 8px;margin:1px;font-size:12px;white-space:nowrap;">
+            <span style="font-weight:600;">${p.name}</span>
+            <span onclick="removeUsed(${i},${p.ui});event.stopPropagation();" style="cursor:pointer;color:var(--muted);font-size:11px;margin-left:2px;" title="Remove">×</span>
+          </div>`;
+        });
+      } else {
+        tableHtml += `<span style="color:var(--border);font-size:18px;">—</span>`;
+      }
+      tableHtml += `</td>`;
+    });
+
+    // Add pick cell
+    tableHtml += `<td style="padding:8px 10px;">
+        <div style="display:flex;gap:5px;align-items:center;">
+          <input type="text" id="addName_${i}" placeholder="Name..."
+            style="padding:4px 7px;font-size:12px;border:1px solid var(--border);border-radius:5px;font-family:inherit;flex:1;min-width:80px;outline:none;"
             onkeydown="if(event.key==='Enter')addUsed(${i})"
             onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
           <input type="date" id="addDate_${i}" value="${today}"
-            style="padding:5px 6px;font-size:12px;border:1px solid var(--border);border-radius:5px;font-family:inherit;outline:none;width:130px;"
+            style="padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:5px;font-family:inherit;outline:none;width:118px;"
             onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
-          <button class="btn btn-secondary btn-sm" onclick="addUsed(${i})" style="white-space:nowrap;">+ Add</button>
+          <button class="btn btn-secondary btn-sm" onclick="addUsed(${i})" style="padding:4px 8px;white-space:nowrap;">+</button>
         </div>
       </td>
-      <td style="padding:10px 8px;text-align:center;">
+
+      <td style="padding:8px 8px;text-align:center;">
         <div style="display:flex;gap:4px;justify-content:center;">
-          <button class="btn btn-sm" onclick="setActivePool('${pool.id}')"
-            style="font-size:11px;padding:4px 8px;background:${isActive?'var(--blue)':'var(--surface2)'};color:${isActive?'#fff':'var(--text)'};border:1px solid ${isActive?'var(--blue)':'var(--border)'};border-radius:5px;cursor:pointer;">
+          <button onclick="setActivePool('${pool.id}')"
+            style="font-size:11px;padding:4px 9px;background:${isActive?'var(--blue)':'var(--surface2)'};color:${isActive?'#fff':'var(--text)'};border:1px solid ${isActive?'var(--blue)':'var(--border)'};border-radius:5px;cursor:pointer;font-family:inherit;">
             ${isActive ? '✓ Active' : 'Activate'}
           </button>
-          <button class="btn btn-sm" onclick="deletePool(${i})"
-            style="font-size:11px;padding:4px 8px;background:var(--surface2);color:var(--red);border:1px solid var(--border);border-radius:5px;cursor:pointer;" title="Delete pool">✕</button>
+          <button onclick="deletePool(${i})"
+            style="font-size:11px;padding:4px 8px;background:var(--surface2);color:var(--red);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-family:inherit;" title="Delete">✕</button>
         </div>
-      </td>`;
-
-    // Drag events
-    tr.addEventListener('dragstart', (e) => {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', i);
-      tr.style.opacity = '0.4';
-      window._dragPoolIdx = i;
-    });
-    tr.addEventListener('dragend', () => { tr.style.opacity = '1'; });
-    tr.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      tr.style.background = 'rgba(37,99,235,0.08)';
-    });
-    tr.addEventListener('dragleave', () => {
-      tr.style.background = isActive ? 'rgba(37,99,235,0.04)' : (i%2===0?'':'var(--surface2)');
-    });
-    tr.addEventListener('drop', (e) => {
-      e.preventDefault();
-      tr.style.background = isActive ? 'rgba(37,99,235,0.04)' : (i%2===0?'':'var(--surface2)');
-      const fromIdx = window._dragPoolIdx;
-      const toIdx = i;
-      if (fromIdx === toIdx) return;
-      const moved = pools.splice(fromIdx, 1)[0];
-      pools.splice(toIdx, 0, moved);
-      savePools();
-      renderPools();
-    });
-
-    tbody.appendChild(tr);
+      </td>
+    </tr>`;
   });
 
+  tableHtml += `</tbody></table></div>`;
+  list.innerHTML = tableHtml;
   renderCrossPool();
 }
 
