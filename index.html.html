@@ -2771,6 +2771,8 @@ function toggleCompareMode() {
     btn.style.borderColor = 'var(--blue)';
     if (tierSel) tierSel.style.display = 'none';
     if (searchBox) searchBox.style.display = 'none';
+    document.getElementById('resEmpty').style.display = 'none';
+    document.getElementById('resContent').style.display = 'block';
     renderCompare();
   } else {
     btn.style.background = 'var(--surface2)';
@@ -2787,7 +2789,7 @@ function getCurrentTopN() {
 }
 
 function renderCompare() {
-  const container = document.getElementById('resultsContainer');
+  const container = document.getElementById('resContent');
   if (!container || !allScoredPlayers.length) return;
 
   const topN = getCurrentTopN();
