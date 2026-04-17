@@ -1771,6 +1771,11 @@ function renamePool(id, newName) {
   if (pool) { pool.name = newName; savePools(); }
 }
 
+// Table uses index-based calls
+function renamePoolByIndex(i, newName) {
+  if (pools[i]) { pools[i].name = newName; savePools(); }
+}
+
 function markUsed(playerName, poolId, date) {
   const pool = pools.find(p => p.id === poolId);
   if (!pool) return;
@@ -1893,7 +1898,7 @@ function renderPools() {
       <td style="padding:10px 14px;font-weight:600;position:sticky;left:0;background:${isActive?'rgba(37,99,235,0.08)':'white'};z-index:1;cursor:grab;" title="Drag to reorder">
         <span style="color:var(--muted);margin-right:6px;font-size:14px;">⠿</span>
         <input type="text" value="${pool.name}"
-          onchange="renamePool(${i}, this.value)"
+          onchange="renamePoolByIndex(${i}, this.value)"
           style="font-weight:600;font-size:13px;border:1px solid transparent;border-radius:4px;padding:2px 4px;background:transparent;font-family:inherit;color:var(--text);max-width:110px;"
           onfocus="this.style.borderColor='var(--blue)';this.style.background='var(--surface)'"
           onblur="this.style.borderColor='transparent';this.style.background='transparent'">
