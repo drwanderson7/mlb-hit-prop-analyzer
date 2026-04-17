@@ -1233,9 +1233,12 @@ function scoreAllPlayers(games, maxOrder, minPA) {
 
         const spSC = lookupPitcher(opponentSP);
         const streak = lookupStreak(p.name);
-        const scored = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
+        const scored  = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
+        const scoredA = computeScoreModelA(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
         players.push({
           ...scored,
+          scoreA: scoredA.compositeScore,
+          tierA:  scoredA.tier,
           name: p.name,
           team: myAbbr,
           teamFull: myTeam,
@@ -1264,16 +1267,27 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   const leagueAvgXbaScore = 50;
   const xbaScore = Math.round(rawXbaScore * splitConf + leagueAvgXbaScore * (1 - splitConf));
 
-  // --- Batter Hard Hit% + Barrel% (22%) ---
+  // --- Batter K% and contact metrics ---
   const hh     = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
   const barrel = (sc?.barrelpct  != null && sc.barrelpct  >= 0) ? sc.barrelpct  : 0.07;
-  const contactScore = Math.min(100, Math.max(0,
-    ((hh - 0.20) / (0.65 - 0.20)) * 70 +
-    ((barrel - 0.02) / (0.20 - 0.02)) * 30
+  const kpct   = (sc?.kpct != null && sc.kpct >= 0) ? sc.kpct : 0.22;
+
+  // --- Contact-adjusted xBA: xBA × (1 - K%) ---
+  // Core per-PA hit probability signal.
+  const contactAdjXba = xba * (1 - kpct);
+  // Scale 0-100: ~.100 (weak/high-K) to .310 (elite/low-K)
+  const contactAdjScore = Math.min(100, Math.max(0,
+    ((contactAdjXba - 0.100) / (0.310 - 0.100)) * 100
   ));
 
-  // --- Batter K% (20%) — lower = better for hit props ---
-  const kpct = (sc?.kpct != null && sc.kpct >= 0) ? sc.kpct : 0.22;
+  // --- Barrel% standalone (independent signal) ---
+  // Barrel% has less overlap with xBA than HH% since it requires
+  // both exit velo AND optimal launch window — captures true power ceiling
+  const barrelScore = Math.min(100, Math.max(0,
+    ((barrel - 0.02) / (0.20 - 0.02)) * 100
+  ));
+
+  // kScore kept for reasoning/display only (not used in composite)
   const kScore = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
 
   // --- Pitcher matchup (18%) ---
@@ -1334,6 +1348,21 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   const switchBonus = (bats === 'S') ? 5 : 0;
   const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
 
+  // ── Pitcher as multiplier on contactAdjXba ─────────────────────────────────
+  // Instead of adding pitcher matchup additively (which lets a great batter offset
+  // a tough pitcher by averaging), we compute a pitcher factor that scales the
+  // batter's contact-adjusted xBA up or down.
+  //
+  // pitcherFactor: 0.75 (elite ace) → 1.25 (very hittable pitcher), centered at 1.0
+  // This correctly models that a .280 contact hitter vs Corbin Burnes has a genuinely
+  // lower hit probability — not just a separate penalty that partially cancels out.
+  //
+  // matchupScore is 0-100 where 50 = league average pitcher
+  // Map to multiplier: score 0 → 0.75, score 50 → 1.00, score 100 → 1.25
+  const pitcherFactor = 0.70 + (matchupScore / 100) * 0.60;  // range: 0.70 (elite ace) → 1.30 (very hittable)
+  // Apply: scale contactAdjScore by pitcherFactor, clamp 0-100
+  const pitcherAdjContact = Math.min(100, Math.max(0, contactAdjScore * pitcherFactor));
+
   // --- Park factor (8%) ---
   const pk = parkScore(venue);
 
@@ -1369,24 +1398,25 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   const streakAdj = streak ? Math.round((streak.combinedScore / 2) * 5) : 0;
 
   // Weighted composite — weights sum to 1.0
-  // Weights — pitcher matchup bumped to 22% since K%/xBA allowed are strong hit predictors
-  // xBA reduced slightly since pitcher matchup now captures more of that signal
-  // ERA is NOT used anywhere in this model
+  // Weights: contactAdjScore = xBA × (1-K%) is the primary per-PA hit probability signal.
+  // K% is NO LONGER a separate component — it's baked into contactAdjScore to avoid double-counting.
+  // HH% removed (redundant with xBA). Barrel% kept as independent signal.
+  // ERA is NOT used anywhere in this model.
   const rawComposite =
-    xbaScore      * 0.28 +   // split xBA — confidence-weighted, regresses toward mean with low PA
-    matchupScore  * 0.22 +   // pitcher K%, xBA allowed, HH%, whiff% — no ERA
-    impliedScore  * 0.14 +   // team implied runs — order-dampened, full effect slots 6-9
-    orderScore    * 0.10 +   // PA volume by batting slot
-    kScore        * 0.13 +   // batter K% — partial redundancy with xBA
-    contactScore  * 0.10 +   // HH% + Barrel%
-    pk.score      * 0.03;    // park factor — reduced (partially captured in xBA)
+    pitcherAdjContact * 0.52 +  // contactAdjXba × pitcherFactor — multiplicative, not additive
+                                 // pitcher matchup scales the batter's hit probability directly
+    impliedScore      * 0.14 +  // team implied runs — order-dampened, full effect slots 6-9
+    orderScore        * 0.08 +  // PA volume by batting slot (reduced — partially in impliedRuns)
+    barrelScore       * 0.08 +  // Barrel% — independent power/contact ceiling signal
+    pk.score          * 0.05 +  // park factor
+    0;                          // weights: .52+.14+.08+.08+.05 = 0.87 + streakAdj(±5pts)
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite + streakAdj)));
 
   let tier = 'Avoid';
-  if (composite >= 85) tier = 'Elite';
-  else if (composite >= 70) tier = 'Strong';
-  else if (composite >= 55) tier = 'Lean';
+  if (composite >= 65) tier = 'Elite';
+  else if (composite >= 57) tier = 'Strong';
+  else if (composite >= 48) tier = 'Lean';
 
   // Build reasoning
   const xbaStr = sc ? xba.toFixed(3) : '~.255 (est)';
@@ -1550,7 +1580,11 @@ function renderResults(players) {
       <div class="kpi"><div class="kpi-val">${avg}</div><div class="kpi-lbl">Avg Score</div></div>
     </div>
     <div class="filter-bar">
-      <select onchange="filterTier(this.value)">
+      <button id="compareModeBtn" onclick="toggleCompareMode()"
+        style="padding:6px 14px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);cursor:pointer;font-family:inherit;">
+        ⚖️ Compare Models
+      </button>
+      <select onchange="filterTier(this.value)" id="tierFilterSel">
         <option value="all">All Tiers</option><option>Elite</option><option>Strong</option><option>Lean</option><option>Avoid</option>
       </select>
       <select onchange="sortBy(this.value)">
@@ -1982,7 +2016,7 @@ function renderCrossPool() {
     html += `<div style="display:flex;flex-wrap:wrap;gap:8px;">`;
     todayRows.forEach(([name, d]) => {
       const scored = allScoredPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
-      const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=75?'var(--green)':scored.compositeScore>=60?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
+      const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=65?'var(--green)':scored.compositeScore>=57?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
       const pickCount = d.todayPools.length;
       const pickLabel = `${pickCount}/${totalPools} pool${totalPools !== 1 ? 's' : ''}`;
       const pickColor = pickCount === totalPools ? 'var(--blue)' : 'var(--muted)';
@@ -2644,6 +2678,215 @@ function triggerAutoSave() {
 }
 
 document.addEventListener('DOMContentLoaded', initCloudSync);
+
+// ── Model A — original additive formula (for comparison) ─────────────────────
+function computeScoreModelA(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns, streak) {
+  const xba  = (sc?.xba   != null && sc.xba   > 0) ? sc.xba   : 0.255;
+  const kpct = (sc?.kpct  != null && sc.kpct  >= 0) ? sc.kpct : 0.22;
+  const hh   = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
+  const barrel=(sc?.barrelpct  != null && sc.barrelpct  >= 0) ? sc.barrelpct  : 0.07;
+
+  // xBA score (split-confidence weighted)
+  const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  const splitConf = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
+  const xbaScore = Math.round(rawXbaScore * splitConf + 50 * (1 - splitConf));
+
+  // K% score (separate, additive)
+  const kScore = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
+
+  // HH% + Barrel% combined
+  const contactScore = Math.min(100, Math.max(0,
+    ((hh - 0.20) / (0.65 - 0.20)) * 70 +
+    ((barrel - 0.02) / (0.20 - 0.02)) * 30
+  ));
+
+  // Pitcher matchup (same logic)
+  let spScore;
+  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
+    const spK   = spSC.kpct ?? 0.22;
+    const spXBA = spSC.xbaAllowed ?? 0.255;
+    const spHH  = spSC.hardHitAllowed ?? 0.38;
+    const spWh  = spSC.whiffPct ?? 0.25;
+    const spBar = spSC.barrelAllowed ?? 0.07;
+    const kComp   = Math.min(100, Math.max(0, (1 - (spK  - 0.10) / (0.40 - 0.10)) * 100));
+    const xbaComp = Math.min(100, Math.max(0, ((spXBA - 0.150) / (0.330 - 0.150)) * 100));
+    const hhComp  = Math.min(100, Math.max(0, ((spHH  - 0.25)  / (0.60 - 0.25))   * 100));
+    const whComp  = Math.min(100, Math.max(0, (1 - (spWh - 0.15) / (0.42 - 0.15)) * 100));
+    const barComp = Math.min(100, Math.max(0, ((spBar - 0.02)  / (0.18 - 0.02))   * 100));
+    spScore = kComp*0.38 + xbaComp*0.35 + hhComp*0.15 + whComp*0.08 + barComp*0.04;
+  } else {
+    const k9   = spSC?.k9   || spStats.k9   || 8.5;
+    const whip = spSC?.whip || spStats.whip  || 1.35;
+    spScore = Math.min(100,Math.max(0,(1-(k9-4.0)/(14.0-4.0))*100))*0.65 +
+              Math.min(100,Math.max(0,((whip-0.80)/(1.90-0.80))*100))*0.35;
+  }
+  const switchBonus = (bats === 'S') ? 5 : 0;
+  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
+
+  // Park
+  const pk = parkScore(venue);
+
+  // Batting order
+  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
+  const slotPA = paBySlot[Math.min(player.order-1,8)];
+  const orderScore = Math.round(((slotPA-3.6)/(4.7-3.6))*100);
+
+  // Implied runs
+  let impliedScore = 50;
+  if (impliedRuns !== null && impliedRuns !== undefined) {
+    impliedScore = Math.min(100,Math.max(0,((impliedRuns-2.0)/(7.0-2.0))*100));
+    const damp = player.order<=2?0.20:player.order<=5?0.55:1.0;
+    impliedScore = Math.round(50+(impliedScore-50)*damp);
+  }
+
+  // Streak
+  const streakAdj = streak ? Math.round((streak.combinedScore / 2) * 5) : 0;
+
+  // Original additive weights
+  const raw = xbaScore*0.28 + matchupScore*0.22 + impliedScore*0.14 +
+              orderScore*0.10 + kScore*0.13 + contactScore*0.10 + pk.score*0.03;
+  const composite = Math.min(100, Math.max(0, Math.round(raw + streakAdj)));
+
+  let tier = 'Avoid';
+  if (composite >= 75) tier = 'Elite';
+  else if (composite >= 62) tier = 'Strong';
+  else if (composite >= 50) tier = 'Lean';
+
+  return { compositeScore: composite, tier };
+}
+
+
+// ── Model Comparison View ─────────────────────────────────────────────────────
+let compareModeActive = false;
+
+function toggleCompareMode() {
+  compareModeActive = !compareModeActive;
+  const btn = document.getElementById('compareModeBtn');
+  const tierSel = document.getElementById('tierFilterSel');
+  const searchBox = document.querySelector('.filter-bar input[type="text"]');
+
+  if (compareModeActive) {
+    btn.style.background = 'var(--blue)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--blue)';
+    if (tierSel) tierSel.style.display = 'none';
+    if (searchBox) searchBox.style.display = 'none';
+    renderCompare();
+  } else {
+    btn.style.background = 'var(--surface2)';
+    btn.style.color = 'var(--text)';
+    btn.style.borderColor = 'var(--border)';
+    if (tierSel) tierSel.style.display = '';
+    if (searchBox) searchBox.style.display = '';
+    renderResults(allScoredPlayers.slice(0, getCurrentTopN()));
+  }
+}
+
+function getCurrentTopN() {
+  return parseInt(document.getElementById('topN')?.value || '50');
+}
+
+function renderCompare() {
+  const container = document.getElementById('resultsContainer');
+  if (!container || !allScoredPlayers.length) return;
+
+  const topN = getCurrentTopN();
+
+  // Model B (current) — already sorted by compositeScore
+  const modelB = [...allScoredPlayers]
+    .sort((a,b) => b.compositeScore - a.compositeScore)
+    .slice(0, topN);
+
+  // Model A — sort by scoreA
+  const modelA = [...allScoredPlayers]
+    .sort((a,b) => b.scoreA - a.scoreA)
+    .slice(0, topN);
+
+  // Build set of names in each for highlighting differences
+  const bNames = new Set(modelB.map(p => p.name));
+  const aNames = new Set(modelA.map(p => p.name));
+
+  function tierColor(tier) {
+    if (tier === 'Elite')  return 'var(--green)';
+    if (tier === 'Strong') return 'var(--blue)';
+    if (tier === 'Lean')   return 'var(--yellow)';
+    return 'var(--muted)';
+  }
+
+  function playerRow(p, scoreField, tierField, otherNames, rank) {
+    const inOther = otherNames.has(p.name);
+    const rowBg = !inOther ? 'background:rgba(234,88,12,0.07);' : '';
+    const diffBadge = !inOther
+      ? `<span style="font-size:10px;font-weight:700;color:var(--orange);margin-left:4px;" title="Not in other model's top ${topN}">NEW</span>`
+      : '';
+    const score = p[scoreField];
+    const tier  = p[tierField];
+    return `<tr style="border-bottom:1px solid var(--border);${rowBg}">
+      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);width:32px;">${rank}</td>
+      <td style="padding:7px 12px;font-weight:600;font-size:13px;">
+        ${p.name}${diffBadge}
+        <div style="font-size:11px;color:var(--muted);font-weight:400;">${p.team} · ${p.pitcher||''}</div>
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <span style="font-size:15px;font-weight:700;color:${tierColor(tier)};">${score}</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <span style="font-size:11px;font-weight:700;color:${tierColor(tier)};padding:2px 8px;border-radius:20px;border:1px solid ${tierColor(tier)};opacity:.85;">${tier}</span>
+      </td>
+    </tr>`;
+  }
+
+  const maxRows = Math.max(modelA.length, modelB.length);
+  let aRows = '', bRows = '';
+  for (let i = 0; i < maxRows; i++) {
+    if (modelA[i]) aRows += playerRow(modelA[i], 'scoreA', 'tierA', bNames, i+1);
+    if (modelB[i]) bRows += playerRow(modelB[i], 'compositeScore', 'tier', aNames, i+1);
+  }
+
+  const colStyle = 'flex:1;min-width:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;';
+  const headStyle = 'padding:10px 14px;font-size:12px;font-weight:700;color:#fff;';
+
+  container.innerHTML = `
+    <div style="margin-bottom:10px;font-size:12px;color:var(--muted);">
+      <span style="background:rgba(234,88,12,0.1);border:1px solid rgba(234,88,12,0.3);border-radius:4px;padding:2px 8px;font-weight:600;color:var(--orange);">NEW</span>
+      = in this model's top ${topN} but not the other's
+    </div>
+    <div style="display:flex;gap:14px;align-items:flex-start;">
+
+      <div style="${colStyle}">
+        <div style="${headStyle}background:var(--muted);">
+          📐 Model A — Original
+          <div style="font-size:10px;font-weight:400;opacity:.8;margin-top:1px;">xBA(28%) + K%(13%) + HH%(10%) + Pitcher(22%)</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
+            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">#</th>
+            <th style="padding:6px 12px;font-size:10px;color:var(--muted);text-align:left;">Player</th>
+            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Score</th>
+            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Tier</th>
+          </tr></thead>
+          <tbody>${aRows}</tbody>
+        </table>
+      </div>
+
+      <div style="${colStyle}">
+        <div style="${headStyle}background:var(--blue);">
+          🔬 Model B — Current
+          <div style="font-size:10px;font-weight:400;opacity:.8;margin-top:1px;">xBA×(1−K%)×PitcherFactor(52%) + ImpliedRuns(14%)</div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
+            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">#</th>
+            <th style="padding:6px 12px;font-size:10px;color:var(--muted);text-align:left;">Player</th>
+            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Score</th>
+            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Tier</th>
+          </tr></thead>
+          <tbody>${bRows}</tbody>
+        </table>
+      </div>
+
+    </div>`;
+}
 
 </script>
 </body>
