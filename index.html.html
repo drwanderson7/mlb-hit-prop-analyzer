@@ -359,6 +359,11 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 
 <!-- POOLS TAB -->
 <div class="panel" id="panel-pools">
+  <div style="display:flex;gap:14px;align-items:flex-start;">
+
+    <!-- LEFT: Pool table + summary (flex 1) -->
+    <div style="flex:1;min-width:0;">
+
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
       🏆 Survivor Pools
@@ -392,6 +397,26 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   <div class="card" id="crossPoolCard" style="display:none;">
     <div class="card-header">📊 Pool Summary</div>
     <div class="card-body" id="crossPoolContent"></div>
+  </div>
+    </div>
+
+    <!-- RIGHT: Top picks sidebar -->
+    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+      <div class="card" style="margin-top:8px;">
+        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+          <span>🎯 Top Picks</span>
+          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="picksSidebar" style="font-size:13px;">
+            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+              Run analysis on the Analyze tab to see recommendations here.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -679,6 +704,7 @@ async function runAnalysis() {
   allScoredPlayers = [...scoredPlayers];
   const top = scoredPlayers.slice(0, topN);
   renderResults(top);
+  renderPicksSidebar();
   setStep('score', 'done', `${top.length} players ranked`);
 
   btn.disabled = false; btn.innerHTML = '⚡ Run Analysis';
@@ -1730,6 +1756,7 @@ function loadPools() {
   catch(e) { pools = []; }
   renderPools();
   refreshResultPoolStatus();
+  renderPicksSidebar();
 }
 
 function savePools() {
@@ -2925,6 +2952,83 @@ function renderCompare() {
       </div>
 
     </div>`;
+}
+
+// ── Pools page top picks sidebar ─────────────────────────────────────────────
+function renderPicksSidebar() {
+  const sidebar = document.getElementById('picksSidebar');
+  const label   = document.getElementById('sidebarAnalyzedLabel');
+  if (!sidebar) return;
+
+  if (!allScoredPlayers || !allScoredPlayers.length) {
+    sidebar.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">Run analysis to see recommendations.</div>';
+    return;
+  }
+
+  const topN  = 20;
+  const today = new Date().toLocaleDateString('en-CA');
+  const top   = [...allScoredPlayers]
+    .sort((a,b) => b.compositeScore - a.compositeScore)
+    .slice(0, topN);
+
+  // Get active pool index for click-to-fill
+  const activeIdx = pools.findIndex(p => p.id === activePoolId);
+
+  if (label) label.textContent = `Top ${topN} of ${allScoredPlayers.length}`;
+
+  function tierColor(tier) {
+    if (tier === 'Elite')  return 'var(--green)';
+    if (tier === 'Strong') return 'var(--blue)';
+    if (tier === 'Lean')   return 'var(--yellow)';
+    return 'var(--muted)';
+  }
+
+  let html = '';
+  top.forEach((p, i) => {
+    // Check if already used in active pool today
+    const activePool = activeIdx >= 0 ? pools[activeIdx] : null;
+    const usedToday  = activePool?.used.some(u => {
+      const name = typeof u === 'string' ? u : u.name;
+      const date = typeof u === 'string' ? '' : (u.date||'');
+      return name === p.name && date === today;
+    });
+
+    const isUsed = usedToday;
+    const bg = isUsed ? 'background:rgba(22,163,74,0.06);' : (i%2===0?'':'background:var(--surface2);');
+    const usedBadge = isUsed ? '<span style="font-size:9px;font-weight:700;color:var(--green);background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.3);border-radius:10px;padding:1px 5px;margin-left:3px;">✓ PICKED</span>' : '';
+
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);${bg}cursor:${activeIdx>=0&&!isUsed?'pointer':'default'};"
+      ${activeIdx>=0&&!isUsed ? `onclick="fillPickFromSidebar(${activeIdx},'${p.name.replace(/'/g,"\\'")}'); this.style.background='rgba(37,99,235,0.08)';"
+        title="Click to fill into ${activePool?.name||'active pool'}"` : ''}>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);width:18px;text-align:right;flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}${usedBadge}</div>
+        <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.team} · ${p.pitcher||'?'}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:14px;font-weight:700;color:${tierColor(p.tier)};">${p.compositeScore}</div>
+        <div style="font-size:9px;font-weight:700;color:${tierColor(p.tier)};opacity:.8;">${p.tier}</div>
+      </div>
+    </div>`;
+  });
+
+  if (activeIdx >= 0) {
+    html = `<div style="padding:7px 12px;background:rgba(37,99,235,0.06);border-bottom:1px solid var(--border);font-size:11px;color:var(--blue);font-weight:600;">
+      Click any player to fill into <em>${pools[activeIdx].name}</em>
+    </div>` + html;
+  }
+
+  sidebar.innerHTML = html;
+}
+
+function fillPickFromSidebar(poolIdx, playerName) {
+  const nameEl = document.getElementById('addName_' + poolIdx);
+  if (nameEl) {
+    nameEl.value = playerName;
+    nameEl.focus();
+    // Scroll the pool row into view
+    nameEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 </script>
