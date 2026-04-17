@@ -2792,17 +2792,16 @@ function renderCompare() {
 
   const topN = getCurrentTopN();
 
-  // Model B (current) — already sorted by compositeScore
+  // Model B — sorted by compositeScore (current model)
   const modelB = [...allScoredPlayers]
     .sort((a,b) => b.compositeScore - a.compositeScore)
     .slice(0, topN);
 
-  // Model A — sort by scoreA
+  // Model A — sorted by scoreA (original model)
   const modelA = [...allScoredPlayers]
-    .sort((a,b) => b.scoreA - a.scoreA)
+    .sort((a,b) => (b.scoreA||0) - (a.scoreA||0))
     .slice(0, topN);
 
-  // Build set of names in each for highlighting differences
   const bNames = new Set(modelB.map(p => p.name));
   const aNames = new Set(modelA.map(p => p.name));
 
@@ -2813,73 +2812,70 @@ function renderCompare() {
     return 'var(--muted)';
   }
 
-  function playerRow(p, scoreField, tierField, otherNames, rank) {
-    const inOther = otherNames.has(p.name);
-    const rowBg = !inOther ? 'background:rgba(234,88,12,0.07);' : '';
-    const diffBadge = !inOther
-      ? `<span style="font-size:10px;font-weight:700;color:var(--orange);margin-left:4px;" title="Not in other model's top ${topN}">NEW</span>`
+  function playerRow(p, rank, scoreVal, tierVal, inOther) {
+    const newBadge = !inOther
+      ? `<span style="font-size:9px;font-weight:700;color:var(--orange);background:rgba(234,88,12,0.12);border:1px solid rgba(234,88,12,0.3);border-radius:10px;padding:1px 5px;margin-left:4px;">ONLY</span>`
       : '';
-    const score = p[scoreField];
-    const tier  = p[tierField];
-    return `<tr style="border-bottom:1px solid var(--border);${rowBg}">
-      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);width:32px;">${rank}</td>
-      <td style="padding:7px 12px;font-weight:600;font-size:13px;">
-        ${p.name}${diffBadge}
-        <div style="font-size:11px;color:var(--muted);font-weight:400;">${p.team} · ${p.pitcher||''}</div>
+    const rowBg = !inOther ? 'rgba(234,88,12,0.05)' : (rank%2===0 ? 'var(--surface2)' : '');
+    return `<tr style="border-bottom:1px solid var(--border);background:${rowBg};">
+      <td style="padding:7px 8px;text-align:center;font-size:12px;color:var(--muted);width:28px;">${rank}</td>
+      <td style="padding:7px 10px;">
+        <div style="font-weight:600;font-size:13px;">${p.name}${newBadge}</div>
+        <div style="font-size:11px;color:var(--muted);">${p.team} · ${p.pitcher||'?'}</div>
       </td>
-      <td style="padding:7px 10px;text-align:center;">
-        <span style="font-size:15px;font-weight:700;color:${tierColor(tier)};">${score}</span>
-      </td>
-      <td style="padding:7px 10px;text-align:center;">
-        <span style="font-size:11px;font-weight:700;color:${tierColor(tier)};padding:2px 8px;border-radius:20px;border:1px solid ${tierColor(tier)};opacity:.85;">${tier}</span>
+      <td style="padding:7px 8px;text-align:center;font-size:15px;font-weight:700;color:${tierColor(tierVal)};width:44px;">${scoreVal}</td>
+      <td style="padding:7px 8px;text-align:center;width:60px;">
+        <span style="font-size:10px;font-weight:700;color:${tierColor(tierVal)};border:1px solid ${tierColor(tierVal)};border-radius:20px;padding:2px 6px;">${tierVal}</span>
       </td>
     </tr>`;
   }
 
-  const maxRows = Math.max(modelA.length, modelB.length);
-  let aRows = '', bRows = '';
-  for (let i = 0; i < maxRows; i++) {
-    if (modelA[i]) aRows += playerRow(modelA[i], 'scoreA', 'tierA', bNames, i+1);
-    if (modelB[i]) bRows += playerRow(modelB[i], 'compositeScore', 'tier', aNames, i+1);
-  }
+  let aRows = modelA.map((p,i) =>
+    playerRow(p, i+1, p.scoreA||0, p.tierA||'Avoid', bNames.has(p.name))
+  ).join('');
 
-  const colStyle = 'flex:1;min-width:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;';
-  const headStyle = 'padding:10px 14px;font-size:12px;font-weight:700;color:#fff;';
+  let bRows = modelB.map((p,i) =>
+    playerRow(p, i+1, p.compositeScore, p.tier, aNames.has(p.name))
+  ).join('');
+
+  const thStyle = 'padding:6px 8px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;';
 
   container.innerHTML = `
-    <div style="margin-bottom:10px;font-size:12px;color:var(--muted);">
-      <span style="background:rgba(234,88,12,0.1);border:1px solid rgba(234,88,12,0.3);border-radius:4px;padding:2px 8px;font-weight:600;color:var(--orange);">NEW</span>
-      = in this model's top ${topN} but not the other's
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="font-size:12px;color:var(--muted);">
+        <span style="background:rgba(234,88,12,0.1);border:1px solid rgba(234,88,12,0.3);border-radius:4px;padding:1px 7px;font-weight:700;color:var(--orange);font-size:11px;">ONLY</span>
+        = appears in this model's top ${topN} but not the other
+      </div>
     </div>
-    <div style="display:flex;gap:14px;align-items:flex-start;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
 
-      <div style="${colStyle}">
-        <div style="${headStyle}background:var(--muted);">
-          📐 Model A — Original
-          <div style="font-size:10px;font-weight:400;opacity:.8;margin-top:1px;">xBA(28%) + K%(13%) + HH%(10%) + Pitcher(22%)</div>
+      <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div style="background:var(--nav);padding:10px 14px;">
+          <div style="font-size:13px;font-weight:700;color:#fff;">📐 Model A — Original</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">xBA(28%) + K%(13%) + HH%(10%) additive · Pitcher(22%) additive</div>
         </div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
-            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">#</th>
-            <th style="padding:6px 12px;font-size:10px;color:var(--muted);text-align:left;">Player</th>
-            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Score</th>
-            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Tier</th>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
+            <th style="${thStyle}text-align:center;">#</th>
+            <th style="${thStyle}text-align:left;">Player</th>
+            <th style="${thStyle}text-align:center;">Score</th>
+            <th style="${thStyle}text-align:center;">Tier</th>
           </tr></thead>
           <tbody>${aRows}</tbody>
         </table>
       </div>
 
-      <div style="${colStyle}">
-        <div style="${headStyle}background:var(--blue);">
-          🔬 Model B — Current
-          <div style="font-size:10px;font-weight:400;opacity:.8;margin-top:1px;">xBA×(1−K%)×PitcherFactor(52%) + ImpliedRuns(14%)</div>
+      <div style="border:1px solid var(--blue);border-radius:10px;overflow:hidden;">
+        <div style="background:var(--blue);padding:10px 14px;">
+          <div style="font-size:13px;font-weight:700;color:#fff;">🔬 Model B — Current</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:2px;">xBA×(1−K%)×PitcherFactor(52%) multiplicative · ImpliedRuns(14%)</div>
         </div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border);">
-            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">#</th>
-            <th style="padding:6px 12px;font-size:10px;color:var(--muted);text-align:left;">Player</th>
-            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Score</th>
-            <th style="padding:6px 10px;font-size:10px;color:var(--muted);text-align:center;">Tier</th>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
+            <th style="${thStyle}text-align:center;">#</th>
+            <th style="${thStyle}text-align:left;">Player</th>
+            <th style="${thStyle}text-align:center;">Score</th>
+            <th style="${thStyle}text-align:center;">Tier</th>
           </tr></thead>
           <tbody>${bRows}</tbody>
         </table>
