@@ -1973,6 +1973,29 @@ function addPlayerManually(poolId) {
   nameEl.value = '';
 }
 
+// Table uses index-based calls — wrapper for renderPools table
+function addUsed(i) {
+  const pool = pools[i];
+  if (!pool) return;
+  const nameEl = document.getElementById('addName_' + i);
+  const dateEl = document.getElementById('addDate_' + i);
+  if (!nameEl) return;
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const date = dateEl?.value || new Date().toLocaleDateString('en-CA');
+  markUsed(name, pool.id, date);
+  nameEl.value = '';
+}
+
+function removeUsed(poolIdx, usedIdx) {
+  const pool = pools[poolIdx];
+  if (!pool) return;
+  pool.used.splice(usedIdx, 1);
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
 function setActivePool(id) {
   activePoolId = activePoolId === id ? null : id;
   renderPools();
