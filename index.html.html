@@ -1755,6 +1755,17 @@ function deletePool(id) {
   refreshResultPoolStatus();
 }
 
+function deletePoolByIndex(i) {
+  const pool = pools[i];
+  if (!pool) return;
+  if (!confirm('Delete pool "' + pool.name + '" and all its pick history?')) return;
+  if (activePoolId === pool.id) activePoolId = null;
+  pools.splice(i, 1);
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
 function renamePool(id, newName) {
   const pool = pools.find(p => p.id === id);
   if (pool) { pool.name = newName; savePools(); }
@@ -1930,7 +1941,7 @@ function renderPools() {
             style="font-size:11px;padding:4px 9px;background:${isActive?'var(--blue)':'var(--surface2)'};color:${isActive?'#fff':'var(--text)'};border:1px solid ${isActive?'var(--blue)':'var(--border)'};border-radius:5px;cursor:pointer;font-family:inherit;">
             ${isActive ? '✓ Active' : 'Activate'}
           </button>
-          <button onclick="deletePool(${i})"
+          <button onclick="deletePoolByIndex(${i})"
             style="font-size:11px;padding:4px 8px;background:var(--surface2);color:var(--red);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-family:inherit;" title="Delete">✕</button>
         </div>
       </td>
@@ -2766,6 +2777,7 @@ function toggleCompareMode() {
   const searchBox = document.querySelector('.filter-bar input[type="text"]');
 
   if (compareModeActive) {
+    btn.textContent = '✕ Back to Model B';
     btn.style.background = 'var(--blue)';
     btn.style.color = '#fff';
     btn.style.borderColor = 'var(--blue)';
@@ -2775,6 +2787,7 @@ function toggleCompareMode() {
     document.getElementById('resContent').style.display = 'block';
     renderCompare();
   } else {
+    btn.textContent = '⚖️ Compare Models';
     btn.style.background = 'var(--surface2)';
     btn.style.color = 'var(--text)';
     btn.style.borderColor = 'var(--border)';
