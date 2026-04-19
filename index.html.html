@@ -1,5 +1,7 @@
 <!DOCTYPE html>
+
 <!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -190,6 +192,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- ANALYZE TAB -->
+
 <div class="panel active" id="panel-analyze">
 
   <div class="card" style="margin-top:8px;">
@@ -245,33 +248,36 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </div>
       </div>
 
-      <div class="step-list" id="stepList" style="display:none;">
-        <div class="step" id="step-schedule">
-          <div class="step-dot pending" id="dot-schedule">1</div>
-          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
-        </div>
-        <div class="step" id="step-statcast">
-          <div class="step-dot pending" id="dot-statcast">2</div>
-          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
-        </div>
-        <div class="step" id="step-lineups">
-          <div class="step-dot pending" id="dot-lineups">3</div>
-          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
-        </div>
-        <div class="step" id="step-score">
-          <div class="step-dot pending" id="dot-score">4</div>
-          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
-        </div>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
-          ⚡ Run Analysis
-        </button>
-        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
-      </div>
-      <div id="errBox" style="display:none;margin-top:12px;"></div>
+```
+  <div class="step-list" id="stepList" style="display:none;">
+    <div class="step" id="step-schedule">
+      <div class="step-dot pending" id="dot-schedule">1</div>
+      <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
     </div>
+    <div class="step" id="step-statcast">
+      <div class="step-dot pending" id="dot-statcast">2</div>
+      <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
+    </div>
+    <div class="step" id="step-lineups">
+      <div class="step-dot pending" id="dot-lineups">3</div>
+      <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+    </div>
+    <div class="step" id="step-score">
+      <div class="step-dot pending" id="dot-score">4</div>
+      <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+      ⚡ Run Analysis
+    </button>
+    <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+  </div>
+  <div id="errBox" style="display:none;margin-top:12px;"></div>
+</div>
+```
+
   </div>
 
   <div class="card">
@@ -285,6 +291,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- LINEUPS TAB -->
+
 <div class="panel" id="panel-lineups">
   <div class="empty" id="luEmpty">
     <div class="empty-icon">📋</div>
@@ -294,6 +301,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- RESULTS TAB -->
+
 <div class="panel" id="panel-results">
   <div class="empty" id="resEmpty">
     <div class="empty-icon">⚾</div>
@@ -303,6 +311,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- HELP TAB -->
+
 <div class="panel" id="panel-help">
   <div class="card">
     <div class="card-header">📊 Data Sources</div>
@@ -334,16 +343,19 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </tbody>
       </table>
 
-      <div class="divider"></div>
+```
+  <div class="divider"></div>
 
-      <strong style="font-size:13px;">Tiers</strong>
-      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
-        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
-        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
-        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
-        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
-      </ul>
-    </div>
+  <strong style="font-size:13px;">Tiers</strong>
+  <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+    <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+    <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+    <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+    <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+  </ul>
+</div>
+```
+
   </div>
 
   <div class="card">
@@ -358,11 +370,14 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- POOLS TAB -->
+
 <div class="panel" id="panel-pools">
   <div style="display:flex;gap:14px;align-items:flex-start;">
 
-    <!-- LEFT: Pool table + summary (flex 1) -->
-    <div style="flex:1;min-width:0;">
+```
+<!-- LEFT: Pool table + summary (flex 1) -->
+<div style="flex:1;min-width:0;">
+```
 
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -400,27 +415,30 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   </div>
     </div>
 
-    <!-- RIGHT: Top picks sidebar -->
-    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
-      <div class="card" style="margin-top:8px;">
-        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
-          <span>🎯 Top Picks</span>
-          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
-        </div>
-        <div class="card-body" style="padding:0;">
-          <div id="picksSidebar" style="font-size:13px;">
-            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
-              Run analysis on the Analyze tab to see recommendations here.
-            </div>
-          </div>
+```
+<!-- RIGHT: Top picks sidebar -->
+<div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+      <span>🎯 Top Picks</span>
+      <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="picksSidebar" style="font-size:13px;">
+        <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+          Run analysis on the Analyze tab to see recommendations here.
         </div>
       </div>
     </div>
+  </div>
+</div>
+```
 
   </div>
 </div>
 
 <!-- SCHEDULE TAB -->
+
 <div class="panel" id="panel-schedule">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -441,6 +459,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- TRACKER TAB -->
+
 <div class="panel" id="panel-tracker">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -725,7 +744,9 @@ function extractLineups(games) {
       homeAbbr: g.teams.home.team.abbreviation,
       venue: g.venue?.name || '',
       awaySP: g.teams.away.probablePitcher || null,
+      awaySPHand: g.teams.away.probablePitcher?.pitchHand?.code || null,
       homeSP: g.teams.home.probablePitcher || null,
+      homeSPHand: g.teams.home.probablePitcher?.pitchHand?.code || null,
       awayConfirmed: lu.awayPlayers || [],
       homeConfirmed: lu.homePlayers || [],
     };
@@ -1165,13 +1186,16 @@ const REVERSE_SPLIT_PITCHERS = new Set([
   'jose quintana','wade miley','marco gonzales','patrick sandoval',
 ]);
 
-function getSPStats(name) {
-  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: 'R', platoon: 'normal' };
+function getSPStats(name, apiHand) {
+  // apiHand: pitcher handedness from MLB API probablePitcher.pitchHand.code
+  // This is the most reliable source — always prefer it over SP_NORM
+  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: apiHand || 'R', platoon: 'normal' };
   const key = normalize(name);
   const platoon = REVERSE_SPLIT_PITCHERS.has(key) ? 'reverse' : 'normal';
-  const toObj = s => ({ era: s[0], whip: s[1], k9: s[2], hand: s[3], platoon });
+  const toObj = (s, hand) => ({ era: s[0], whip: s[1], k9: s[2], hand: hand || s[3], platoon });
   const s = SP_NORM[key];
-  if (s) return toObj(s);
+  // If we have API hand, use it — SP_NORM hand could be stale for switch-pitchers etc
+  if (s) return toObj(s, apiHand || s[3]);
   const parts = key.split(' ');
   if (parts.length >= 2) {
     const lLast = parts[parts.length-1], lInit = parts[0][0];
@@ -1179,15 +1203,17 @@ function getSPStats(name) {
       const kp = k.split(' ');
       return kp[kp.length-1] === lLast && kp[0][0] === lInit;
     });
-    if (match) return toObj(SP_NORM[match]);
+    if (match) return toObj(SP_NORM[match], apiHand || SP_NORM[match][3]);
   }
-  return { era: 4.20, whip: 1.28, k9: 8.8, hand: 'R', platoon: 'normal' };
+  // Unknown pitcher — use API hand if available, otherwise default R
+  // NOTE: Default was 'R' which was wrong for lefties — API hand fixes this
+  return { era: 4.20, whip: 1.28, k9: 8.8, hand: apiHand || 'R', platoon };
 }
 
 function buildLineups(gameLineups, rawGames) {
   return gameLineups.map(gl => {
-    const awaySPStats = getSPStats(gl.awaySP?.fullName);
-    const homeSPStats = getSPStats(gl.homeSP?.fullName);
+    const awaySPStats = getSPStats(gl.awaySP?.fullName, gl.awaySPHand);
+    const homeSPStats = getSPStats(gl.homeSP?.fullName, gl.homeSPHand);
 
     const buildSide = (confirmed, abbr, spHand) => {
       if (confirmed.length >= 8) {
@@ -3032,5 +3058,6 @@ function fillPickFromSidebar(poolIdx, playerName) {
 }
 
 </script>
+
 </body>
 </html>
