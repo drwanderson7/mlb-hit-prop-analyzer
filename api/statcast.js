@@ -133,9 +133,10 @@ export default async function handler(req) {
     // Rolling 7-day and 14-day batter stats
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`,
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=14&csv=true`,
-    // Savant statcast leaderboard — correct URL for K%, HH%, Barrel%
-    `https://baseballsavant.mlb.com/leaderboard/statcast?year=${year}&position=&team=&min=0&type=batter&csv=true`,
-    `https://baseballsavant.mlb.com/leaderboard/statcast?year=${prev}&position=&team=&min=100&type=batter&csv=true`,
+    // statcast_search grouped by player name — definitive source for K%, HH%, Barrel%
+    // Returns aggregated season stats per batter including k_percent, hard_hit_percent
+    `https://baseballsavant.mlb.com/statcast_search/csv?all=true&hfGT=R%7C&hfSea=${year}%7C&player_type=batter&group_by=name&min_results=1&sort_col=pitches&sort_order=desc&type=details`,
+    `https://baseballsavant.mlb.com/statcast_search/csv?all=true&hfGT=R%7C&hfSea=${prev}%7C&player_type=batter&group_by=name&min_results=100&sort_col=pitches&sort_order=desc&type=details`,
   ];
 
   try {
