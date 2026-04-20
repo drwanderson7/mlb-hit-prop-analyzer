@@ -291,9 +291,31 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 
 <!-- LINEUPS TAB -->
 <div class="panel" id="panel-lineups">
-  <div class="empty" id="luEmpty">
+
+  <!-- FantasyLabs paste import -->
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;">
+      📋 Import Lineups
+      <span style="font-size:11px;font-weight:400;opacity:.7;">Paste from FantasyLabs — one or multiple games</span>
+    </div>
+    <div class="card-body" style="padding:14px;">
+      <textarea id="lineupPasteBox" rows="8"
+        placeholder="Paste FantasyLabs lineup text here...&#10;&#10;Example:&#10;St. Louis Cardinals (+110) @ Miami Marlins (-132)&#10;Michael McGreevy (R) $30&#10;Max Meyer (R) $32&#10;Projected Lineup&#10;* 1 - JJ Wetherholt (L) 2B $18&#10;..."
+        style="width:100%;font-size:12px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:10px;resize:vertical;outline:none;box-sizing:border-box;background:var(--surface2);"
+        onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+        <button class="btn btn-primary" onclick="parseFantasyLabsPaste()" style="padding:7px 18px;">
+          ⚡ Parse Lineups
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="clearImportedLineups()">Clear Imports</button>
+        <span id="importStatus" style="font-size:12px;color:var(--muted);font-style:italic;"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty" id="luEmpty" style="margin-top:8px;">
     <div class="empty-icon">📋</div>
-    <p>Run an analysis to see projected lineups here.</p>
+    <p>Run an analysis or import lineups above to see batting orders here.</p>
   </div>
   <div id="luContent"></div>
 </div>
@@ -1373,6 +1395,9 @@ function getSPStats(name, apiHand) {
   // apiHand: pitcher handedness from MLB API probablePitcher.pitchHand.code
   // This is the most reliable source — always prefer it over SP_NORM
   if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: apiHand || 'R', platoon: 'normal' };
+  // Check runtime imported hand override from FantasyLabs paste
+  const importedHand = window.importedSPHands?.[name.toLowerCase()];
+  if (importedHand) apiHand = importedHand;
   const key = normalize(name);
   const platoon = REVERSE_SPLIT_PITCHERS.has(key) ? 'reverse' : 'normal';
   const toObj = (s, hand) => ({ era: s[0], whip: s[1], k9: s[2], hand: hand || s[3], platoon });
@@ -3326,6 +3351,157 @@ async function refreshLineups() {
     btn.disabled = false;
     btn.textContent = '🔄 Refresh Lineups';
   }
+}
+
+// ── FantasyLabs Lineup Import ─────────────────────────────────────────────────
+
+// Full team name → abbreviation map
+const TEAM_NAME_TO_ABBR = {
+  'arizona diamondbacks':'AZ','atlanta braves':'ATL','baltimore orioles':'BAL',
+  'boston red sox':'BOS','chicago cubs':'CHC','chicago white sox':'CHW',
+  'cincinnati reds':'CIN','cleveland guardians':'CLE','colorado rockies':'COL',
+  'detroit tigers':'DET','houston astros':'HOU','kansas city royals':'KC',
+  'los angeles angels':'LAA','los angeles dodgers':'LAD','miami marlins':'MIA',
+  'milwaukee brewers':'MIL','minnesota twins':'MIN','new york mets':'NYM',
+  'new york yankees':'NYY','oakland athletics':'ATH','athletics':'ATH',
+  'philadelphia phillies':'PHI','pittsburgh pirates':'PIT','san diego padres':'SD',
+  'san francisco giants':'SF','seattle mariners':'SEA','st. louis cardinals':'STL',
+  'tampa bay rays':'TB','texas rangers':'TEX','toronto blue jays':'TOR',
+  'washington nationals':'WSH',
+};
+
+// Imported lineups override depth charts — keyed by team abbr
+let importedLineups = {}; // { 'STL': [{name, hand, slot}, ...], ... }
+let importedPitchers = {}; // { 'STL': {name, hand}, ... }
+
+function parseFantasyLabsPaste() {
+  const raw = document.getElementById('lineupPasteBox').value.trim();
+  const status = document.getElementById('importStatus');
+  if (!raw) { status.textContent = 'Paste lineup text first.'; return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  let teamsImported = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    // Look for game header: "Team A (+xxx) @ Team B (-xxx)" or "Team A @ Team B"
+    const gameMatch = lines[i].match(/^(.+?)\s*\([+-]?\d+\)?\s*@\s*(.+?)\s*\([+-]?\d+\)?/i)
+                  || lines[i].match(/^(.+?)\s*@\s*(.+?)$/i);
+
+    if (gameMatch) {
+      const awayName = gameMatch[1].trim().toLowerCase();
+      const homeName = gameMatch[2].trim().replace(/\s*\([+-]?\d+\).*$/, '').trim().toLowerCase();
+      const awayAbbr = TEAM_NAME_TO_ABBR[awayName];
+      const homeAbbr = TEAM_NAME_TO_ABBR[homeName];
+
+      if (!awayAbbr || !homeAbbr) { i++; continue; }
+
+      i++; // move past game header
+
+      // Parse pitchers and lineups for both teams
+      let pitchers = [];
+      let lineups = [[], []]; // [away, home]
+      let lineupIdx = -1;
+
+      while (i < lines.length) {
+        const line = lines[i];
+
+        // Stop if we hit another game header
+        if ((line.match(/^(.+?)\s*\([+-]?\d+\)?\s*@\s*(.+?)/) ||
+             line.match(/^(.+?)\s*@\s*(.+?)$/)) && line.includes('@') &&
+             !line.startsWith('*')) break;
+
+        // Pitcher line: "Name (R) $xx"
+        const pitcherMatch = line.match(/^([A-Z][^(]+?)\s+\(([RLS])\)\s+\$[\d.]+K?\s*$/i);
+        if (pitcherMatch && lineupIdx < 0) {
+          pitchers.push({ name: pitcherMatch[1].trim(), hand: pitcherMatch[2].toUpperCase() });
+          i++; continue;
+        }
+
+        // "Projected Lineup" marker
+        if (line.toLowerCase().includes('projected lineup')) {
+          lineupIdx++;
+          i++; continue;
+        }
+
+        // Player line: "* 1 - Name (H) POS $price" or "1 - Name (H) POS $price"
+        const playerMatch = line.match(/^\*?\s*(\d)\s*[-–]\s*(.+?)\s+\(([RLBS])\)\s+\S+/i);
+        if (playerMatch && lineupIdx >= 0 && lineupIdx <= 1) {
+          lineups[lineupIdx].push({
+            slot: parseInt(playerMatch[1]),
+            name: playerMatch[2].trim(),
+            hand: playerMatch[3].toUpperCase() === 'B' ? 'S' : playerMatch[3].toUpperCase(),
+          });
+          i++; continue;
+        }
+
+        i++;
+      }
+
+      // Store results
+      if (lineups[0].length >= 3) {
+        importedLineups[awayAbbr] = lineups[0].sort((a,b) => a.slot - b.slot);
+        if (pitchers[0]) importedPitchers[awayAbbr] = pitchers[0];
+        teamsImported.push(awayAbbr);
+      }
+      if (lineups[1].length >= 3) {
+        importedLineups[homeAbbr] = lineups[1].sort((a,b) => a.slot - b.slot);
+        if (pitchers[1]) importedPitchers[homeAbbr] = pitchers[1];
+        teamsImported.push(homeAbbr);
+      }
+    } else {
+      i++;
+    }
+  }
+
+  if (teamsImported.length === 0) {
+    status.textContent = '❌ Could not parse any lineups. Check format.';
+    status.style.color = 'var(--red)';
+    return;
+  }
+
+  status.textContent = `✅ Imported ${teamsImported.length} teams: ${teamsImported.join(', ')}`;
+  status.style.color = 'var(--green)';
+
+  // Push imported lineups into DEPTH_CHARTS so analysis uses them
+  teamsImported.forEach(abbr => {
+    if (importedLineups[abbr]) {
+      DEPTH_CHARTS[abbr] = importedLineups[abbr].map(p => p.name);
+    }
+    // Update BATS with handedness from import
+    if (importedLineups[abbr]) {
+      importedLineups[abbr].forEach(p => {
+        const key = p.name.toLowerCase();
+        // Add to runtime BATS if not already known
+        if (!BATS[p.name]) BATS[p.name] = p.hand;
+      });
+    }
+    // Update pitcher SP_STATS hand if imported
+    if (importedPitchers[abbr]) {
+      const sp = importedPitchers[abbr];
+      const spStats = getSPStats(sp.name, sp.hand);
+      // Store in a runtime override dict
+      if (!window.importedSPHands) window.importedSPHands = {};
+      window.importedSPHands[sp.name.toLowerCase()] = sp.hand;
+    }
+  });
+
+  // Re-render lineups tab to show imported lineups
+  if (typeof renderLineups === 'function' && allScoredPlayers.length) {
+    renderLineups(allScoredPlayers);
+  }
+
+  // Clear paste box
+  document.getElementById('lineupPasteBox').value = '';
+}
+
+function clearImportedLineups() {
+  importedLineups = {};
+  importedPitchers = {};
+  // Reset DEPTH_CHARTS back to original — reload page or re-init
+  const status = document.getElementById('importStatus');
+  status.textContent = 'Imports cleared — depth charts restored on next analysis run.';
+  status.style.color = 'var(--muted)';
 }
 
 </script>
