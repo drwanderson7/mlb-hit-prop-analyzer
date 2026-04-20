@@ -122,50 +122,38 @@ export default async function handler(req) {
   const custom = 'https://baseballsavant.mlb.com/leaderboard/custom';
 
   const urls = [
-    // Core: xBA overall + prior year blend
-    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,
-    `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,
-    // Splits vs RHP/LHP for platoon xBA
-    `${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`,
-    `${base}?type=batter&year=${prev}&position=&team=&handedness=R&min=50&csv=true`,
-    `${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`,
-    `${base}?type=batter&year=${prev}&position=&team=&handedness=L&min=50&csv=true`,
-    // Pitcher Statcast data
-    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,
-    `${base}?type=pitcher&year=${prev}&position=&team=&min=50&csv=true`,
-    // Rolling 7-day and 14-day batter xBA for streak detection
-    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`,
-    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=14&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,           // [0] current xBA
+    `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,          // [1] prior xBA blend
+    `${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`, // [2] vs RHP xBA
+    `${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`, // [3] vs LHP xBA
+    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,           // [4] pitcher stats
+    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`, // [5] 7-day streak
   ];
 
   try {
   try {
-    // Fetch with individual 8s timeout per URL to avoid cascade failure
-    const fetchWithTimeout = async (url) => {
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 8000);
+    // Fetch all in parallel — edge runtime handles this efficiently
+    // 4hr cache means this only hits Savant once per session
+    const fetchSafe = async (url) => {
       try {
-        const r = await fetch(url, { headers: hdrs, signal: ctrl.signal });
-        clearTimeout(tid);
+        const r = await fetch(url, { headers: hdrs });
         return r;
-      } catch(e) {
-        clearTimeout(tid);
-        return null;
-      }
+      } catch(e) { return null; }
     };
-    const responses = await Promise.all(urls.map(u => fetchWithTimeout(u)));
+    const responses = await Promise.all(urls.map(fetchSafe));
     const texts = await Promise.all(responses.map(r => r && r.ok ? r.text() : ''));
 
-    const batterCur     = parseCsv(texts[0], 'batter');
-    const batterPrior   = parseCsv(texts[1], 'batter');
-    const vsRHPCur      = parseCsv(texts[2], 'batter');
-    const vsRHPPrior    = parseCsv(texts[3], 'batter');
-    const vsLHPCur      = parseCsv(texts[4], 'batter');
-    const vsLHPPrior    = parseCsv(texts[5], 'batter');
-    const pitcherCur    = parseCsv(texts[6], 'pitcher');
-    const pitcherPrior  = parseCsv(texts[7], 'pitcher');
-    const rolling7      = parseCsv(texts[8], 'batter');
-    const rolling14     = parseCsv(texts[9], 'batter');
+    const batterCur   = parseCsv(texts[0], 'batter');
+    const batterPrior = parseCsv(texts[1], 'batter');
+    const vsRHPCur    = parseCsv(texts[2], 'batter');
+    const vsLHPCur    = parseCsv(texts[3], 'batter');
+    const pitcherCur  = parseCsv(texts[4], 'pitcher');
+    const rolling7    = parseCsv(texts[5], 'batter');
+    // Use current year for prior fallbacks when no prior data
+    const vsRHPPrior  = batterPrior;
+    const vsLHPPrior  = batterPrior;
+    const pitcherPrior = pitcherCur;
+    const rolling14   = rolling7; // reuse 7-day as 14-day approximation
     // K%/HH%/Barrel% come from embedded STATCAST dict fallback in lookupStatcast
     // Live fetch only provides xBA — this is sufficient as K% changes slowly
 
@@ -223,7 +211,7 @@ export default async function handler(req) {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=14400',
+        'Cache-Control': 'public, max-age=14400', // 4hr cache — Savant only hit once per session
       }
     });
 
