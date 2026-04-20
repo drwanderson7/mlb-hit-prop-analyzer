@@ -38,11 +38,11 @@ export default async function handler(req) {
   if (!apiKey) return respond(500, { error: 'ODDS_API_KEY not set' });
 
   try {
-    // Two calls — same cost as before (2 requests per analysis run)
-    const [resH2h, resTeam] = await Promise.all([
-      fetch(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`),
-      fetch(`https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=team_totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`),
-    ]);
+    // Single call — h2h + totals only (1 request per analysis run)
+    // Team totals Over/Under line != true implied runs, so we derive from moneyline
+    const resH2h = await fetch(
+      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`
+    );
 
     const remaining = resH2h.headers.get('x-requests-remaining') || '?';
     if (!resH2h.ok) {
@@ -50,33 +50,8 @@ export default async function handler(req) {
       throw new Error(`Odds API ${resH2h.status}: ${err.substring(0,200)}`);
     }
 
-    const gamesH2h  = await resH2h.json();
-    const gamesTeam = resTeam.ok ? await resTeam.json() : [];
+    const gamesH2h = await resH2h.json();
     if (!Array.isArray(gamesH2h)) throw new Error('Unexpected response format');
-
-    // Build team totals map from bulk team_totals call
-    const teamTotalsMap = {};
-    if (Array.isArray(gamesTeam)) {
-      gamesTeam.forEach(game => {
-        const homeAbbr = TEAM_MAP[game.home_team];
-        const awayAbbr = TEAM_MAP[game.away_team];
-        if (!homeAbbr || !awayAbbr) return;
-        const homeSamples = [], awaySamples = [];
-        (game.bookmakers||[]).forEach(bk => {
-          (bk.markets||[]).forEach(mkt => {
-            if (mkt.key !== 'team_totals') return;
-            (mkt.outcomes||[]).forEach(o => {
-              if (o.name !== 'Over') return;
-              const desc = o.description || '';
-              if (desc === game.home_team) homeSamples.push(o.point);
-              else if (desc === game.away_team) awaySamples.push(o.point);
-            });
-          });
-        });
-        if (homeSamples.length) teamTotalsMap[homeAbbr] = avg(homeSamples);
-        if (awaySamples.length) teamTotalsMap[awayAbbr] = avg(awaySamples);
-      });
-    }
 
     const result = {};
 
@@ -106,13 +81,9 @@ export default async function handler(req) {
 
       let homeImplied, awayImplied, source;
 
-      if (teamTotalsMap[homeAbbr] && teamTotalsMap[awayAbbr]) {
-        // Best: direct team totals from bookmakers
-        homeImplied = teamTotalsMap[homeAbbr];
-        awayImplied = teamTotalsMap[awayAbbr];
-        source = 'team_totals';
-      } else {
-        // Fallback: use corrected moneyline-to-run-share conversion
+      {
+        // Use corrected moneyline-to-run-share conversion
+        // team_totals Over line != implied runs (vig distorts it), so always use ML
         const homeProb = avg(homeProbs) || 0.5;
         const awayProb = avg(awayProbs) || 0.5;
         // Remove vig
@@ -123,7 +94,7 @@ export default async function handler(req) {
         homeImplied = gameTotal * homeRunShare;
         awayImplied = gameTotal * (1 - homeRunShare);
         source = 'moneyline_derived';
-      }
+      
 
       result[homeAbbr] = {
         impliedRuns: parseFloat(homeImplied.toFixed(1)),
