@@ -716,7 +716,7 @@ async function runAnalysis() {
   // Step 2: Fetch Statcast + odds in parallel
   setStep('statcast', 'running', 'Fetching Statcast + odds data...');
   try {
-    await Promise.all([fetchStatcast(), fetchOdds().catch(() => {}), fetchPitcherStats(gameLineups).catch(() => {})]);
+    await Promise.all([fetchStatcast().catch(() => {}), fetchOdds().catch(() => {}), fetchPitcherStats(gameLineups).catch(() => {})]);
     const liveSrc = Object.values(liveStatcast)[0]?.source || 'live';
     const oddsMsg = Object.keys(liveOdds).length > 0 ? ' · odds loaded' : ' · odds unavailable';
     setStep('statcast', 'done', `${Object.keys(liveStatcast).length} players — ${liveSrc.includes('blend') ? '2026+2025 blend' : liveSrc === 'prior' ? '2025 data' : 'live 2026'}${oddsMsg}`);
