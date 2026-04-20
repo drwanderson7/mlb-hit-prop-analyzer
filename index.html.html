@@ -296,7 +296,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
       📋 Import Lineups
-      <span style="font-size:11px;font-weight:400;opacity:.7;">Paste from FantasyLabs — one or multiple games</span>
+      <span style="font-size:11px;font-weight:400;opacity:.7;">Paste from FantasyLabs — one or multiple games · auto-saved daily</span>
     </div>
     <div class="card-body" style="padding:14px;">
       <textarea id="lineupPasteBox" rows="8"
@@ -310,6 +310,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         <button class="btn btn-secondary btn-sm" onclick="clearImportedLineups()">Clear Imports</button>
         <span id="importStatus" style="font-size:12px;color:var(--muted);font-style:italic;"></span>
       </div>
+      <div id="importRerunPrompt" style="display:none;"></div>
     </div>
   </div>
 
@@ -532,6 +533,9 @@ document.addEventListener('DOMContentLoaded', () => {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
   });
   loadSchedule();
+  purgeOldLineupsaves();
+  // Restore any lineups imported earlier today
+  const hadSaved = loadSavedLineups();
 });
 
 function switchTab(t) {
@@ -3491,17 +3495,123 @@ function parseFantasyLabsPaste() {
     renderLineups(allScoredPlayers);
   }
 
+  // Save to localStorage so it persists across sessions today
+  saveImportedLineups(teamsImported);
+
   // Clear paste box
   document.getElementById('lineupPasteBox').value = '';
+
+  // Show re-run prompt
+  const rerunDiv = document.getElementById('importRerunPrompt');
+  if (rerunDiv) {
+    rerunDiv.style.display = 'block';
+    rerunDiv.innerHTML = `
+      <div style="margin-top:10px;padding:10px 14px;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);border-radius:8px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:13px;color:var(--text);">✅ <strong>${teamsImported.length} teams imported.</strong> Re-run analysis to apply new lineups.</span>
+        <button class="btn btn-primary btn-sm" onclick="switchTab('analyze');setTimeout(()=>document.getElementById('btnRun')?.click(),300);"
+          style="white-space:nowrap;flex-shrink:0;">▶ Re-run Analysis</button>
+      </div>`;
+  }
 }
 
 function clearImportedLineups() {
   importedLineups = {};
   importedPitchers = {};
-  // Reset DEPTH_CHARTS back to original — reload page or re-init
+  const today = new Date().toLocaleDateString('en-CA');
+  localStorage.removeItem('fl_lineups_' + today);
   const status = document.getElementById('importStatus');
   status.textContent = 'Imports cleared — depth charts restored on next analysis run.';
   status.style.color = 'var(--muted)';
+}
+
+// ── Lineup persistence (localStorage by date) ─────────────────────────────────
+function saveImportedLineups(teamsImported) {
+  const today = new Date().toLocaleDateString('en-CA');
+  const payload = {
+    date: today,
+    lineups: importedLineups,
+    pitchers: importedPitchers,
+    saved: new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'}),
+  };
+  try {
+    localStorage.setItem('fl_lineups_' + today, JSON.stringify(payload));
+    console.log('Lineups saved for', today);
+  } catch(e) {
+    console.warn('Could not save lineups:', e);
+  }
+}
+
+function loadSavedLineups() {
+  const today = new Date().toLocaleDateString('en-CA');
+  try {
+    const raw = localStorage.getItem('fl_lineups_' + today);
+    if (!raw) return false;
+    const payload = JSON.parse(raw);
+    if (payload.date !== today) return false;
+
+    importedLineups = payload.lineups || {};
+    importedPitchers = payload.pitchers || {};
+
+    // Apply to DEPTH_CHARTS
+    const teams = Object.keys(importedLineups);
+    teams.forEach(abbr => {
+      if (importedLineups[abbr]) {
+        DEPTH_CHARTS[abbr] = importedLineups[abbr].map(p => p.name);
+      }
+      if (importedLineups[abbr]) {
+        importedLineups[abbr].forEach(p => {
+          if (!BATS[p.name]) BATS[p.name] = p.hand;
+        });
+      }
+      if (importedPitchers[abbr]) {
+        const sp = importedPitchers[abbr];
+        if (!window.importedSPHands) window.importedSPHands = {};
+        window.importedSPHands[sp.name.toLowerCase()] = sp.hand;
+      }
+    });
+
+    // Update UI
+    const status = document.getElementById('importStatus');
+    if (status) {
+      status.textContent = `✅ Auto-loaded ${teams.length} saved lineups from today (${payload.saved}) — ${teams.join(', ')} — Re-run analysis to apply.`;
+      status.style.color = 'var(--green)';
+    }
+    const rerunDiv = document.getElementById('importRerunPrompt');
+    if (rerunDiv) {
+      rerunDiv.style.display = 'block';
+      rerunDiv.innerHTML = `
+        <div style="margin-top:10px;padding:10px 14px;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);border-radius:8px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:13px;color:var(--text);">📋 <strong>${teams.length} lineups from today (${payload.saved})</strong> auto-loaded into depth charts.</span>
+          <button class="btn btn-primary btn-sm" onclick="switchTab('analyze');setTimeout(()=>document.getElementById('btnRun')?.click(),300);"
+            style="white-space:nowrap;flex-shrink:0;">▶ Run Analysis</button>
+        </div>`;
+    }
+
+    // Show stale warning if saved a while ago
+    const box = document.getElementById('lineupPasteBox');
+    if (box && box.placeholder) {
+      box.placeholder = `Lineups loaded from earlier today (${payload.saved}).\nPaste new lineups here to update, or click Parse to refresh.`;
+    }
+
+    console.log('Restored saved lineups for', today, ':', teams);
+    return true;
+  } catch(e) {
+    console.warn('Could not load saved lineups:', e);
+    return false;
+  }
+}
+
+// Purge old lineup saves (keep only last 3 days)
+function purgeOldLineupsaves() {
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('fl_lineups_'));
+    const today = new Date();
+    keys.forEach(k => {
+      const dateStr = k.replace('fl_lineups_', '');
+      const d = new Date(dateStr);
+      if ((today - d) > 3 * 24 * 60 * 60 * 1000) localStorage.removeItem(k);
+    });
+  } catch(e) {}
 }
 
 </script>
