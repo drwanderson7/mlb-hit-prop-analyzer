@@ -857,6 +857,17 @@ async function fetchStatcast() {
 
   if (Object.keys(liveStatcast).length < 10) throw new Error('too few players parsed');
 
+  // Debug: log K% for Vlad to verify custom leaderboard is working
+  const vladKey = Object.keys(liveStatcast).find(k => k.includes('guerrero'));
+  if (vladKey) {
+    const vlad = liveStatcast[vladKey];
+    console.log(`[Statcast Debug] ${vladKey}: xBA=${vlad.xba}, K%=${vlad.kpct ? (vlad.kpct*100).toFixed(1)+'%' : 'NULL'}, HH%=${vlad.hardhitpct ? (vlad.hardhitpct*100).toFixed(1)+'%' : 'NULL'}`);
+  } else {
+    console.warn('[Statcast Debug] Guerrero not found in liveStatcast — name matching issue?');
+    console.log('[Statcast Debug] Sample keys:', Object.keys(liveStatcast).slice(0,10));
+  }
+  console.log(`[Statcast Debug] Total players: ${Object.keys(liveStatcast).length}, with K%: ${Object.values(liveStatcast).filter(p=>p.kpct!==null).length}`);
+
   // Parse rolling streak data
   streak7 = {}; streak14 = {};
   const loadStreak = (source, target) => {
