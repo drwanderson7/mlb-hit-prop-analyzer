@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-
 <!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -192,7 +190,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- ANALYZE TAB -->
-
 <div class="panel active" id="panel-analyze">
 
   <div class="card" style="margin-top:8px;">
@@ -208,9 +205,14 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </div>
       </div>
       <div id="gamesWrap" style="display:none;">
-        <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-secondary btn-sm" onclick="selectAll()">Select All</button>
           <button class="btn btn-secondary btn-sm" onclick="clearAll()">Clear</button>
+          <button class="btn btn-secondary btn-sm" id="refreshLineupsBtn" onclick="refreshLineups()"
+            style="color:var(--blue);border-color:var(--blue);">
+            🔄 Refresh Lineups
+          </button>
+          <span id="lineupRefreshStatus" style="font-size:11px;color:var(--muted);font-style:italic;"></span>
         </div>
         <div class="games-grid" id="gamesGrid"></div>
       </div>
@@ -248,36 +250,33 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </div>
       </div>
 
-```
-  <div class="step-list" id="stepList" style="display:none;">
-    <div class="step" id="step-schedule">
-      <div class="step-dot pending" id="dot-schedule">1</div>
-      <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
-    </div>
-    <div class="step" id="step-statcast">
-      <div class="step-dot pending" id="dot-statcast">2</div>
-      <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
-    </div>
-    <div class="step" id="step-lineups">
-      <div class="step-dot pending" id="dot-lineups">3</div>
-      <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
-    </div>
-    <div class="step" id="step-score">
-      <div class="step-dot pending" id="dot-score">4</div>
-      <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
-    </div>
-  </div>
+      <div class="step-list" id="stepList" style="display:none;">
+        <div class="step" id="step-schedule">
+          <div class="step-dot pending" id="dot-schedule">1</div>
+          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
+        </div>
+        <div class="step" id="step-statcast">
+          <div class="step-dot pending" id="dot-statcast">2</div>
+          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
+        </div>
+        <div class="step" id="step-lineups">
+          <div class="step-dot pending" id="dot-lineups">3</div>
+          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+        </div>
+        <div class="step" id="step-score">
+          <div class="step-dot pending" id="dot-score">4</div>
+          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+        </div>
+      </div>
 
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
-      ⚡ Run Analysis
-    </button>
-    <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
-  </div>
-  <div id="errBox" style="display:none;margin-top:12px;"></div>
-</div>
-```
-
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+          ⚡ Run Analysis
+        </button>
+        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+      </div>
+      <div id="errBox" style="display:none;margin-top:12px;"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -291,7 +290,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- LINEUPS TAB -->
-
 <div class="panel" id="panel-lineups">
   <div class="empty" id="luEmpty">
     <div class="empty-icon">📋</div>
@@ -301,7 +299,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- RESULTS TAB -->
-
 <div class="panel" id="panel-results">
   <div class="empty" id="resEmpty">
     <div class="empty-icon">⚾</div>
@@ -311,7 +308,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- HELP TAB -->
-
 <div class="panel" id="panel-help">
   <div class="card">
     <div class="card-header">📊 Data Sources</div>
@@ -343,19 +339,16 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </tbody>
       </table>
 
-```
-  <div class="divider"></div>
+      <div class="divider"></div>
 
-  <strong style="font-size:13px;">Tiers</strong>
-  <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
-    <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
-    <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
-    <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
-    <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
-  </ul>
-</div>
-```
-
+      <strong style="font-size:13px;">Tiers</strong>
+      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+      </ul>
+    </div>
   </div>
 
   <div class="card">
@@ -370,14 +363,11 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- POOLS TAB -->
-
 <div class="panel" id="panel-pools">
   <div style="display:flex;gap:14px;align-items:flex-start;">
 
-```
-<!-- LEFT: Pool table + summary (flex 1) -->
-<div style="flex:1;min-width:0;">
-```
+    <!-- LEFT: Pool table + summary (flex 1) -->
+    <div style="flex:1;min-width:0;">
 
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -415,30 +405,27 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   </div>
     </div>
 
-```
-<!-- RIGHT: Top picks sidebar -->
-<div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
-  <div class="card" style="margin-top:8px;">
-    <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
-      <span>🎯 Top Picks</span>
-      <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
-    </div>
-    <div class="card-body" style="padding:0;">
-      <div id="picksSidebar" style="font-size:13px;">
-        <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
-          Run analysis on the Analyze tab to see recommendations here.
+    <!-- RIGHT: Top picks sidebar -->
+    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+      <div class="card" style="margin-top:8px;">
+        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+          <span>🎯 Top Picks</span>
+          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="picksSidebar" style="font-size:13px;">
+            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+              Run analysis on the Analyze tab to see recommendations here.
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-```
 
   </div>
 </div>
 
 <!-- SCHEDULE TAB -->
-
 <div class="panel" id="panel-schedule">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -459,7 +446,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- TRACKER TAB -->
-
 <div class="panel" id="panel-tracker">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -624,8 +610,9 @@ function renderGameCards(games) {
     const lu = g.lineups || {};
     const tot = (lu.homePlayers || []).length + (lu.awayPlayers || []).length;
     let bc = 'badge-none', bt = 'No lineup yet';
-    if (tot >= 16) { bc = 'badge-confirmed'; bt = '✓ Lineup confirmed'; }
-    else if (tot > 0) { bc = 'badge-projected'; bt = `Partial (${tot})`; }
+    if (tot >= 16) { bc = 'badge-confirmed'; bt = '✓ Confirmed'; }
+    else if (tot > 0) { bc = 'badge-projected'; bt = `~ Partial (${tot})`; }
+    else { bc = 'badge-none'; bt = '~ Projected'; }
 
     const time = new Date(g.gameDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
     const awayTeam = g.teams.away.team.name;
@@ -637,11 +624,18 @@ function renderGameCards(games) {
     const div = document.createElement('div');
     div.className = 'game-card';
     div.dataset.pk = g.gamePk;
+    const lineupCount = (lu.homePlayers||[]).length + (lu.awayPlayers||[]).length;
+    const lineupBar = tot >= 16
+      ? `<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;">✓ ${lineupCount} players confirmed</div>`
+      : tot > 0
+      ? `<div style="font-size:10px;color:var(--yellow);font-weight:600;margin-top:3px;">~ ${lineupCount} players (partial)</div>`
+      : `<div style="font-size:10px;color:var(--muted);margin-top:3px;">No lineup yet — using depth charts</div>`;
     div.innerHTML = `
       <div class="game-teams">${awayTeam} @ ${homeTeam}</div>
       <div class="game-meta">${time} · ${venue}</div>
       <div class="game-sp">SP: ${awaySP} vs ${homeSP}</div>
-      <span class="game-badge ${bc}">${bt}</span>`;
+      <span class="game-badge ${bc}">${bt}</span>
+      ${lineupBar}`;
     div.onclick = () => toggleGame(g.gamePk, div);
     grid.appendChild(div);
   });
@@ -695,7 +689,7 @@ async function runAnalysis() {
   // Step 2: Fetch Statcast + odds in parallel
   setStep('statcast', 'running', 'Fetching Statcast + odds data...');
   try {
-    await Promise.all([fetchStatcast(), fetchOdds().catch(() => {})]);
+    await Promise.all([fetchStatcast(), fetchOdds().catch(() => {}), fetchPitcherStats(gameLineups).catch(() => {})]);
     const liveSrc = Object.values(liveStatcast)[0]?.source || 'live';
     const oddsMsg = Object.keys(liveOdds).length > 0 ? ' · odds loaded' : ' · odds unavailable';
     setStep('statcast', 'done', `${Object.keys(liveStatcast).length} players — ${liveSrc.includes('blend') ? '2026+2025 blend' : liveSrc === 'prior' ? '2025 data' : 'live 2026'}${oddsMsg}`);
@@ -745,8 +739,10 @@ function extractLineups(games) {
       venue: g.venue?.name || '',
       awaySP: g.teams.away.probablePitcher || null,
       awaySPHand: g.teams.away.probablePitcher?.pitchHand?.code || null,
+      awaySPId: g.teams.away.probablePitcher?.id || null,
       homeSP: g.teams.home.probablePitcher || null,
       homeSPHand: g.teams.home.probablePitcher?.pitchHand?.code || null,
+      homeSPId: g.teams.home.probablePitcher?.id || null,
       awayConfirmed: lu.awayPlayers || [],
       homeConfirmed: lu.homePlayers || [],
     };
@@ -754,7 +750,8 @@ function extractLineups(games) {
 }
 
 // ── Live Statcast via Vercel proxy ───────────────────────────────────────────
-let liveStatcast = {};   // overall batter stats (K%, HH%, Barrel%)
+let liveStatcast = {};
+let livePitcherStats = {}; // keyed by MLB player ID   // overall batter stats (K%, HH%, Barrel%)
 let liveVsRHP = {};      // batter xBA + stats vs RHP only
 let liveVsLHP = {};      // batter xBA + stats vs LHP only
 let livePitchers = {};   // pitcher Statcast: xBA allowed, K%, HH%, whiff%
@@ -762,6 +759,28 @@ let liveOdds = {};       // implied team run totals keyed by team abbreviation
 let streak7 = {};        // rolling 7-day batter streak data
 let streak14 = {};       // rolling 14-day batter streak data
 const LIVE_NORM = {};
+
+
+// ── Fetch live pitcher stats from MLB Stats API ───────────────────────────────
+async function fetchPitcherStats(gameLineups) {
+  // Collect all unique pitcher IDs from selected games
+  const ids = new Set();
+  gameLineups.forEach(g => {
+    if (g.awaySPId) ids.add(String(g.awaySPId));
+    if (g.homeSPId)  ids.add(String(g.homeSPId));
+  });
+  if (!ids.size) return;
+
+  try {
+    const res = await fetch(`/api/pitchers?ids=${[...ids].join(',')}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    livePitcherStats = data.pitchers || {};
+    console.log(`Pitcher stats loaded for ${Object.keys(livePitcherStats).length} pitchers`);
+  } catch(e) {
+    console.warn('Pitcher stats fetch failed:', e.message);
+  }
+}
 
 async function fetchStatcast() {
   const year = new Date().getFullYear();
@@ -1345,10 +1364,34 @@ function getSPStats(name, apiHand) {
   return { era: 4.20, whip: 1.28, k9: 8.8, hand: apiHand || 'R', platoon };
 }
 
+// Merge live 2026 pitcher stats from MLB Stats API into SP stats object
+// Call this after fetchPitcherStats() has populated livePitcherStats
+function mergeLivePitcherStats(spStats) {
+  if (!spStats?.id) return spStats;
+  const live = livePitcherStats[spStats.id];
+  if (!live) return spStats;
+  return {
+    ...spStats,
+    // Use live 2026 stats where available, fall back to SP_STATS
+    era:   live.era   ?? spStats.era,
+    whip:  live.whip  ?? spStats.whip,
+    k9:    live.k9    ?? spStats.k9,
+    // Always use API hand — most reliable source
+    hand:  live.hand  || spStats.hand,
+    // Store live K% for use in pitcher matchup scoring
+    liveKpct: live.kpct ?? null,
+    livePa:   live.pa   ?? 0,
+    source: 'live-mlb-api',
+  };
+}
+
 function buildLineups(gameLineups, rawGames) {
   return gameLineups.map(gl => {
     const awaySPStats = getSPStats(gl.awaySP?.fullName, gl.awaySPHand);
     const homeSPStats = getSPStats(gl.homeSP?.fullName, gl.homeSPHand);
+    // Store pitcher IDs for live stats lookup
+    awaySPStats.id = gl.awaySPId ? String(gl.awaySPId) : null;
+    homeSPStats.id = gl.homeSPId ? String(gl.homeSPId) : null;
 
     const buildSide = (confirmed, abbr, spHand) => {
       if (confirmed.length >= 8) {
@@ -1420,8 +1463,11 @@ function scoreAllPlayers(games, maxOrder, minPA) {
 
         const spSC = lookupPitcher(opponentSP);
         const streak = lookupStreak(p.name);
-        const scored  = computeScore(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
-        const scoredA = computeScoreModelA(p, sc, opponentSPStats, opponentSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
+        // Merge live 2026 MLB API stats into SP stats (updates ERA/WHIP/K9/hand)
+        const mergedSPStats = mergeLivePitcherStats(opponentSPStats);
+        const mergedSPHand  = mergedSPStats.hand || opponentSPHand;
+        const scored  = computeScore(p, sc, mergedSPStats, mergedSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
+        const scoredA = computeScoreModelA(p, sc, mergedSPStats, mergedSPHand, g.venue, p.bats || '?', spSC, impliedRuns, streak);
         players.push({
           ...scored,
           scoreA: scoredA.compositeScore,
@@ -3192,7 +3238,67 @@ function fillPickFromSidebar(poolIdx, playerName) {
   }
 }
 
-</script>
+// ── Refresh lineups from MLB API (preserves game selections) ──────────────────
+async function refreshLineups() {
+  const btn = document.getElementById('refreshLineupsBtn');
+  const status = document.getElementById('lineupRefreshStatus');
+  if (!btn) return;
 
+  btn.disabled = true;
+  btn.textContent = '↻ Refreshing...';
+  if (status) status.textContent = '';
+
+  const date = new Date().toLocaleDateString('en-CA');
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch('/api/schedule?date=' + date, { signal: controller.signal });
+    clearTimeout(tid);
+
+    if (!res.ok) throw new Error('API returned ' + res.status);
+    const data = await res.json();
+    const games = (data.dates || [])[0]?.games || [];
+
+    if (games.length === 0) throw new Error('No games returned');
+
+    // Update todayGames but preserve selections
+    todayGames = games;
+    renderGameCards(games);
+
+    // Restore previous selections
+    selectedPks.forEach(pk => {
+      const card = document.querySelector(`.game-card[data-pk="${pk}"]`);
+      if (card) card.classList.add('selected');
+    });
+    updateRunBtn();
+
+    const confirmed = games.filter(g => (g.lineups?.homePlayers || []).length >= 16).length;
+    const partial   = games.filter(g => {
+      const tot = (g.lineups?.homePlayers||[]).length + (g.lineups?.awayPlayers||[]).length;
+      return tot > 0 && tot < 16;
+    }).length;
+    const pending = games.length - confirmed - partial;
+
+    const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    if (status) {
+      status.textContent = `Updated ${now} · ${confirmed} confirmed · ${partial} partial · ${pending} pending`;
+      status.style.color = confirmed > 0 ? 'var(--green)' : 'var(--muted)';
+    }
+
+    setScheduleStatus('success', '✅', `${games.length} games · refreshed at ${now}`,
+      `${confirmed} confirmed lineups · ${pending} pending (~3–4 hrs before first pitch)`);
+
+  } catch(e) {
+    if (status) {
+      status.textContent = 'Refresh failed — using last data';
+      status.style.color = 'var(--red)';
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 Refresh Lineups';
+  }
+}
+
+</script>
 </body>
 </html>
