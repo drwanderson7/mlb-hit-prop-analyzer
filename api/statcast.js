@@ -23,9 +23,6 @@ function parseCsv(csv, type = 'batter') {
   const col = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i >= 0) return i; } return -1; };
 
   const iName   = col('last_name, first_name', 'player_name');
-  // statcast_leaderboard has separate last_name and first_name columns
-  const iLastName  = col('last_name');
-  const iFirstName = col('first_name');
   const iXBA    = col('xba', 'est_ba');
   const iK      = col('k_percent');
   const iHH     = col('hard_hit_percent');
@@ -41,12 +38,6 @@ function parseCsv(csv, type = 'batter') {
     if (!line.trim()) return;
     const cols = parseCSVLine(line);
     let name = (cols[iName] || '').replace(/"/g, '').trim();
-    // Handle separate last_name + first_name columns (statcast_leaderboard format)
-    if (!name && iLastName >= 0 && iFirstName >= 0) {
-      const last  = (cols[iLastName]  || '').replace(/"/g, '').trim();
-      const first = (cols[iFirstName] || '').replace(/"/g, '').trim();
-      if (first && last) name = first + ' ' + last;
-    }
     if (!name) return;
     if (name.includes(',')) { const p = name.split(','); name = p[1].trim() + ' ' + p[0].trim(); }
 
@@ -116,10 +107,6 @@ export default async function handler(req) {
   };
 
   const base = 'https://baseballsavant.mlb.com/leaderboard/expected_statistics';
-  const rolling = 'https://baseballsavant.mlb.com/leaderboard/rolling';
-
-  // Custom leaderboard URL — includes K%, HH%, Barrel% which expected_statistics lacks
-  const custom = 'https://baseballsavant.mlb.com/leaderboard/custom';
 
   const urls = [
     `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,
@@ -135,68 +122,56 @@ export default async function handler(req) {
   ];
 
   try {
-    // Fetch all in parallel — edge runtime handles this efficiently
-    // 4hr cache means this only hits Savant once per session
     const fetchSafe = async (url) => {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 6000);
       try {
         const r = await fetch(url, { headers: hdrs, signal: ctrl.signal });
         clearTimeout(tid);
-        // Return empty on 403 (blocked) or other errors
-        if (!r.ok) return null;
-        return r;
-      } catch(e) { clearTimeout(tid); return null; }
+        if (!r.ok) return '';
+        return await r.text();
+      } catch(e) { clearTimeout(tid); return ''; }
     };
-    const responses = await Promise.all(urls.map(fetchSafe));
-    const texts = await Promise.all(responses.map(r => r ? r.text().catch(() => '') : Promise.resolve('')));
 
-    const batterCur     = parseCsv(texts[0], 'batter');
-    const batterPrior   = parseCsv(texts[1], 'batter');
-    const vsRHPCur      = parseCsv(texts[2], 'batter');
-    const vsRHPPrior    = parseCsv(texts[3], 'batter');
-    const vsLHPCur      = parseCsv(texts[4], 'batter');
-    const vsLHPPrior    = parseCsv(texts[5], 'batter');
-    const pitcherCur    = parseCsv(texts[6], 'pitcher');
-    const pitcherPrior  = parseCsv(texts[7], 'pitcher');
-    const rolling7      = parseCsv(texts[8], 'batter');
-    const rolling14     = parseCsv(texts[9], 'batter');
-    // K%/HH%/Barrel% come from embedded STATCAST dict fallback in lookupStatcast
-    // Live fetch only provides xBA — this is sufficient as K% changes slowly
+    const texts = await Promise.all(urls.map(fetchSafe));
 
-    const battersOverall = blend(batterCur,   batterPrior,  100);
-    const battersVsRHP   = blend(vsRHPCur,    vsRHPPrior,   80);
-    const battersVsLHP   = blend(vsLHPCur,    vsLHPPrior,   60);
-    const pitchers       = blend(pitcherCur,  pitcherPrior, 80);
+    const batterCur   = parseCsv(texts[0], 'batter');
+    const batterPrior = parseCsv(texts[1], 'batter');
+    const vsRHPCur    = parseCsv(texts[2], 'batter');
+    const vsRHPPrior  = parseCsv(texts[3], 'batter');
+    const vsLHPCur    = parseCsv(texts[4], 'batter');
+    const vsLHPPrior  = parseCsv(texts[5], 'batter');
+    const pitcherCur  = parseCsv(texts[6], 'pitcher');
+    const pitcherPrior = parseCsv(texts[7], 'pitcher');
+    const rolling7    = parseCsv(texts[8], 'batter');
+    const rolling14   = parseCsv(texts[9], 'batter');
 
-    // Rolling windows — no blending, current season only
-    // Compute streak: hot/cold based on xBA and BA over rolling window
+    const battersOverall = blend(batterCur,  batterPrior, 100);
+    const battersVsRHP   = blend(vsRHPCur,   vsRHPPrior,  80);
+    const battersVsLHP   = blend(vsLHPCur,   vsLHPPrior,  60);
+    const pitchers       = blend(pitcherCur, pitcherPrior, 80);
+
     const streak7 = {}, streak14 = {};
-
     const computeStreak = (rollingData, target) => {
       Object.keys(rollingData).forEach(key => {
         const p = rollingData[key];
-        if (!p || p.pa < 5) return; // need at least 5 PA to be meaningful
+        if (!p || p.pa < 5) return;
         const xba = p.xba;
-        const ba  = p.ba;
-        // Streak score: compare rolling xBA to season average
-        // Hot: xBA >= .300 in window, Cold: xBA <= .200
         let streakScore = 0;
         if (xba !== null) {
-          if (xba >= .320) streakScore = 2;       // very hot
-          else if (xba >= .290) streakScore = 1;  // hot
-          else if (xba <= .180) streakScore = -2; // very cold
-          else if (xba <= .220) streakScore = -1; // cold
+          if (xba >= .320) streakScore = 2;
+          else if (xba >= .290) streakScore = 1;
+          else if (xba <= .180) streakScore = -2;
+          else if (xba <= .220) streakScore = -1;
         }
         target[key] = {
-          xba, ba, pa: p.pa, kpct: p.kpct, hardhitpct: p.hardhitpct,
-          streakScore, // -2 to +2
+          xba, ba: p.ba, pa: p.pa, kpct: p.kpct, hardhitpct: p.hardhitpct,
+          streakScore,
           label: streakScore >= 2 ? '🔥 Hot' : streakScore === 1 ? '↑ Warm' :
                  streakScore <= -2 ? '🧊 Cold' : streakScore === -1 ? '↓ Cool' : '',
         };
       });
     };
-
     computeStreak(rolling7, streak7);
     computeStreak(rolling14, streak14);
 
@@ -205,21 +180,16 @@ export default async function handler(req) {
       streak7, streak14,
       meta: {
         year,
-        batterCount:    Object.keys(battersOverall).length,
-        liveCount,
-        pitcherCount:   Object.keys(pitchers).length,
-        streak7Count:   Object.keys(streak7).length,
-        streak14Count:  Object.keys(streak14).length,
-        customCurCount: Object.keys(customCur).length,
-        // Sample player for debugging K% fetch
-        sampleVlad: battersOverall['vladimir guerrero jr'] || battersOverall['vladimir guerrero'] || null,
+        batterCount:  Object.keys(battersOverall).length,
+        pitcherCount: Object.keys(pitchers).length,
+        streak7Count: Object.keys(streak7).length,
       }
     }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=14400', // 4hr cache — Savant only hit once per session
+        'Cache-Control': 'public, max-age=14400',
       }
     });
 
