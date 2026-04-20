@@ -87,6 +87,7 @@ gamesH2h.forEach(game => {
     // team_totals Over line != implied runs (vig distorts it), so always use ML
     const homeProb = avg(homeProbs) || 0.5;
     const awayProb = avg(awayProbs) || 0.5;
+    const h2hAvailable = homeProbs.length > 0;
     // Remove vig
     const vigTotal = homeProb + awayProb;
     const normHome = homeProb / vigTotal;
@@ -127,6 +128,11 @@ return respond(200, {
     sampleBookmakers,
     resultKeys: Object.keys(result).slice(0, 6),
     sampleLAD: result['LAD'] || null,
+    sampleCOL: result['COL'] || null,
+    ladCOLgame: gamesH2h.find(g => 
+      (TEAM_MAP[g.home_team] === 'COL' || TEAM_MAP[g.away_team] === 'COL') &&
+      (TEAM_MAP[g.home_team] === 'LAD' || TEAM_MAP[g.away_team] === 'LAD')
+    ) ? 'FOUND' : 'NOT FOUND',
   }
 });
 ```
@@ -142,7 +148,7 @@ status,
 headers: {
 ‘Content-Type’: ‘application/json’,
 ‘Access-Control-Allow-Origin’: ‘*’,
-‘Cache-Control’: ‘public, max-age=600’,
+‘Cache-Control’: ‘public, max-age=120’,
 }
 });
 }
