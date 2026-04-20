@@ -135,7 +135,7 @@ export default async function handler(req) {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=1800',
+        'Cache-Control': 'public, max-age=600',
       }
     });
 
