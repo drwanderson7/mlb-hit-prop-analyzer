@@ -122,15 +122,11 @@ export default async function handler(req) {
   const custom = 'https://baseballsavant.mlb.com/leaderboard/custom';
 
   const urls = [
-    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,           // [0] current xBA
-    `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,          // [1] prior xBA blend
-    `${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`, // [2] vs RHP xBA
-    `${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`, // [3] vs LHP xBA
-    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,           // [4] pitcher stats
-    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`, // [5] 7-day streak
+    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,             // [0] batter xBA
+    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,            // [1] pitcher stats
+    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`, // [2] streak
   ];
 
-  try {
   try {
     // Fetch all in parallel — edge runtime handles this efficiently
     // 4hr cache means this only hits Savant once per session
@@ -144,16 +140,16 @@ export default async function handler(req) {
     const texts = await Promise.all(responses.map(r => r && r.ok ? r.text() : ''));
 
     const batterCur   = parseCsv(texts[0], 'batter');
-    const batterPrior = parseCsv(texts[1], 'batter');
-    const vsRHPCur    = parseCsv(texts[2], 'batter');
-    const vsLHPCur    = parseCsv(texts[3], 'batter');
-    const pitcherCur  = parseCsv(texts[4], 'pitcher');
-    const rolling7    = parseCsv(texts[5], 'batter');
-    // Use current year for prior fallbacks when no prior data
-    const vsRHPPrior  = batterPrior;
-    const vsLHPPrior  = batterPrior;
+    const pitcherCur  = parseCsv(texts[1], 'pitcher');
+    const rolling7    = parseCsv(texts[2], 'batter');
+    // Use current as fallback for all blend variants
+    const batterPrior  = batterCur;
+    const vsRHPCur     = batterCur;
+    const vsLHPCur     = batterCur;
+    const vsRHPPrior   = batterCur;
+    const vsLHPPrior   = batterCur;
     const pitcherPrior = pitcherCur;
-    const rolling14   = rolling7; // reuse 7-day as 14-day approximation
+    const rolling14    = rolling7;
     // K%/HH%/Barrel% come from embedded STATCAST dict fallback in lookupStatcast
     // Live fetch only provides xBA — this is sufficient as K% changes slowly
 
