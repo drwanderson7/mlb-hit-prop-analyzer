@@ -23,6 +23,9 @@ function parseCsv(csv, type = 'batter') {
   const col = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i >= 0) return i; } return -1; };
 
   const iName   = col('last_name, first_name', 'player_name');
+  // statcast_leaderboard has separate last_name and first_name columns
+  const iLastName  = col('last_name');
+  const iFirstName = col('first_name');
   const iXBA    = col('xba', 'est_ba');
   const iK      = col('k_percent');
   const iHH     = col('hard_hit_percent');
@@ -38,6 +41,12 @@ function parseCsv(csv, type = 'batter') {
     if (!line.trim()) return;
     const cols = parseCSVLine(line);
     let name = (cols[iName] || '').replace(/"/g, '').trim();
+    // Handle separate last_name + first_name columns (statcast_leaderboard format)
+    if (!name && iLastName >= 0 && iFirstName >= 0) {
+      const last  = (cols[iLastName]  || '').replace(/"/g, '').trim();
+      const first = (cols[iFirstName] || '').replace(/"/g, '').trim();
+      if (first && last) name = first + ' ' + last;
+    }
     if (!name) return;
     if (name.includes(',')) { const p = name.split(','); name = p[1].trim() + ' ' + p[0].trim(); }
 
@@ -109,6 +118,9 @@ export default async function handler(req) {
   const base = 'https://baseballsavant.mlb.com/leaderboard/expected_statistics';
   const rolling = 'https://baseballsavant.mlb.com/leaderboard/rolling';
 
+  // Custom leaderboard URL — includes K%, HH%, Barrel% which expected_statistics lacks
+  const custom = 'https://baseballsavant.mlb.com/leaderboard/custom';
+
   const urls = [
     `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,
     `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,
@@ -121,6 +133,9 @@ export default async function handler(req) {
     // Rolling 7-day and 14-day batter stats
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`,
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=14&csv=true`,
+    // statcast_leaderboard: K%, HH%, Barrel%, whiff% — not in expected_statistics endpoint
+    `https://baseballsavant.mlb.com/statcast_leaderboard?year=${year}&abs=0&player_type=hitting&min_attempts=0&csv=true`,
+    `https://baseballsavant.mlb.com/statcast_leaderboard?year=${prev}&abs=0&player_type=hitting&min_attempts=100&csv=true`,
   ];
 
   try {
@@ -137,6 +152,29 @@ export default async function handler(req) {
     const pitcherPrior  = parseCsv(texts[7], 'pitcher');
     const rolling7      = parseCsv(texts[8], 'batter');
     const rolling14     = parseCsv(texts[9], 'batter');
+    const customCur     = parseCsv(texts[10], 'batter');
+    const customPrior   = parseCsv(texts[11], 'batter');
+
+    // Merge K%, HH%, Barrel% from custom leaderboard into batterCur/Prior
+    // expected_statistics has xBA but not K% — custom leaderboard has K%/HH%/Barrel% but not xBA
+    // Merge by player name key
+    const mergeCustomStats = (base, custom) => {
+      Object.keys(custom || {}).forEach(key => {
+        const c = custom[key];
+        if (!c) return;
+        if (base[key]) {
+          // Fill in missing K%, HH%, Barrel% from custom leaderboard
+          if (base[key].kpct === null && c.kpct !== null) base[key].kpct = c.kpct;
+          if (base[key].hardhitpct === null && c.hardhitpct !== null) base[key].hardhitpct = c.hardhitpct;
+          if (base[key].barrelpct === null && c.barrelpct !== null) base[key].barrelpct = c.barrelpct;
+        } else {
+          // Player exists in custom but not xBA leaderboard — add them with null xBA
+          base[key] = { ...c, xba: null };
+        }
+      });
+    };
+    mergeCustomStats(batterCur, customCur);
+    mergeCustomStats(batterPrior, customPrior);
 
     const battersOverall = blend(batterCur,   batterPrior,  100);
     const battersVsRHP   = blend(vsRHPCur,    vsRHPPrior,   80);
