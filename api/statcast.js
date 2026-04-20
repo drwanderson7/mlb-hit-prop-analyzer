@@ -133,9 +133,9 @@ export default async function handler(req) {
     // Rolling 7-day and 14-day batter stats
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`,
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=14&csv=true`,
-    // statcast_leaderboard: K%, HH%, Barrel%, whiff% — not in expected_statistics endpoint
-    `https://baseballsavant.mlb.com/statcast_leaderboard?year=${year}&abs=0&player_type=hitting&min_attempts=0&csv=true`,
-    `https://baseballsavant.mlb.com/statcast_leaderboard?year=${prev}&abs=0&player_type=hitting&min_attempts=100&csv=true`,
+    // Custom leaderboard: K%, HH%, Barrel% — correct endpoint with CSV support
+    `https://baseballsavant.mlb.com/leaderboard/custom?year=${year}&type=batter&filter=&min=1&selections=pa,k_percent,hard_hit_percent,barrel_batted_rate&chart=false&x=pa&y=pa&r=no&chartType=beeswarm&csv=true`,
+    `https://baseballsavant.mlb.com/leaderboard/custom?year=${prev}&type=batter&filter=&min=100&selections=pa,k_percent,hard_hit_percent,barrel_batted_rate&chart=false&x=pa&y=pa&r=no&chartType=beeswarm&csv=true`,
   ];
 
   try {
@@ -173,8 +173,13 @@ export default async function handler(req) {
         }
       });
     };
-    mergeCustomStats(batterCur, customCur);
+    // Merge K%/HH%/Barrel% into ALL batter maps before blending
+    mergeCustomStats(batterCur,  customCur);
     mergeCustomStats(batterPrior, customPrior);
+    mergeCustomStats(vsRHPCur,   customCur);   // splits only have xBA — add K% from overall
+    mergeCustomStats(vsRHPPrior, customPrior);
+    mergeCustomStats(vsLHPCur,   customCur);
+    mergeCustomStats(vsLHPPrior, customPrior);
 
     const battersOverall = blend(batterCur,   batterPrior,  100);
     const battersVsRHP   = blend(vsRHPCur,    vsRHPPrior,   80);
@@ -217,10 +222,13 @@ export default async function handler(req) {
       streak7, streak14,
       meta: {
         year,
-        batterCount:  Object.keys(battersOverall).length,
-        pitcherCount: Object.keys(pitchers).length,
-        streak7Count: Object.keys(streak7).length,
-        streak14Count: Object.keys(streak14).length,
+        batterCount:    Object.keys(battersOverall).length,
+        pitcherCount:   Object.keys(pitchers).length,
+        streak7Count:   Object.keys(streak7).length,
+        streak14Count:  Object.keys(streak14).length,
+        customCurCount: Object.keys(customCur).length,
+        // Sample player for debugging K% fetch
+        sampleVlad: battersOverall['vladimir guerrero jr'] || battersOverall['vladimir guerrero'] || null,
       }
     }), {
       status: 200,
