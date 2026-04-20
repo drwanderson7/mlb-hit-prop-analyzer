@@ -133,9 +133,9 @@ export default async function handler(req) {
     // Rolling 7-day and 14-day batter stats
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`,
     `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=14&csv=true`,
-    // Custom leaderboard: K%, HH%, Barrel% — correct endpoint with CSV support
-    `https://baseballsavant.mlb.com/leaderboard/custom?year=${year}&type=batter&filter=&min=1&selections=pa,k_percent,hard_hit_percent,barrel_batted_rate&chart=false&x=pa&y=pa&r=no&chartType=beeswarm&csv=true`,
-    `https://baseballsavant.mlb.com/leaderboard/custom?year=${prev}&type=batter&filter=&min=100&selections=pa,k_percent,hard_hit_percent,barrel_batted_rate&chart=false&x=pa&y=pa&r=no&chartType=beeswarm&csv=true`,
+    // Savant statcast leaderboard — correct URL for K%, HH%, Barrel%
+    `https://baseballsavant.mlb.com/leaderboard/statcast?year=${year}&position=&team=&min=0&type=batter&csv=true`,
+    `https://baseballsavant.mlb.com/leaderboard/statcast?year=${prev}&position=&team=&min=100&type=batter&csv=true`,
   ];
 
   try {
