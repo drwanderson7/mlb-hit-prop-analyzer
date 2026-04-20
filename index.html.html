@@ -885,22 +885,87 @@ function normalize(s){
     .replace(/[.]/g,'').trim();
 }
 
+
+// ── Name alias map — maps display names to Statcast/canonical names ───────────
+// Add any player whose name differs between sources
+const NAME_ALIASES = {
+  // Jr/Sr suffixes
+  'vladimir guerrero':       'vladimir guerrero jr.',
+  'vladimir guerrero jr':    'vladimir guerrero jr.',
+  'vladimir guerrero jr.':   'vladimir guerrero jr.',
+  'bobby witt':              'bobby witt jr.',
+  'bobby witt jr':           'bobby witt jr.',
+  'fernando tatis':          'fernando tatis jr.',
+  'fernando tatis jr':       'fernando tatis jr.',
+  'ronald acuna':            'ronald acuna jr.',
+  'ronald acuna jr':         'ronald acuna jr.',
+  'ronald acuña':            'ronald acuna jr.',
+  'ronald acuña jr.':        'ronald acuna jr.',
+  'chas mccormick':          'chas mccormick',
+  'michael harris':          'michael harris ii',
+  'michael harris ii':       'michael harris ii',
+  // Accent normalization (FantasyLabs vs Savant)
+  'yordan alvarez':          'yordan alvarez',
+  'jose ramirez':            'jose ramirez',
+  'julio rodriguez':         'julio rodriguez',
+  'elly de la cruz':         'elly de la cruz',
+  'luisangel acuna':         'luisangel acuña',
+  // Common shortened/alternate names
+  'cj abrams':               'cj abrams',
+  'tj friedl':               'tj friedl',
+  'jj wetherholt':           'jj wetherholt',
+  'jo adell':                'jo adell',
+  'ha-seong kim':            'ha-seong kim',
+  'jung hoo lee':            'jung hoo lee',
+  "ryan o'hearn":            "ryan o'hearn",
+  'ke bryan hayes':          "ke'bryan hayes",
+  "ke'bryan hayes":          "ke'bryan hayes",
+  // Pete Crow-Armstrong
+  'pete crow-armstrong':     'pete crow-armstrong',
+  'pete crow armstrong':     'pete crow-armstrong',
+  // Others commonly mismatched
+  'cedric mullins':          'cedric mullins ii',
+  'cedric mullins ii':       'cedric mullins ii',
+  'victor scott':            'victor scott ii',
+  'victor scott ii':         'victor scott ii',
+};
+
+// Resolve a display name to its canonical Statcast name
+function resolveAlias(name) {
+  const key = normalize(name);
+  return NAME_ALIASES[key] || name;
+}
+
 const SC_NORM = {};
 Object.keys(STATCAST).forEach(k => { SC_NORM[normalize(k)] = STATCAST[k]; });
 
 // Generic lookup helper — searches a live map then SC_NORM embedded fallback
 function lookupInMap(map, name) {
-  const key = normalize(name);
+  // First resolve any known aliases (Jr., accents, alternate spellings)
+  const resolved = resolveAlias(name);
+  const key = normalize(resolved);
   if (map[key]) return map[key];
+
+  // Try original name too in case alias wasn't needed
+  const origKey = normalize(name);
+  if (map[origKey]) return map[origKey];
+
+  // Fuzzy: match on last name + first initial
+  // But skip if last part is 'jr', 'sr', 'ii', 'iii' — use second-to-last instead
   const parts = key.split(' ');
-  if (parts.length >= 2) {
-    const lLast = parts[parts.length-1], lInit = parts[0][0];
-    const lm = Object.keys(map).find(k => {
-      const kp = k.split(' ');
-      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
-    });
-    if (lm) return map[lm];
+  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'jr.', 'sr.']);
+  let lLast = parts[parts.length - 1];
+  if (SUFFIXES.has(lLast) && parts.length >= 3) {
+    lLast = parts[parts.length - 2]; // use actual last name
   }
+  const lInit = parts[0][0];
+  const lm = Object.keys(map).find(k => {
+    const kp = k.split(' ');
+    let kLast = kp[kp.length - 1];
+    if (SUFFIXES.has(kLast) && kp.length >= 3) kLast = kp[kp.length - 2];
+    return kLast === lLast && kp[0][0] === lInit;
+  });
+  if (lm) return map[lm];
   return null;
 }
 
