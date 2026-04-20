@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-
 <!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -192,7 +190,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- ANALYZE TAB -->
-
 <div class="panel active" id="panel-analyze">
 
   <div class="card" style="margin-top:8px;">
@@ -253,37 +250,34 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </div>
       </div>
 
-```
-  <div class="step-list" id="stepList" style="display:none;">
-    <div class="step" id="step-schedule">
-      <div class="step-dot pending" id="dot-schedule">1</div>
-      <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
-    </div>
-    <div class="step" id="step-statcast">
-      <div class="step-dot pending" id="dot-statcast">2</div>
-      <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
-    </div>
-    <div class="step" id="step-lineups">
-      <div class="step-dot pending" id="dot-lineups">3</div>
-      <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
-    </div>
-    <div class="step" id="step-score">
-      <div class="step-dot pending" id="dot-score">4</div>
-      <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
-    </div>
-  </div>
+      <div class="step-list" id="stepList" style="display:none;">
+        <div class="step" id="step-schedule">
+          <div class="step-dot pending" id="dot-schedule">1</div>
+          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
+        </div>
+        <div class="step" id="step-statcast">
+          <div class="step-dot pending" id="dot-statcast">2</div>
+          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
+        </div>
+        <div class="step" id="step-lineups">
+          <div class="step-dot pending" id="dot-lineups">3</div>
+          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+        </div>
+        <div class="step" id="step-score">
+          <div class="step-dot pending" id="dot-score">4</div>
+          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+        </div>
+      </div>
 
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
-      ⚡ Run Analysis
-    </button>
-    <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
-    <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
-  </div>
-  <div id="errBox" style="display:none;margin-top:12px;"></div>
-</div>
-```
-
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+          ⚡ Run Analysis
+        </button>
+        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+        <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
+      </div>
+      <div id="errBox" style="display:none;margin-top:12px;"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -297,11 +291,9 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- LINEUPS TAB -->
-
 <div class="panel" id="panel-lineups">
 
   <!-- FantasyLabs paste import -->
-
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
       📋 Import Lineups
@@ -331,7 +323,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- RESULTS TAB -->
-
 <div class="panel" id="panel-results">
   <div class="empty" id="resEmpty">
     <div class="empty-icon">⚾</div>
@@ -341,7 +332,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- HELP TAB -->
-
 <div class="panel" id="panel-help">
   <div class="card">
     <div class="card-header">📊 Data Sources</div>
@@ -373,19 +363,16 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </tbody>
       </table>
 
-```
-  <div class="divider"></div>
+      <div class="divider"></div>
 
-  <strong style="font-size:13px;">Tiers</strong>
-  <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
-    <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
-    <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
-    <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
-    <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
-  </ul>
-</div>
-```
-
+      <strong style="font-size:13px;">Tiers</strong>
+      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+      </ul>
+    </div>
   </div>
 
   <div class="card">
@@ -400,14 +387,11 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- POOLS TAB -->
-
 <div class="panel" id="panel-pools">
   <div style="display:flex;gap:14px;align-items:flex-start;">
 
-```
-<!-- LEFT: Pool table + summary (flex 1) -->
-<div style="flex:1;min-width:0;">
-```
+    <!-- LEFT: Pool table + summary (flex 1) -->
+    <div style="flex:1;min-width:0;">
 
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -445,30 +429,27 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   </div>
     </div>
 
-```
-<!-- RIGHT: Top picks sidebar -->
-<div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
-  <div class="card" style="margin-top:8px;">
-    <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
-      <span>🎯 Top Picks</span>
-      <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
-    </div>
-    <div class="card-body" style="padding:0;">
-      <div id="picksSidebar" style="font-size:13px;">
-        <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
-          Run analysis on the Analyze tab to see recommendations here.
+    <!-- RIGHT: Top picks sidebar -->
+    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+      <div class="card" style="margin-top:8px;">
+        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+          <span>🎯 Top Picks</span>
+          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="picksSidebar" style="font-size:13px;">
+            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+              Run analysis on the Analyze tab to see recommendations here.
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-```
 
   </div>
 </div>
 
 <!-- SCHEDULE TAB -->
-
 <div class="panel" id="panel-schedule">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -489,7 +470,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- TRACKER TAB -->
-
 <div class="panel" id="panel-tracker">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -877,16 +857,8 @@ async function fetchStatcast() {
 
   if (Object.keys(liveStatcast).length < 10) throw new Error('too few players parsed');
 
-  // Debug: log K% for Vlad to verify custom leaderboard is working
-  const vladKey = Object.keys(liveStatcast).find(k => k.includes('guerrero'));
-  if (vladKey) {
-    const vlad = liveStatcast[vladKey];
-    console.log(`[Statcast Debug] ${vladKey}: xBA=${vlad.xba}, K%=${vlad.kpct ? (vlad.kpct*100).toFixed(1)+'%' : 'NULL'}, HH%=${vlad.hardhitpct ? (vlad.hardhitpct*100).toFixed(1)+'%' : 'NULL'}`);
-  } else {
-    console.warn('[Statcast Debug] Guerrero not found in liveStatcast — name matching issue?');
-    console.log('[Statcast Debug] Sample keys:', Object.keys(liveStatcast).slice(0,10));
-  }
-  console.log(`[Statcast Debug] Total players: ${Object.keys(liveStatcast).length}, with K%: ${Object.values(liveStatcast).filter(p=>p.kpct!==null).length}`);
+  // K% comes from embedded STATCAST dict fallback — live fetch only provides xBA
+  console.log(`[Statcast] Loaded ${Object.keys(liveStatcast).length} players (xBA live, K%/HH%/Barrel% from embedded dict)`);
 
   // Parse rolling streak data
   streak7 = {}; streak14 = {};
@@ -3712,6 +3684,5 @@ function purgeOldLineupsaves() {
 }
 
 </script>
-
 </body>
 </html>
