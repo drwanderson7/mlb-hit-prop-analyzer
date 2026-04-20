@@ -274,6 +274,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
           ⚡ Run Analysis
         </button>
         <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+        <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
       </div>
       <div id="errBox" style="display:none;margin-top:12px;"></div>
     </div>
@@ -1924,8 +1925,8 @@ function renderResults(players) {
       Batter Statcast: ${statcastCount} players (${statcastSrc})</span>
     <span style="padding:3px 9px;border-radius:20px;background:${pitcherCount>20?'#dcfce7':'#fef9c3'};color:${pitcherCount>20?'#15803d':'#854d0e'};">
       Pitcher Statcast: ${pitcherCount > 0 ? pitcherCount + ' live' : 'SP_STATS fallback'}</span>
-    <span style="padding:3px 9px;border-radius:20px;background:${oddsLoaded?'#dcfce7':'#fee2e2'};color:${oddsLoaded?'#15803d':'#b91c1c'};">
-      Odds: ${oddsLoaded ? 'loaded ✓' : 'not loaded — add ODDS_API_KEY to Vercel env vars'}</span>
+    <span style="padding:3px 9px;border-radius:20px;background:${oddsLoaded?'#dcfce7':'#fee2e2'};color:${oddsLoaded?'#15803d':'#b91c1c'};" title="Odds refresh every 10min. Re-run analysis for latest lines.">
+      Odds: ${oddsLoaded ? 'loaded ✓ (10min cache — re-run for latest)' : 'not loaded — add ODDS_API_KEY to Vercel env vars'}</span>
   </div>`;
 
   let html = dataStatus + `
@@ -1987,7 +1988,7 @@ function playerCard(p, rank) {
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
         ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
         ${p.spStatcast && p.spXBA ? `<span class="pill info">xBA vs ${p.spXBA.toFixed(3)}</span>` : ''}
-        ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
+        ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}" title="Source: The Odds API (updates every 10min)">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
         <span class="pill ${p.parkCls}">${p.parkLabel}</span>
         <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
         ${p.streak7Label ? `<span class="pill ${p.streakAdj > 0 ? 'good' : p.streakAdj < 0 ? 'bad' : ''}" title="7-day: ${p.xba7 ? 'xBA ' + p.xba7.toFixed(3) : ''} · 14-day: ${p.xba14 ? 'xBA ' + p.xba14.toFixed(3) : ''}">${p.streak7Label}${p.streak14Label && p.streak14Label !== p.streak7Label ? ' / ' + p.streak14Label : ''}</span>` : ''}
