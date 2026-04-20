@@ -122,34 +122,45 @@ export default async function handler(req) {
   const custom = 'https://baseballsavant.mlb.com/leaderboard/custom';
 
   const urls = [
-    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,             // [0] batter xBA
-    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,            // [1] pitcher stats
-    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`, // [2] streak
+    `${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`,
+    `${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`,
+    `${base}?type=batter&year=${prev}&position=&team=&handedness=R&min=50&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`,
+    `${base}?type=batter&year=${prev}&position=&team=&handedness=L&min=50&csv=true`,
+    `${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`,
+    `${base}?type=pitcher&year=${prev}&position=&team=&min=50&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`,
+    `${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=14&csv=true`,
   ];
 
   try {
     // Fetch all in parallel — edge runtime handles this efficiently
     // 4hr cache means this only hits Savant once per session
     const fetchSafe = async (url) => {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 6000);
       try {
-        const r = await fetch(url, { headers: hdrs });
+        const r = await fetch(url, { headers: hdrs, signal: ctrl.signal });
+        clearTimeout(tid);
+        // Return empty on 403 (blocked) or other errors
+        if (!r.ok) return null;
         return r;
-      } catch(e) { return null; }
+      } catch(e) { clearTimeout(tid); return null; }
     };
     const responses = await Promise.all(urls.map(fetchSafe));
-    const texts = await Promise.all(responses.map(r => r && r.ok ? r.text() : ''));
+    const texts = await Promise.all(responses.map(r => r ? r.text().catch(() => '') : Promise.resolve('')));
 
-    const batterCur   = parseCsv(texts[0], 'batter');
-    const pitcherCur  = parseCsv(texts[1], 'pitcher');
-    const rolling7    = parseCsv(texts[2], 'batter');
-    // Use current as fallback for all blend variants
-    const batterPrior  = batterCur;
-    const vsRHPCur     = batterCur;
-    const vsLHPCur     = batterCur;
-    const vsRHPPrior   = batterCur;
-    const vsLHPPrior   = batterCur;
-    const pitcherPrior = pitcherCur;
-    const rolling14    = rolling7;
+    const batterCur     = parseCsv(texts[0], 'batter');
+    const batterPrior   = parseCsv(texts[1], 'batter');
+    const vsRHPCur      = parseCsv(texts[2], 'batter');
+    const vsRHPPrior    = parseCsv(texts[3], 'batter');
+    const vsLHPCur      = parseCsv(texts[4], 'batter');
+    const vsLHPPrior    = parseCsv(texts[5], 'batter');
+    const pitcherCur    = parseCsv(texts[6], 'pitcher');
+    const pitcherPrior  = parseCsv(texts[7], 'pitcher');
+    const rolling7      = parseCsv(texts[8], 'batter');
+    const rolling14     = parseCsv(texts[9], 'batter');
     // K%/HH%/Barrel% come from embedded STATCAST dict fallback in lookupStatcast
     // Live fetch only provides xBA — this is sufficient as K% changes slowly
 
@@ -195,6 +206,7 @@ export default async function handler(req) {
       meta: {
         year,
         batterCount:    Object.keys(battersOverall).length,
+        liveCount,
         pitcherCount:   Object.keys(pitchers).length,
         streak7Count:   Object.keys(streak7).length,
         streak14Count:  Object.keys(streak14).length,
