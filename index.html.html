@@ -835,7 +835,20 @@ async function fetchStatcast() {
     if (!csv || csv.trim().startsWith('{') || csv.trim().startsWith('<') || csv.length < 100) return {};
     const lines = csv.trim().split('\n').filter(l => l.trim());
     if (lines.length < 2) return {};
-    const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
+    // Use proper CSV parsing for headers to handle "last_name, first_name" quoted field
+    const parseHeaderLine = (line) => {
+      const result = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { result.push(cur.trim().toLowerCase()); cur = ''; }
+        else cur += ch;
+      }
+      result.push(cur.trim().toLowerCase());
+      return result;
+    };
+    const headers = parseHeaderLine(lines[0]);
     const col = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i >= 0) return i; } return -1; };
     const iName = col('last_name, first_name','player_name');
     const iXBA  = col('xba','est_ba');
@@ -849,7 +862,19 @@ async function fetchStatcast() {
     const result = {};
     lines.slice(1).forEach(line => {
       if (!line.trim()) return;
-      const cols = line.split(',').map(c => c.replace(/"/g,'').trim());
+      // Proper CSV parsing for data rows (handles quoted fields with commas)
+      const parseRow = (l) => {
+        const res = []; let cur = '', inQ = false;
+        for (let i = 0; i < l.length; i++) {
+          const ch = l[i];
+          if (ch === '"') { inQ = !inQ; }
+          else if (ch === ',' && !inQ) { res.push(cur.trim()); cur = ''; }
+          else cur += ch;
+        }
+        res.push(cur.trim());
+        return res;
+      };
+      const cols = parseRow(line);
       let name = cols[iName] || '';
       if (name.includes(',')) { const p = name.split(','); name = p[1].trim()+' '+p[0].trim(); }
       if (!name) return;
