@@ -128,10 +128,89 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 .divider{height:1px;background:var(--border);margin:16px 0;}
 .disc{font-size:11px;color:var(--muted);padding:10px 14px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);margin-top:14px;line-height:1.6;}
 @media(max-width:640px){
-  .kpi-strip{grid-template-columns:repeat(2,1fr);}
+  /* Core layout */
+  .panel{padding:10px 12px;}
+  body{font-size:14px;}
+
+  /* Nav tabs - scrollable on mobile */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
+  .tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
+
+  /* Header */
+  .header{padding:10px 14px;}
+  .header h1{font-size:15px;}
+  .header .subtitle{font-size:11px;}
+  .header-right{font-size:11px;}
+
+  /* KPI strip - 2x2 grid */
+  .kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .kpi{padding:10px;}
+  .kpi-val{font-size:22px;}
+  .kpi-lbl{font-size:10px;}
+
+  /* Filter bar - stack vertically */
+  .filter-bar{flex-wrap:wrap;gap:6px;}
+  .filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
+  .filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
+  .result-count{font-size:11px;width:100%;text-align:right;}
+
+  /* Player cards - tighter on mobile */
+  .player-card{
+    grid-template-columns:20px 1fr auto;
+    gap:6px;
+    padding:10px 10px;
+  }
+  .p-rank{font-size:12px;}
+  .p-name{font-size:13px;}
+  .p-meta{font-size:11px;line-height:1.4;}
+  .p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
+
+  /* Pills - smaller on mobile */
+  .pills{gap:3px;margin:5px 0;}
+  .pill{font-size:10px;padding:2px 6px;}
+
+  /* Score */
+  .score-big{font-size:24px;}
+  .score-lbl{font-size:9px;}
+  .tier-badge{font-size:10px;padding:2px 6px;}
+  .score-wrap{min-width:48px;text-align:center;}
+
+  /* Lineups - single column */
   .lu-grid{grid-template-columns:1fr;}
-  .player-card{grid-template-columns:22px 1fr auto;}
-  .panel{padding:14px 16px;}
+  .lu-side{margin-bottom:12px;}
+  .lu-row{padding:5px 8px;}
+  .lu-name{font-size:12px;}
+  .lu-num{font-size:12px;width:18px;}
+  .lu-pos{font-size:11px;}
+
+  /* Game cards in lineup tab */
+  .game-card{padding:10px 12px;}
+
+  /* Diag panel - wrap tightly */
+  #diagPanel{gap:4px;}
+  #diagPanel span{font-size:10px !important;padding:2px 6px !important;}
+
+  /* Compare models button */
+  #compareModeBtn{font-size:11px;padding:5px 10px;}
+
+  /* Pools table - horizontal scroll */
+  .pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* Status pills at top */
+  .status-bar{flex-wrap:wrap;gap:4px;}
+  .status-bar span{font-size:10px !important;padding:2px 7px !important;}
+
+  /* xBA breakdown modal */
+  div[style*="width:480px"]{width:95vw !important;}
+}
+
+/* Very small screens */
+@media(max-width:380px){
+  .tab{font-size:11px;padding:8px 10px;}
+  .pills{gap:2px;}
+  .pill{font-size:9px;padding:1px 5px;}
+  .player-card{padding:8px;}
+  .score-big{font-size:20px;}
 }
   /* Pool styles */
   /* Pool grid */
@@ -324,7 +403,13 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 
 <!-- RESULTS TAB -->
 <div class="panel" id="panel-results">
-  <div id="diagPanel" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 4px 0;min-height:0;"></div>
+  <div id="diagContainer" style="margin-bottom:4px;">
+    <button onclick="toggleDiag()" id="diagToggleBtn"
+      style="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:20px;background:var(--surface2);color:var(--muted);cursor:pointer;font-family:inherit;display:none;">
+      🔍 Diagnostics <span id="diagStatus"></span>
+    </button>
+    <div id="diagPanel" style="display:none;gap:6px;flex-wrap:wrap;padding:6px 0;"></div>
+  </div>
   <div class="empty" id="resEmpty">
     <div class="empty-icon">⚾</div>
     <p>Run an analysis to see ranked hit prop picks.</p>
@@ -410,15 +495,10 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
       <!-- Cloud sync bar -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:14px;flex-wrap:wrap;">
         <span style="font-size:12px;font-weight:700;color:var(--muted);">☁️ CLOUD SYNC</span>
-        <input type="text" id="syncPin" placeholder="Enter PIN (e.g. DREW1)"
-          maxlength="12"
-          style="padding:6px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;width:160px;text-transform:uppercase;letter-spacing:1px;font-weight:600;"
-          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
-          onkeydown="if(event.key==='Enter')loadFromCloud()">
-        <button class="btn btn-secondary btn-sm" onclick="loadFromCloud()" style="color:var(--blue);">⬇️ Load</button>
-        <button class="btn btn-secondary btn-sm" onclick="saveToCloud()" style="color:var(--green);">⬆️ Save</button>
-        <span id="syncStatus" style="font-size:12px;color:var(--muted);font-style:italic;"></span>
-        <span style="font-size:11px;color:var(--muted);margin-left:auto;">Same PIN = same data on any device</span>
+        <span style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Save your pools to the cloud and load them on any device — no account needed.</span>
+        <button class="btn btn-secondary btn-sm" onclick="cloudSave()" style="font-size:12px;">⬆ Save to Cloud</button>
+        <button class="btn btn-secondary btn-sm" onclick="cloudLoad()" style="font-size:12px;">⬇ Load from Cloud</button>
+        <span id="syncStatus" style="font-size:11px;color:var(--muted);"></span>
       </div>
       <div class="empty" id="poolsEmpty"><div class="empty-icon">🏆</div><p>No pools yet. Create one to start tracking used players.</p></div>
       <div id="poolsList"></div>
@@ -447,6 +527,27 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- OPTIMAL EXPOSURE CALCULATOR -->
+<div class="card" id="exposureCalcCard" style="margin-top:16px;display:none;">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleExposureCalc()">
+    <span>🎯 Optimal Exposure Calculator</span>
+    <span id="exposureChevron" style="font-size:12px;color:var(--muted);">▼</span>
+  </div>
+  <div id="exposureCalcBody" class="card-body">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+      Given today's top picks and your active pools, calculates the optimal player assignment to maximize coverage while minimizing overlap and avoiding already-used players.
+    </div>
+    <div id="exposureOutput">
+      <div style="font-size:13px;color:var(--muted);font-style:italic;">
+        Run analysis first, then set up your pools to see recommendations.
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="runExposureCalc()" style="margin-top:12px;width:100%;">
+      Calculate Optimal Exposure
+    </button>
   </div>
 </div>
 
@@ -794,10 +895,31 @@ const DIAG = {
   },
   render() {
     const el = document.getElementById('diagPanel');
+    const btn = document.getElementById('diagToggleBtn');
+    const statusDot = document.getElementById('diagStatus');
     if (!el) return;
-    const html = Object.entries(this.calls).map(([name, d]) => {
+
+    const entries = Object.entries(this.calls);
+    if (!entries.length) return;
+
+    // Show toggle button once we have data
+    if (btn) btn.style.display = 'inline-block';
+
+    const hasError = entries.some(([,d]) => d.error && !d.detail);
+    const hasWarn  = entries.some(([,d]) => d.status === 'warn');
+
+    // Status dot on button: red if errors, yellow if warnings, green if all ok
+    if (statusDot) {
+      const dotColor = hasError ? '#dc2626' : hasWarn ? '#ca8a04' : '#16a34a';
+      const dotLabel = hasError ? ' ✗' : hasWarn ? ' ⚠' : ' ✓';
+      statusDot.textContent = dotLabel;
+      statusDot.style.color = dotColor;
+      statusDot.style.fontWeight = '700';
+    }
+    if (btn) btn.style.borderColor = hasError ? '#dc262640' : hasWarn ? '#ca8a0440' : 'var(--border)';
+
+    const html = entries.map(([name, d]) => {
       const isOk = !d.error && (d.rows > 0 || d.bytes > 1000 || d.detail);
-      const isWarn = !d.error && !isOk;
       const color = d.error ? '#dc2626' : isOk ? '#16a34a' : '#ca8a04';
       const icon  = d.error ? '✗' : isOk ? '✓' : '⚠';
       const detail = d.error
@@ -982,6 +1104,8 @@ async function fetchStatcast() {
 
   const nBat = Object.keys(liveStatcast).length;
   const nPit = Object.keys(livePitchers).length;
+  window._statcastFetchedAt = new Date();
+  window._statcastPlayerCount = nBat;
   DIAG.log('Statcast/parse', { status: nBat > 0 ? '200' : 'warn',
     rows: nBat, ms: 0,
     ...(nBat === 0 ? { error: 'parsed 0 batters — check CSV format' } : {}) });
@@ -1002,6 +1126,11 @@ async function fetchOdds() {
     const n = Object.keys(liveOdds).length;
     DIAG.log('Odds', { status: '200', rows: n, ms: Date.now()-t0,
       ...(n === 0 ? { error: 'no games returned' } : {}) });
+    // Flag suspicious implied runs
+    Object.entries(liveOdds).forEach(([abbr, d]) => {
+      if (d.impliedRuns < 2.5) DIAG.log(`⚠ Odds:${abbr}`, { error: `Only ${d.impliedRuns} proj runs — verify lines`, status: 'warn' });
+      if (d.impliedRuns > 8.0) DIAG.log(`⚠ Odds:${abbr}`, { error: `${d.impliedRuns} proj runs — unusually high, verify`, status: 'warn' });
+    });
 
     // Log each game's implied runs so mismatches are immediately visible
     // Groups by matchup: "LAD(7.5) @ COL(4.8) total=12.3"
@@ -2080,10 +2209,18 @@ function renderResults(players) {
   const oddsCount     = Object.keys(liveOdds).length;
   const oddsLoaded    = players.some(p => p.impliedRuns !== null && p.impliedRuns !== undefined);
   const statcastSrc   = statcastCount > 50 ? `${statcastCount} live` : statcastCount > 0 ? `${statcastCount} live + embedded` : `embedded dict`;
+  const fetchedAgo = window._statcastFetchedAt
+    ? Math.round((Date.now() - window._statcastFetchedAt) / 60000) + 'min ago'
+    : 'this session';
+  // Sample blend weight from top player to show typical 2026 vs 2025 weight
+  const samplePlayer = allScoredPlayers[0];
+  const samplePA = samplePlayer ? (liveStatcast[normalize(samplePlayer.name)]?.pa || 0) : 0;
+  const blendPct = samplePA > 0 ? Math.round(Math.min(100, samplePA / 100 * 100)) : 0;
+  const blendNote = samplePA > 0 ? ` · ${blendPct}% 2026 / ${100-blendPct}% 2025` : ' · using 2025 embedded';
 
-  const dataStatus = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
-    <span style="padding:3px 9px;border-radius:20px;background:#dcfce7;color:#15803d;">
-      Statcast: ${statcastSrc} (${embeddedCount} players)</span>
+  const dataStatus = `<div class="status-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
+    <span style="padding:3px 9px;border-radius:20px;background:#dcfce7;color:#15803d;" title="Fetched ${fetchedAgo}${blendNote}">
+      Statcast: ${statcastSrc} (${embeddedCount} players)${blendNote ? ' · <span style=\'opacity:.7\'>' + blendNote.slice(3) + '</span>' : ''}</span>
     <span style="padding:3px 9px;border-radius:20px;background:${pitcherCount>20?'#dcfce7':'#fef9c3'};color:${pitcherCount>20?'#15803d':'#854d0e'};">
       Pitcher Statcast: ${pitcherCount > 0 ? pitcherCount + ' live' : 'SP_STATS fallback'}</span>
     <span style="padding:3px 9px;border-radius:20px;background:${oddsLoaded?'#dcfce7':'#fee2e2'};color:${oddsLoaded?'#15803d':'#b91c1c'};" title="Odds refresh every 10min. Re-run analysis for latest lines.">
@@ -2163,6 +2300,15 @@ function playerCard(p, rank) {
       <div class="tier-badge">${p.tier}</div>
     </div>
   </div>`;
+}
+
+function toggleDiag() {
+  const panel = document.getElementById('diagPanel');
+  const btn   = document.getElementById('diagToggleBtn');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if (btn) btn.style.background = isOpen ? 'var(--surface2)' : 'var(--surface)';
 }
 
 function showXbaBreakdown(idx) {
@@ -2309,6 +2455,175 @@ function lookupStreak(name) {
     combinedScore: s7 && s14 ? Math.round(s7.streakScore * 0.6 + s14.streakScore * 0.4) :
                    s7 ? s7.streakScore : s14 ? s14.streakScore : 0,
   };
+}
+
+
+// ── OPTIMAL EXPOSURE CALCULATOR ──────────────────────────────────────────────
+function toggleExposureCalc() {
+  const body = document.getElementById('exposureCalcBody');
+  const chevron = document.getElementById('exposureChevron');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.textContent = isOpen ? '▶' : '▼';
+}
+
+function runExposureCalc() {
+  const output = document.getElementById('exposureOutput');
+  if (!output) return;
+
+  if (!allScoredPlayers.length) {
+    output.innerHTML = '<div style="color:var(--red);font-size:13px;">Run analysis first to generate player rankings.</div>';
+    return;
+  }
+  if (!pools.length) {
+    output.innerHTML = '<div style="color:var(--red);font-size:13px;">Create at least one pool in the Pools tab first.</div>';
+    return;
+  }
+
+  const today = new Date().toLocaleDateString('en-CA');
+  const numPools = pools.length;
+
+  // Get top players not yet used today in any pool
+  const usedToday = new Set();
+  pools.forEach(p => {
+    p.used.forEach(u => {
+      const name = typeof u === 'string' ? u : u.name;
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      if (date === today) usedToday.add(name.toLowerCase());
+    });
+  });
+
+  // Get eligible players (not used today, good scores)
+  const eligible = allScoredPlayers.filter(p =>
+    !usedToday.has(p.name.toLowerCase()) && p.compositeScore >= 50
+  );
+
+  if (!eligible.length) {
+    output.innerHTML = '<div style="color:var(--muted);font-size:13px;">All top players already used today, or run analysis to populate rankings.</div>';
+    return;
+  }
+
+  // For each pool, determine which players are AVAILABLE (not used at all)
+  // Then find optimal non-overlapping assignment
+  const poolAvailability = pools.map(pool => {
+    const usedNames = new Set(pool.used.map(u => (typeof u === 'string' ? u : u.name).toLowerCase()));
+    return {
+      pool,
+      available: eligible.filter(p => !usedNames.has(p.name.toLowerCase())),
+    };
+  });
+
+  // Greedy algorithm: assign best available player per pool, prefer unique assignments
+  // Sort pools by fewest available options first (most constrained)
+  const sortedPools = [...poolAvailability].sort((a, b) => a.available.length - b.available.length);
+
+  const assignments = {}; // poolId -> player
+  const assignedPlayers = new Set();
+
+  // First pass: assign unique players where possible
+  sortedPools.forEach(({ pool, available }) => {
+    const unique = available.find(p => !assignedPlayers.has(p.name));
+    if (unique) {
+      assignments[pool.id] = unique;
+      assignedPlayers.add(unique.name);
+    }
+  });
+
+  // Second pass: assign best available for pools without assignment
+  sortedPools.forEach(({ pool, available }) => {
+    if (!assignments[pool.id] && available.length) {
+      assignments[pool.id] = available[0];
+    }
+  });
+
+  // Build output HTML
+  const scoreColor = s => s >= 65 ? 'var(--green)' : s >= 57 ? 'var(--blue)' : 'var(--yellow)';
+
+  // Player exposure count (how many pools they're assigned to)
+  const playerPoolCount = {};
+  Object.values(assignments).forEach(p => {
+    if (p) playerPoolCount[p.name] = (playerPoolCount[p.name] || 0) + 1;
+  });
+
+  // Count unique vs shared assignments
+  const uniqueAssignments = Object.values(assignments).filter(p => p && playerPoolCount[p.name] === 1).length;
+  const sharedAssignments = numPools - uniqueAssignments;
+
+  let html = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;font-size:12px;flex-wrap:wrap;">
+      <span style="padding:3px 10px;border-radius:20px;background:#dcfce7;color:#15803d;font-weight:600;">
+        ✓ ${uniqueAssignments}/${numPools} unique picks
+      </span>
+      ${sharedAssignments > 0 ? `<span style="padding:3px 10px;border-radius:20px;background:#fef9c3;color:#854d0e;font-weight:600;">
+        ⚠ ${sharedAssignments} shared (unavoidable — best available)
+      </span>` : ''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Pool</th>
+          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Recommended Pick</th>
+          <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Score</th>
+          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Matchup</th>
+          <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  pools.forEach((pool, i) => {
+    const p = assignments[pool.id];
+    const isShared = p && playerPoolCount[p.name] > 1;
+    const bg = i % 2 === 0 ? '' : 'background:var(--surface2);';
+    if (!p) {
+      html += `<tr style="${bg}border-bottom:1px solid var(--border);">
+        <td style="padding:9px 12px;font-weight:600;">${pool.name}</td>
+        <td colspan="4" style="padding:9px 12px;color:var(--muted);font-style:italic;">No eligible players available — all used</td>
+      </tr>`;
+      return;
+    }
+    html += `<tr style="${bg}border-bottom:1px solid var(--border);">
+      <td style="padding:9px 12px;font-weight:600;">${pool.name}</td>
+      <td style="padding:9px 12px;">
+        <span style="font-weight:700;">${p.name}</span>
+        ${isShared ? '<span style="font-size:10px;margin-left:5px;padding:1px 6px;background:#fef9c380;border:1px solid #ca8a0440;border-radius:10px;color:#ca8a04;">shared</span>' : ''}
+      </td>
+      <td style="padding:9px 10px;text-align:center;font-weight:700;color:${scoreColor(p.compositeScore)};">${p.compositeScore}</td>
+      <td style="padding:9px 12px;font-size:12px;color:var(--muted);">${p.team} vs ${p.pitcher} (${p.pitcherHand})</td>
+      <td style="padding:9px 10px;text-align:center;">
+        <button onclick="markUsed('${p.name}','${pool.id}','${today}')"
+          style="font-size:11px;padding:3px 10px;background:var(--blue);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:inherit;">
+          + Use
+        </button>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  // Show top 5 alternatives
+  const alts = eligible.filter(p => !Object.values(assignments).find(a => a && a.name === p.name)).slice(0, 5);
+  if (alts.length) {
+    html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Next Best Available</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">`;
+    alts.forEach(p => {
+      html += `<span style="padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:12px;background:var(--surface2);">
+        <span style="font-weight:600;">${p.name}</span>
+        <span style="color:${scoreColor(p.compositeScore)};font-weight:700;margin-left:4px;">${p.compositeScore}</span>
+        <span style="color:var(--muted);font-size:11px;margin-left:3px;">${p.team}</span>
+      </span>`;
+    });
+    html += '</div></div>';
+  }
+
+  output.innerHTML = html;
+}
+
+// Show exposure calc card when pools exist
+function checkShowExposureCard() {
+  const card = document.getElementById('exposureCalcCard');
+  if (card) card.style.display = pools.length ? 'block' : 'none';
 }
 
 // ── POOL MANAGEMENT ──────────────────────────────────────────────────────────
@@ -2550,6 +2865,7 @@ function renderPools() {
   tableHtml += `</tbody></table></div>`;
   list.innerHTML = tableHtml;
   renderCrossPool();
+  checkShowExposureCard();
 }
 
 
@@ -3300,622 +3616,62 @@ async function loadFromCloud() {
 
 // Auto-save to cloud whenever pools change (debounced)
 let cloudSaveTimer = null;
-function triggerAutoSave() {
-  const pin = getSyncPin() || localStorage.getItem('mlbSyncPin');
-  if (!pin) return; // only auto-save if PIN is set
-  clearTimeout(cloudSaveTimer);
-  cloudSaveTimer = setTimeout(() => {
-    document.getElementById('syncPin').value = pin;
-    saveToCloud();
-  }, 3000); // save 3s after last change
-}
-
-document.addEventListener('DOMContentLoaded', initCloudSync);
-
-// ── Model A — original additive formula (for comparison) ─────────────────────
-function computeScoreModelA(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns, streak) {
-  const xba  = (sc?.xba   != null && sc.xba   > 0) ? sc.xba   : 0.255;
-  const kpct = (sc?.kpct  != null && sc.kpct  >= 0) ? sc.kpct : 0.22;
-  const hh   = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
-  const barrel=(sc?.barrelpct  != null && sc.barrelpct  >= 0) ? sc.barrelpct  : 0.07;
-
-  // xBA score (split-confidence weighted)
-  const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
-  const splitConf = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
-  const xbaScore = Math.round(rawXbaScore * splitConf + 50 * (1 - splitConf));
-
-  // K% score (separate, additive)
-  const kScore = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
-
-  // HH% + Barrel% combined
-  const contactScore = Math.min(100, Math.max(0,
-    ((hh - 0.20) / (0.65 - 0.20)) * 70 +
-    ((barrel - 0.02) / (0.20 - 0.02)) * 30
-  ));
-
-  // Pitcher matchup (same logic)
-  let spScore;
-  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
-    const spK   = spSC.kpct ?? 0.22;
-    const spXBA = spSC.xbaAllowed ?? 0.255;
-    const spHH  = spSC.hardHitAllowed ?? 0.38;
-    const spWh  = spSC.whiffPct ?? 0.25;
-    const spBar = spSC.barrelAllowed ?? 0.07;
-    const kComp   = Math.min(100, Math.max(0, (1 - (spK  - 0.10) / (0.40 - 0.10)) * 100));
-    const xbaComp = Math.min(100, Math.max(0, ((spXBA - 0.150) / (0.330 - 0.150)) * 100));
-    const hhComp  = Math.min(100, Math.max(0, ((spHH  - 0.25)  / (0.60 - 0.25))   * 100));
-    const whComp  = Math.min(100, Math.max(0, (1 - (spWh - 0.15) / (0.42 - 0.15)) * 100));
-    const barComp = Math.min(100, Math.max(0, ((spBar - 0.02)  / (0.18 - 0.02))   * 100));
-    spScore = kComp*0.38 + xbaComp*0.35 + hhComp*0.15 + whComp*0.08 + barComp*0.04;
-  } else {
-    const k9   = spSC?.k9   || spStats.k9   || 8.5;
-    const whip = spSC?.whip || spStats.whip  || 1.35;
-    spScore = Math.min(100,Math.max(0,(1-(k9-4.0)/(14.0-4.0))*100))*0.65 +
-              Math.min(100,Math.max(0,((whip-0.80)/(1.90-0.80))*100))*0.35;
-  }
-  const switchBonus = (bats === 'S') ? 5 : 0;
-  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
-
-  // Park
-  const pk = parkScore(venue);
-
-  // Batting order
-  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
-  const slotPA = paBySlot[Math.min(player.order-1,8)];
-  const orderScore = Math.round(((slotPA-3.6)/(4.7-3.6))*100);
-
-  // Implied runs
-  let impliedScore = 50;
-  if (impliedRuns !== null && impliedRuns !== undefined) {
-    impliedScore = Math.min(100,Math.max(0,((impliedRuns-2.0)/(7.0-2.0))*100));
-    const damp = player.order<=2?0.20:player.order<=5?0.55:1.0;
-    impliedScore = Math.round(50+(impliedScore-50)*damp);
-  }
-
-  // Streak
-  const streakAdj = streak ? Math.round((streak.combinedScore / 2) * 5) : 0;
-
-  // Original additive weights
-  const raw = xbaScore*0.28 + matchupScore*0.22 + impliedScore*0.14 +
-              orderScore*0.10 + kScore*0.13 + contactScore*0.10 + pk.score*0.03;
-  const composite = Math.min(100, Math.max(0, Math.round(raw + streakAdj)));
-
-  let tier = 'Avoid';
-  if (composite >= 75) tier = 'Elite';
-  else if (composite >= 62) tier = 'Strong';
-  else if (composite >= 50) tier = 'Lean';
-
-  return { compositeScore: composite, tier };
-}
-
-
-// ── Model Comparison View ─────────────────────────────────────────────────────
-let compareModeActive = false;
-
-function toggleCompareMode() {
-  compareModeActive = !compareModeActive;
-  const btn = document.getElementById('compareModeBtn');
-  const tierSel = document.getElementById('tierFilterSel');
-  const searchBox = document.querySelector('.filter-bar input[type="text"]');
-
-  if (compareModeActive) {
-    btn.textContent = '✕ Back to Model B';
-    btn.style.background = 'var(--blue)';
-    btn.style.color = '#fff';
-    btn.style.borderColor = 'var(--blue)';
-    if (tierSel) tierSel.style.display = 'none';
-    if (searchBox) searchBox.style.display = 'none';
-    document.getElementById('resEmpty').style.display = 'none';
-    document.getElementById('resContent').style.display = 'block';
-    renderCompare();
-  } else {
-    btn.textContent = '⚖️ Compare Models';
-    btn.style.background = 'var(--surface2)';
-    btn.style.color = 'var(--text)';
-    btn.style.borderColor = 'var(--border)';
-    if (tierSel) tierSel.style.display = '';
-    if (searchBox) searchBox.style.display = '';
-    renderResults(allScoredPlayers.slice(0, getCurrentTopN()));
-  }
-}
-
-function getCurrentTopN() {
-  return parseInt(document.getElementById('topN')?.value || '50');
-}
-
-function renderCompare() {
-  const container = document.getElementById('resContent');
-  if (!container || !allScoredPlayers.length) return;
-
-  const topN = getCurrentTopN();
-
-  // Model B — sorted by compositeScore (current model)
-  const modelB = [...allScoredPlayers]
-    .sort((a,b) => b.compositeScore - a.compositeScore)
-    .slice(0, topN);
-
-  // Model A — sorted by scoreA (original model)
-  const modelA = [...allScoredPlayers]
-    .sort((a,b) => (b.scoreA||0) - (a.scoreA||0))
-    .slice(0, topN);
-
-  const bNames = new Set(modelB.map(p => p.name));
-  const aNames = new Set(modelA.map(p => p.name));
-
-  function tierColor(tier) {
-    if (tier === 'Elite')  return 'var(--green)';
-    if (tier === 'Strong') return 'var(--blue)';
-    if (tier === 'Lean')   return 'var(--yellow)';
-    return 'var(--muted)';
-  }
-
-  function playerRow(p, rank, scoreVal, tierVal, inOther) {
-    const newBadge = !inOther
-      ? `<span style="font-size:9px;font-weight:700;color:var(--orange);background:rgba(234,88,12,0.12);border:1px solid rgba(234,88,12,0.3);border-radius:10px;padding:1px 5px;margin-left:4px;">ONLY</span>`
-      : '';
-    const rowBg = !inOther ? 'rgba(234,88,12,0.05)' : (rank%2===0 ? 'var(--surface2)' : '');
-    return `<tr style="border-bottom:1px solid var(--border);background:${rowBg};">
-      <td style="padding:7px 8px;text-align:center;font-size:12px;color:var(--muted);width:28px;">${rank}</td>
-      <td style="padding:7px 10px;">
-        <div style="font-weight:600;font-size:13px;">${p.name}${newBadge}</div>
-        <div style="font-size:11px;color:var(--muted);">${p.team} · ${p.pitcher||'?'}</div>
-      </td>
-      <td style="padding:7px 8px;text-align:center;font-size:15px;font-weight:700;color:${tierColor(tierVal)};width:44px;">${scoreVal}</td>
-      <td style="padding:7px 8px;text-align:center;width:60px;">
-        <span style="font-size:10px;font-weight:700;color:${tierColor(tierVal)};border:1px solid ${tierColor(tierVal)};border-radius:20px;padding:2px 6px;">${tierVal}</span>
-      </td>
-    </tr>`;
-  }
-
-  let aRows = modelA.map((p,i) =>
-    playerRow(p, i+1, p.scoreA||0, p.tierA||'Avoid', bNames.has(p.name))
-  ).join('');
-
-  let bRows = modelB.map((p,i) =>
-    playerRow(p, i+1, p.compositeScore, p.tier, aNames.has(p.name))
-  ).join('');
-
-  const thStyle = 'padding:6px 8px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;';
-
-  container.innerHTML = `
-    <div style="margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div style="font-size:12px;color:var(--muted);">
-        <span style="background:rgba(234,88,12,0.1);border:1px solid rgba(234,88,12,0.3);border-radius:4px;padding:1px 7px;font-weight:700;color:var(--orange);font-size:11px;">ONLY</span>
-        = appears in this model's top ${topN} but not the other
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-
-      <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-        <div style="background:var(--nav);padding:10px 14px;">
-          <div style="font-size:13px;font-weight:700;color:#fff;">📐 Model A — Original</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">xBA(28%) + K%(13%) + HH%(10%) additive · Pitcher(22%) additive</div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
-            <th style="${thStyle}text-align:center;">#</th>
-            <th style="${thStyle}text-align:left;">Player</th>
-            <th style="${thStyle}text-align:center;">Score</th>
-            <th style="${thStyle}text-align:center;">Tier</th>
-          </tr></thead>
-          <tbody>${aRows}</tbody>
-        </table>
-      </div>
-
-      <div style="border:1px solid var(--blue);border-radius:10px;overflow:hidden;">
-        <div style="background:var(--blue);padding:10px 14px;">
-          <div style="font-size:13px;font-weight:700;color:#fff;">🔬 Model B — Current</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:2px;">xBA×(1−K%)×PitcherFactor(52%) multiplicative · ImpliedRuns(14%)</div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
-            <th style="${thStyle}text-align:center;">#</th>
-            <th style="${thStyle}text-align:left;">Player</th>
-            <th style="${thStyle}text-align:center;">Score</th>
-            <th style="${thStyle}text-align:center;">Tier</th>
-          </tr></thead>
-          <tbody>${bRows}</tbody>
-        </table>
-      </div>
-
-    </div>`;
-}
-
-// ── Pools page top picks sidebar ─────────────────────────────────────────────
-function renderPicksSidebar() {
-  const sidebar = document.getElementById('picksSidebar');
-  const label   = document.getElementById('sidebarAnalyzedLabel');
-  if (!sidebar) return;
-
-  if (!allScoredPlayers || !allScoredPlayers.length) {
-    sidebar.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">Run analysis to see recommendations.</div>';
-    return;
-  }
-
-  const topN  = 20;
-  const today = new Date().toLocaleDateString('en-CA');
-  const top   = [...allScoredPlayers]
-    .sort((a,b) => b.compositeScore - a.compositeScore)
-    .slice(0, topN);
-
-  // Get active pool index for click-to-fill
-  const activeIdx = pools.findIndex(p => p.id === activePoolId);
-
-  if (label) label.textContent = `Top ${topN} of ${allScoredPlayers.length}`;
-
-  function tierColor(tier) {
-    if (tier === 'Elite')  return 'var(--green)';
-    if (tier === 'Strong') return 'var(--blue)';
-    if (tier === 'Lean')   return 'var(--yellow)';
-    return 'var(--muted)';
-  }
-
-  let html = '';
-  top.forEach((p, i) => {
-    // Check if already used in active pool today
-    const activePool = activeIdx >= 0 ? pools[activeIdx] : null;
-    const usedToday  = activePool?.used.some(u => {
-      const name = typeof u === 'string' ? u : u.name;
-      const date = typeof u === 'string' ? '' : (u.date||'');
-      return name === p.name && date === today;
-    });
-
-    const isUsed = usedToday;
-    const bg = isUsed ? 'background:rgba(22,163,74,0.06);' : (i%2===0?'':'background:var(--surface2);');
-    const usedBadge = isUsed ? '<span style="font-size:9px;font-weight:700;color:var(--green);background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.3);border-radius:10px;padding:1px 5px;margin-left:3px;">✓ PICKED</span>' : '';
-
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);${bg}cursor:${activeIdx>=0&&!isUsed?'pointer':'default'};"
-      ${activeIdx>=0&&!isUsed ? `onclick="fillPickFromSidebar(${activeIdx},'${p.name.replace(/'/g,"\\'")}'); this.style.background='rgba(37,99,235,0.08)';"
-        title="Click to fill into ${activePool?.name||'active pool'}"` : ''}>
-      <div style="font-size:12px;font-weight:700;color:var(--muted);width:18px;text-align:right;flex-shrink:0;">${i+1}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}${usedBadge}</div>
-        <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.team} · ${p.pitcher||'?'}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:14px;font-weight:700;color:${tierColor(p.tier)};">${p.compositeScore}</div>
-        <div style="font-size:9px;font-weight:700;color:${tierColor(p.tier)};opacity:.8;">${p.tier}</div>
-      </div>
-    </div>`;
-  });
-
-  if (activeIdx >= 0) {
-    html = `<div style="padding:7px 12px;background:rgba(37,99,235,0.06);border-bottom:1px solid var(--border);font-size:11px;color:var(--blue);font-weight:600;">
-      Click any player to fill into <em>${pools[activeIdx].name}</em>
-    </div>` + html;
-  }
-
-  sidebar.innerHTML = html;
-}
-
-function fillPickFromSidebar(poolIdx, playerName) {
-  const nameEl = document.getElementById('addName_' + poolIdx);
-  if (nameEl) {
-    nameEl.value = playerName;
-    nameEl.focus();
-    // Scroll the pool row into view
-    nameEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
-
-// ── Refresh lineups from MLB API (preserves game selections) ──────────────────
-async function refreshLineups() {
-  const btn = document.getElementById('refreshLineupsBtn');
-  const status = document.getElementById('lineupRefreshStatus');
-  if (!btn) return;
-
-  btn.disabled = true;
-  btn.textContent = '↻ Refreshing...';
-  if (status) status.textContent = '';
-
-  const date = new Date().toLocaleDateString('en-CA');
-  try {
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch('/api/schedule?date=' + date, { signal: controller.signal });
-    clearTimeout(tid);
-
-    if (!res.ok) throw new Error('API returned ' + res.status);
-    const data = await res.json();
-    const games = (data.dates || [])[0]?.games || [];
-
-    if (games.length === 0) throw new Error('No games returned');
-
-    // Update todayGames but preserve selections
-    todayGames = games;
-    renderGameCards(games);
-
-    // Restore previous selections
-    selectedPks.forEach(pk => {
-      const card = document.querySelector(`.game-card[data-pk="${pk}"]`);
-      if (card) card.classList.add('selected');
-    });
-    updateRunBtn();
-
-    const confirmed = games.filter(g => (g.lineups?.homePlayers || []).length >= 16).length;
-    const partial   = games.filter(g => {
-      const tot = (g.lineups?.homePlayers||[]).length + (g.lineups?.awayPlayers||[]).length;
-      return tot > 0 && tot < 16;
-    }).length;
-    const pending = games.length - confirmed - partial;
-
-    const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    if (status) {
-      status.textContent = `Updated ${now} · ${confirmed} confirmed · ${partial} partial · ${pending} pending`;
-      status.style.color = confirmed > 0 ? 'var(--green)' : 'var(--muted)';
-    }
-
-    setScheduleStatus('success', '✅', `${games.length} games · refreshed at ${now}`,
-      `${confirmed} confirmed lineups · ${pending} pending (~3–4 hrs before first pitch)`);
-
-  } catch(e) {
-    if (status) {
-      status.textContent = 'Refresh failed — using last data';
-      status.style.color = 'var(--red)';
-    }
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🔄 Refresh Lineups';
-  }
-}
-
-// ── FantasyLabs Lineup Import ─────────────────────────────────────────────────
-
-// Full team name → abbreviation map
-const TEAM_NAME_TO_ABBR = {
-  'arizona diamondbacks':'AZ','atlanta braves':'ATL','baltimore orioles':'BAL',
-  'boston red sox':'BOS','chicago cubs':'CHC','chicago white sox':'CHW',
-  'cincinnati reds':'CIN','cleveland guardians':'CLE','colorado rockies':'COL',
-  'detroit tigers':'DET','houston astros':'HOU','kansas city royals':'KC',
-  'los angeles angels':'LAA','los angeles dodgers':'LAD','miami marlins':'MIA',
-  'milwaukee brewers':'MIL','minnesota twins':'MIN','new york mets':'NYM',
-  'new york yankees':'NYY','oakland athletics':'ATH','athletics':'ATH',
-  'philadelphia phillies':'PHI','pittsburgh pirates':'PIT','san diego padres':'SD',
-  'san francisco giants':'SF','seattle mariners':'SEA','st. louis cardinals':'STL',
-  'tampa bay rays':'TB','texas rangers':'TEX','toronto blue jays':'TOR',
-  'washington nationals':'WSH',
-};
-
-// Imported lineups override depth charts — keyed by team abbr
-let importedLineups = {}; // { 'STL': [{name, hand, slot}, ...], ... }
-let importedPitchers = {}; // { 'STL': {name, hand}, ... }
-
-function parseFantasyLabsPaste() {
-  const raw = document.getElementById('lineupPasteBox').value.trim();
-  const status = document.getElementById('importStatus');
-  if (!raw) { status.textContent = 'Paste lineup text first.'; return; }
-
-  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-  let teamsImported = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    // Look for game header: "Team A (+xxx) @ Team B (-xxx)" or "Team A @ Team B"
-    const gameMatch = lines[i].match(/^(.+?)\s*\([+-]?\d+\)?\s*@\s*(.+?)\s*\([+-]?\d+\)?/i)
-                  || lines[i].match(/^(.+?)\s*@\s*(.+?)$/i);
-
-    if (gameMatch) {
-      const awayName = gameMatch[1].trim().toLowerCase();
-      const homeName = gameMatch[2].trim().replace(/\s*\([+-]?\d+\).*$/, '').trim().toLowerCase();
-      const awayAbbr = TEAM_NAME_TO_ABBR[awayName];
-      const homeAbbr = TEAM_NAME_TO_ABBR[homeName];
-
-      if (!awayAbbr || !homeAbbr) { i++; continue; }
-
-      i++; // move past game header
-
-      // Parse pitchers and lineups for both teams
-      let pitchers = [];
-      let lineups = [[], []]; // [away, home]
-      let lineupIdx = -1;
-
-      while (i < lines.length) {
-        const line = lines[i];
-
-        // Stop if we hit another game header
-        if ((line.match(/^(.+?)\s*\([+-]?\d+\)?\s*@\s*(.+?)/) ||
-             line.match(/^(.+?)\s*@\s*(.+?)$/)) && line.includes('@') &&
-             !line.startsWith('*')) break;
-
-        // Pitcher line: "Name (R) $xx"
-        const pitcherMatch = line.match(/^([A-Z][^(]+?)\s+\(([RLS])\)\s+\$[\d.]+K?\s*$/i);
-        if (pitcherMatch && lineupIdx < 0) {
-          pitchers.push({ name: pitcherMatch[1].trim(), hand: pitcherMatch[2].toUpperCase() });
-          i++; continue;
-        }
-
-        // "Projected Lineup" marker
-        if (line.toLowerCase().includes('projected lineup')) {
-          lineupIdx++;
-          i++; continue;
-        }
-
-        // Player line: "* 1 - Name (H) POS $price" or "1 - Name (H) POS $price"
-        const playerMatch = line.match(/^\*?\s*(\d)\s*[-–]\s*(.+?)\s+\(([RLBS])\)\s+\S+/i);
-        if (playerMatch && lineupIdx >= 0 && lineupIdx <= 1) {
-          lineups[lineupIdx].push({
-            slot: parseInt(playerMatch[1]),
-            name: playerMatch[2].trim(),
-            hand: playerMatch[3].toUpperCase() === 'B' ? 'S' : playerMatch[3].toUpperCase(),
-          });
-          i++; continue;
-        }
-
-        i++;
-      }
-
-      // Store results
-      if (lineups[0].length >= 3) {
-        importedLineups[awayAbbr] = lineups[0].sort((a,b) => a.slot - b.slot);
-        if (pitchers[0]) importedPitchers[awayAbbr] = pitchers[0];
-        teamsImported.push(awayAbbr);
-      }
-      if (lineups[1].length >= 3) {
-        importedLineups[homeAbbr] = lineups[1].sort((a,b) => a.slot - b.slot);
-        if (pitchers[1]) importedPitchers[homeAbbr] = pitchers[1];
-        teamsImported.push(homeAbbr);
-      }
-    } else {
-      i++;
-    }
-  }
-
-  if (teamsImported.length === 0) {
-    status.textContent = '❌ Could not parse any lineups. Check format.';
-    status.style.color = 'var(--red)';
-    return;
-  }
-
-  status.textContent = `✅ Imported ${teamsImported.length} teams: ${teamsImported.join(', ')}`;
-  status.style.color = 'var(--green)';
-
-  // Push imported lineups into DEPTH_CHARTS so analysis uses them
-  teamsImported.forEach(abbr => {
-    if (importedLineups[abbr]) {
-      DEPTH_CHARTS[abbr] = importedLineups[abbr].map(p => p.name);
-    }
-    // Update BATS with handedness from import
-    if (importedLineups[abbr]) {
-      importedLineups[abbr].forEach(p => {
-        const key = p.name.toLowerCase();
-        // Add to runtime BATS if not already known
-        if (!BATS[p.name]) BATS[p.name] = p.hand;
-      });
-    }
-    // Update pitcher SP_STATS hand if imported
-    if (importedPitchers[abbr]) {
-      const sp = importedPitchers[abbr];
-      const spStats = getSPStats(sp.name, sp.hand);
-      // Store in a runtime override dict
-      if (!window.importedSPHands) window.importedSPHands = {};
-      window.importedSPHands[sp.name.toLowerCase()] = sp.hand;
-    }
-  });
-
-  // Re-render lineups tab to show imported lineups
-  if (typeof renderLineups === 'function' && allScoredPlayers.length) {
-    renderLineups(allScoredPlayers);
-  }
-
-  // Save to localStorage so it persists across sessions today
-  saveImportedLineups(teamsImported);
-
-  // Clear paste box
-  document.getElementById('lineupPasteBox').value = '';
-
-  // Show re-run prompt
-  const rerunDiv = document.getElementById('importRerunPrompt');
-  if (rerunDiv) {
-    rerunDiv.style.display = 'block';
-    rerunDiv.innerHTML = `
-      <div style="margin-top:10px;padding:10px 14px;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);border-radius:8px;display:flex;align-items:center;gap:12px;">
-        <span style="font-size:13px;color:var(--text);">✅ <strong>${teamsImported.length} teams imported.</strong> Re-run analysis to apply new lineups.</span>
-        <button class="btn btn-primary btn-sm" onclick="switchTab('analyze');setTimeout(()=>document.getElementById('btnRun')?.click(),300);"
-          style="white-space:nowrap;flex-shrink:0;">▶ Re-run Analysis</button>
-      </div>`;
-  }
-}
-
-function clearImportedLineups() {
-  importedLineups = {};
-  importedPitchers = {};
-  const today = new Date().toLocaleDateString('en-CA');
-  localStorage.removeItem('fl_lineups_' + today);
-  const status = document.getElementById('importStatus');
-  status.textContent = 'Imports cleared — depth charts restored on next analysis run.';
-  status.style.color = 'var(--muted)';
-}
-
-// ── Lineup persistence (localStorage by date) ─────────────────────────────────
-function saveImportedLineups(teamsImported) {
-  const today = new Date().toLocaleDateString('en-CA');
+function cloudSave() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Saving…';
+  const pin = 'DREW_MLB_POOLS'; // fixed key — only you use this
   const payload = {
-    date: today,
-    lineups: importedLineups,
-    pitchers: importedPitchers,
-    saved: new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'}),
+    pools,
+    tracker: typeof picks !== 'undefined' ? picks : [],
+    savedAt: new Date().toISOString(),
+    pin,
   };
-  try {
-    localStorage.setItem('fl_lineups_' + today, JSON.stringify(payload));
-    console.log('Lineups saved for', today);
-  } catch(e) {
-    console.warn('Could not save lineups:', e);
-  }
-}
-
-function loadSavedLineups() {
-  const today = new Date().toLocaleDateString('en-CA');
-  try {
-    const raw = localStorage.getItem('fl_lineups_' + today);
-    if (!raw) return false;
-    const payload = JSON.parse(raw);
-    if (payload.date !== today) return false;
-
-    importedLineups = payload.lineups || {};
-    importedPitchers = payload.pitchers || {};
-
-    // Apply to DEPTH_CHARTS
-    const teams = Object.keys(importedLineups);
-    teams.forEach(abbr => {
-      if (importedLineups[abbr]) {
-        DEPTH_CHARTS[abbr] = importedLineups[abbr].map(p => p.name);
-      }
-      if (importedLineups[abbr]) {
-        importedLineups[abbr].forEach(p => {
-          if (!BATS[p.name]) BATS[p.name] = p.hand;
-        });
-      }
-      if (importedPitchers[abbr]) {
-        const sp = importedPitchers[abbr];
-        if (!window.importedSPHands) window.importedSPHands = {};
-        window.importedSPHands[sp.name.toLowerCase()] = sp.hand;
-      }
-    });
-
-    // Update UI
-    const status = document.getElementById('importStatus');
+  fetch('/api/kv?pin=' + pin, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
     if (status) {
-      status.textContent = `✅ Auto-loaded ${teams.length} saved lineups from today (${payload.saved}) — ${teams.join(', ')} — Re-run analysis to apply.`;
+      status.textContent = '✓ Saved at ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
       status.style.color = 'var(--green)';
     }
-    const rerunDiv = document.getElementById('importRerunPrompt');
-    if (rerunDiv) {
-      rerunDiv.style.display = 'block';
-      rerunDiv.innerHTML = `
-        <div style="margin-top:10px;padding:10px 14px;background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);border-radius:8px;display:flex;align-items:center;gap:12px;">
-          <span style="font-size:13px;color:var(--text);">📋 <strong>${teams.length} lineups from today (${payload.saved})</strong> auto-loaded into depth charts.</span>
-          <button class="btn btn-primary btn-sm" onclick="switchTab('analyze');setTimeout(()=>document.getElementById('btnRun')?.click(),300);"
-            style="white-space:nowrap;flex-shrink:0;">▶ Run Analysis</button>
-        </div>`;
-    }
-
-    // Show stale warning if saved a while ago
-    const box = document.getElementById('lineupPasteBox');
-    if (box && box.placeholder) {
-      box.placeholder = `Lineups loaded from earlier today (${payload.saved}).\nPaste new lineups here to update, or click Parse to refresh.`;
-    }
-
-    console.log('Restored saved lineups for', today, ':', teams);
-    return true;
-  } catch(e) {
-    console.warn('Could not load saved lineups:', e);
-    return false;
-  }
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
 }
 
-// Purge old lineup saves (keep only last 3 days)
-function purgeOldLineupsaves() {
-  try {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('fl_lineups_'));
-    const today = new Date();
-    keys.forEach(k => {
-      const dateStr = k.replace('fl_lineups_', '');
-      const d = new Date(dateStr);
-      if ((today - d) > 3 * 24 * 60 * 60 * 1000) localStorage.removeItem(k);
-    });
-  } catch(e) {}
+function cloudLoad() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Loading…';
+  const pin = 'DREW_MLB_POOLS';
+  fetch('/api/kv?pin=' + pin)
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
+    const data = d.data;
+    if (data?.pools) {
+      pools = data.pools;
+      localStorage.setItem('survivorPools', JSON.stringify(pools));
+      renderPools();
+      refreshResultPoolStatus();
+      const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'unknown';
+      if (status) {
+        status.textContent = `✓ Loaded (saved ${savedAt})`;
+        status.style.color = 'var(--green)';
+      }
+    } else {
+      throw new Error('No saved pools found');
+    }
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
 }
 
-</script>
-</body>
-</html>
+// Remove old PIN-based functions (replaced by cloudSave/cloudLoad above)
+function triggerAutoSave() {} // no-op — sync is now manual
+function getSyncPin() { return 'DREW_MLB_POOLS'; }
