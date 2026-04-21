@@ -1103,13 +1103,13 @@ async function fetchStatcast() {
   };
 
   // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
-  const [tCur, tPri, tRHP, tLHP, tPit, tR7] = await Promise.all([
-    fetchCsv('batter', year, ''),
-    fetchCsv('batter', prev, ''),
-    fetchCsv('batter', year, 'R'),
-    fetchCsv('batter', year, 'L'),
-    fetchCsv('pitcher', year, ''),
-    fetchCsv('batter', year, ''),  // rolling not supported in simple proxy - use overall
+  // pitcher_hand=R/L gets true platoon splits (batter xBA vs RHP / vs LHP)
+  const [tCur, tPri, tPit, tRHP, tLHP] = await Promise.all([
+    fetchCsv('batter', year, ''),      // overall xBA
+    fetchCsv('batter', prev, ''),      // prior year for blend
+    fetchCsv('pitcher', year, ''),     // pitcher stats
+    fetchCsv('batter', year, 'R'),     // xBA vs RHP (pitcher_hand=R)
+    fetchCsv('batter', year, 'L'),     // xBA vs LHP (pitcher_hand=L)
   ]);
 
   const batterCur  = parseSavantCsv(tCur);
