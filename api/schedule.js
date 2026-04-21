@@ -2,7 +2,7 @@ export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   const date = new URL(req.url).searchParams.get('date') || new Date().toLocaleDateString('en-CA');
-  const url = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=probablePitcher,lineups,team,venue`;
+  const url = `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&hydrate=probablePitcher(person),lineups,team,venue`;
 
   try {
     // Hard 5-second timeout on the MLB API call
