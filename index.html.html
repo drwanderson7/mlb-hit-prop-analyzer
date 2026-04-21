@@ -1218,23 +1218,37 @@ Object.keys(STATCAST).forEach(k => { SC_NORM[normalize(k)] = STATCAST[k]; });
 
 // Generic lookup helper — searches a live map then SC_NORM embedded fallback
 function lookupInMap(map, name) {
-  // First resolve any known aliases (Jr., accents, alternate spellings)
+  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii']);
+
+  // Helper: strip suffix from normalized key
+  const stripSuffix = (k) => {
+    const parts = k.split(' ');
+    if (SUFFIXES.has(parts[parts.length - 1]) && parts.length >= 3)
+      return parts.slice(0, -1).join(' ');
+    return k;
+  };
+
+  // 1. Resolve known aliases then normalize
   const resolved = resolveAlias(name);
   const key = normalize(resolved);
   if (map[key]) return map[key];
 
-  // Try original name too in case alias wasn't needed
+  // 2. Try original name normalized
   const origKey = normalize(name);
   if (map[origKey]) return map[origKey];
 
-  // Fuzzy: match on last name + first initial
-  // But skip if last part is 'jr', 'sr', 'ii', 'iii' — use second-to-last instead
+  // 3. Try stripping Jr/Sr/II/III suffix (Savant often omits these)
+  const stripped = stripSuffix(key);
+  if (stripped !== key && map[stripped]) return map[stripped];
+
+  // 4. Also try stripping from original
+  const strippedOrig = stripSuffix(origKey);
+  if (strippedOrig !== origKey && map[strippedOrig]) return map[strippedOrig];
+
+  // 5. Fuzzy: last name + first initial (handles suffix on either side)
   const parts = key.split(' ');
-  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'jr.', 'sr.']);
   let lLast = parts[parts.length - 1];
-  if (SUFFIXES.has(lLast) && parts.length >= 3) {
-    lLast = parts[parts.length - 2]; // use actual last name
-  }
+  if (SUFFIXES.has(lLast) && parts.length >= 3) lLast = parts[parts.length - 2];
   const lInit = parts[0][0];
   const lm = Object.keys(map).find(k => {
     const kp = k.split(' ');
@@ -2347,7 +2361,7 @@ function showXbaBreakdown(idx) {
     ['2026 xBA vs ' + p.pitcherHand + 'HP (split)', val(b.liveSplit)],
     ['', ''],
     ['── Blending ──', ''],
-    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(1, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(1, b.pa2026/100)) + ' prior' : 'N/A — using embedded'],
+    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(0.80, b.pa2026/100)) + ' 2026 / ' + wt(1 - Math.min(0.80, b.pa2026/100)) + ' 2025' : 'N/A — using embedded'],
     ['Split confidence', b.splitPA > 0 ? wt(b.splitConfidence) + ' (' + b.splitPA + ' split PA of 80 needed)' : 'No split data — using overall'],
     ['Embedded 2025 xBA', val(b.embeddedXba)],
     ['', ''],
@@ -2379,7 +2393,7 @@ function showXbaBreakdown(idx) {
         <table style="width:100%;border-collapse:collapse;">${tableRows}</table>
       </div>
       <div style="padding:12px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
-        ℹ️ xBA blends 2026 live data with 2025 embedded stats. Full weight to 2026 at 100+ PA. Split xBA (vs RHP/LHP) gets full weight at 80+ split PA.
+        ℹ️ xBA blends 2026 live data with 2025 embedded stats. Max 80% 2026 / 20% 2025 (reached at 100+ PA). Split xBA gets full weight at 80+ split PA.
       </div>
     </div>`;
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
