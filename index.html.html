@@ -324,6 +324,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 
 <!-- RESULTS TAB -->
 <div class="panel" id="panel-results">
+  <div id="diagPanel" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 4px 0;min-height:0;"></div>
   <div class="empty" id="resEmpty">
     <div class="empty-icon">⚾</div>
     <p>Run an analysis to see ranked hit prop picks.</p>
@@ -2067,8 +2068,7 @@ function renderResults(players) {
   const oddsLoaded    = players.some(p => p.impliedRuns !== null && p.impliedRuns !== undefined);
   const statcastSrc   = statcastCount > 50 ? `${statcastCount} live` : statcastCount > 0 ? `${statcastCount} live + embedded` : `embedded dict`;
 
-  const dataStatus = `<div id="diagPanel" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
+  const dataStatus = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
     <span style="padding:3px 9px;border-radius:20px;background:#dcfce7;color:#15803d;">
       Statcast: ${statcastSrc} (${embeddedCount} players)</span>
     <span style="padding:3px 9px;border-radius:20px;background:${pitcherCount>20?'#dcfce7':'#fef9c3'};color:${pitcherCount>20?'#15803d':'#854d0e'};">
@@ -2108,7 +2108,7 @@ function renderResults(players) {
   document.getElementById('resEmpty').style.display = 'none';
   document.getElementById('resContent').style.display = 'block';
   document.getElementById('resContent').innerHTML = html;
-  // Refresh pool status badges on cards
+  DIAG.render(); // refresh diagnostic bar with final state
   setTimeout(refreshResultPoolStatus, 50);
 }
 
