@@ -1059,9 +1059,9 @@ async function fetchStatcast() {
       if (!c&&!p) return;
       if (!p) { out[k]={...c,source:'current'}; return; }
       if (!c||(c.pa||0)<10) { out[k]={...p,source:'prior'}; return; }
-      const wC=Math.min(1,(c.pa||0)/thresh), wP=1-wC;
+      const wC=Math.min(0.80,(c.pa||0)/thresh), wP=1-wC; // cap at 80% — 2025 always ≥20%
       const bv=(a,b)=>a==null&&b==null?null:a==null?b:b==null?a:parseFloat((a*wC+b*wP).toFixed(4));
-      const m={name:c.name||p.name,pa:c.pa,source:`blend(${c.pa}PA)`};
+      const wCpct=Math.round(wC*100); const m={name:c.name||p.name,pa:c.pa,source:`blend(${wCpct}%26/${100-wCpct}%25)`};
       new Set([...Object.keys(c),...Object.keys(p)].filter(f=>!['name','pa','source'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,p[f]??null);});
       out[k]=m;
     });
