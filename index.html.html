@@ -553,23 +553,23 @@ function switchTab(t) {
 // Format: {id, away, awayAbbr, home, homeAbbr, time, venue, awaySP, homeSP}
 // Updated: Tue Apr 7, 2026
 const TODAYS_GAMES = [
-  // Auto-updated: Apr 19, 2026
+  // Auto-updated: Apr 21, 2026
   // Tool will try live MLB API first; this is the fallback
-  {id:'g1',away:'New York Mets',awayAbbr:'NYM',home:'Chicago Cubs',homeAbbr:'CHC',time:'2:20 PM ET',venue:'Wrigley Field',awaySP:'David Peterson',homeSP:'Javier Assad'},
-  {id:'g2',away:'St. Louis Cardinals',awayAbbr:'STL',home:'Houston Astros',homeAbbr:'HOU',time:'2:10 PM ET',venue:'Daikin Park',awaySP:'Matthew Liberatore',homeSP:'Mike Burrows'},
-  {id:'g3',away:'Washington Nationals',awayAbbr:'WSH',home:'San Francisco Giants',homeAbbr:'SF',time:'4:05 PM ET',venue:'Oracle Park',awaySP:'Miles Mikolas',homeSP:'Logan Webb'},
-  {id:'g4',away:'Atlanta Braves',awayAbbr:'ATL',home:'Miami Marlins',homeAbbr:'MIA',time:'1:40 PM ET',venue:'loanDepot Park',awaySP:'Chris Sale',homeSP:'Sandy Alcantara'},
-  {id:'g5',away:'Tampa Bay Rays',awayAbbr:'TB',home:'Pittsburgh Pirates',homeAbbr:'PIT',time:'1:35 PM ET',venue:'PNC Park',awaySP:'Drew Rasmussen',homeSP:'Paul Skenes'},
-  {id:'g6',away:'Arizona Diamondbacks',awayAbbr:'AZ',home:'Colorado Rockies',homeAbbr:'COL',time:'3:10 PM ET',venue:'Coors Field',awaySP:'Zac Gallen',homeSP:'Kyle Freeland'},
-  {id:'g7',away:'Boston Red Sox',awayAbbr:'BOS',home:'Minnesota Twins',homeAbbr:'MIN',time:'2:10 PM ET',venue:'Target Field',awaySP:'Garrett Crochet',homeSP:'Joe Ryan'},
-  {id:'g8',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Cleveland Guardians',homeAbbr:'CLE',time:'1:40 PM ET',venue:'Progressive Field',awaySP:'Trevor Rogers',homeSP:'Tanner Bibee'},
-  {id:'g9',away:'Kansas City Royals',awayAbbr:'KC',home:'Detroit Tigers',homeAbbr:'DET',time:'1:40 PM ET',venue:'Comerica Park',awaySP:'Cole Ragans',homeSP:'Tarik Skubal'},
-  {id:'g10',away:'Toronto Blue Jays',awayAbbr:'TOR',home:'Milwaukee Brewers',homeAbbr:'MIL',time:'2:10 PM ET',venue:'American Family Field',awaySP:'Kevin Gausman',homeSP:'Jacob Misiorowski'},
-  {id:'g11',away:'Los Angeles Angels',awayAbbr:'LAA',home:'Texas Rangers',homeAbbr:'TEX',time:'3:05 PM ET',venue:'Globe Life Field',awaySP:'Jose Soriano',homeSP:'Nathan Eovaldi'},
-  {id:'g12',away:'Oakland Athletics',awayAbbr:'ATH',home:'Seattle Mariners',homeAbbr:'SEA',time:'4:10 PM ET',venue:'T-Mobile Park',awaySP:'Luis Severino',homeSP:'Logan Gilbert'},
-  {id:'g13',away:'New York Yankees',awayAbbr:'NYY',home:'Los Angeles Angels',homeAbbr:'LAA',time:'4:07 PM ET',venue:'Angel Stadium',awaySP:'Max Fried',homeSP:'Griffin Canning'},
-  {id:'g14',away:'San Diego Padres',awayAbbr:'SD',home:'Los Angeles Dodgers',homeAbbr:'LAD',time:'4:10 PM ET',venue:'Dodger Stadium',awaySP:'Nick Pivetta',homeSP:'Yoshinobu Yamamoto'},
-  {id:'g15',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Cincinnati Reds',homeAbbr:'CIN',time:'1:40 PM ET',venue:'Great American Ball Park',awaySP:'Cristopher Sanchez',homeSP:'Andrew Abbott'},
+  {id:'g1',away:'Houston Astros',awayAbbr:'HOU',home:'Cleveland Guardians',homeAbbr:'CLE',time:'5:10 PM ET',venue:'Progressive Field',awaySP:'Ryan Weiss',homeSP:'Parker Messick'},
+  {id:'g2',away:'Cincinnati Reds',awayAbbr:'CIN',home:'Tampa Bay Rays',homeAbbr:'TB',time:'5:40 PM ET',venue:'Tropicana Field',awaySP:'Chase Burns',homeSP:'Steven Matz'},
+  {id:'g3',away:'St. Louis Cardinals',awayAbbr:'STL',home:'Miami Marlins',homeAbbr:'MIA',time:'5:40 PM ET',venue:'loanDepot park',awaySP:'Dustin May',homeSP:'Chris Paddack'},
+  {id:'g4',away:'Milwaukee Brewers',awayAbbr:'MIL',home:'Detroit Tigers',homeAbbr:'DET',time:'5:40 PM ET',venue:'Comerica Park',awaySP:'Kyle Harrison',homeSP:'Keider Montero'},
+  {id:'g5',away:'Atlanta Braves',awayAbbr:'ATL',home:'Washington Nationals',homeAbbr:'WSH',time:'5:45 PM ET',venue:'Nationals Park',awaySP:'Reynaldo Lopez',homeSP:'Foster Griffin'},
+  {id:'g6',away:'New York Yankees',awayAbbr:'NYY',home:'Boston Red Sox',homeAbbr:'BOS',time:'5:45 PM ET',venue:'Fenway Park',awaySP:'Luis Gil',homeSP:'Connelly Early'},
+  {id:'g7',away:'Minnesota Twins',awayAbbr:'MIN',home:'New York Mets',homeAbbr:'NYM',time:'6:10 PM ET',venue:'Citi Field',awaySP:'Simeon Woods Richardson',homeSP:'Nolan McLean'},
+  {id:'g8',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Kansas City Royals',homeAbbr:'KC',time:'6:40 PM ET',venue:'Kauffman Stadium',awaySP:'Shane Baz',homeSP:'Kris Bubic'},
+  {id:'g9',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Chicago Cubs',homeAbbr:'CHC',time:'6:40 PM ET',venue:'Wrigley Field',awaySP:'Jesus Luzardo',homeSP:'Shota Imanaga'},
+  {id:'g10',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Texas Rangers',homeAbbr:'TEX',time:'7:05 PM ET',venue:'Globe Life Field',awaySP:'TBD',homeSP:'TBD'},
+  {id:'g11',away:'San Diego Padres',awayAbbr:'SD',home:'Colorado Rockies',homeAbbr:'COL',time:'7:40 PM ET',venue:'Coors Field',awaySP:'Randy Vasquez',homeSP:'TBD'},
+  {id:'g12',away:'Toronto Blue Jays',awayAbbr:'TOR',home:'Los Angeles Angels',homeAbbr:'LAA',time:'8:38 PM ET',venue:'Angel Stadium',awaySP:'Patrick Corbin',homeSP:'Jack Kochanowicz'},
+  {id:'g13',away:'Athletics',awayAbbr:'ATH',home:'Seattle Mariners',homeAbbr:'SEA',time:'8:40 PM ET',venue:'T-Mobile Park',awaySP:'Jacob Lopez',homeSP:'Luis Castillo'},
+  {id:'g14',away:'Chicago White Sox',awayAbbr:'CHW',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'8:40 PM ET',venue:'Chase Field',awaySP:'Sean Burke',homeSP:'Merrill Kelly'},
+  {id:'g15',away:'Los Angeles Dodgers',awayAbbr:'LAD',home:'San Francisco Giants',homeAbbr:'SF',time:'8:45 PM ET',venue:'Oracle Park',awaySP:'Yoshinobu Yamamoto',homeSP:'Landen Roupp'},
 ];
 
 async function loadSchedule() {
@@ -1596,6 +1596,19 @@ const SP_STATS = {
   'Colin Rea':[4.45,1.35,7.6,'R'],
   'Tobias Myers':[4.25,1.30,9.2,'R'],
   'Max Scherzer':[4.20,1.28,10.0,'R'],
+  // Apr 21 2026 additions — missing from SP_STATS
+  'Ryan Weiss':[4.20,1.30,9.0,'R'],
+  'Chase Burns':[3.85,1.22,10.8,'R'],
+  'Dustin May':[4.10,1.28,8.4,'R'],
+  'Chris Paddack':[4.25,1.30,8.8,'R'],
+  'Kyle Harrison':[3.95,1.24,10.2,'L'],
+  'Foster Griffin':[4.40,1.35,8.2,'L'],
+  'Connelly Early':[4.50,1.38,8.6,'L'],
+  'Nolan McLean':[4.55,1.40,8.0,'R'],
+  'Jesus Luzardo':[3.80,1.22,10.4,'L'],
+  'Jack Kochanowicz':[4.35,1.33,9.0,'R'],
+  'Jacob Lopez':[4.30,1.32,8.8,'L'],
+  'Landen Roupp':[4.20,1.28,9.2,'R'],
 };
 
 // Normalize SP_STATS keys for accent-insensitive lookup
