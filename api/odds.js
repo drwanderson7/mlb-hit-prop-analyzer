@@ -81,18 +81,27 @@ export default async function handler(req) {
       const homeImplied = gameTotal * homeRunShare;
       const awayImplied = gameTotal * (1 - homeRunShare);
 
-      result[homeAbbr] = {
-        impliedRuns: parseFloat(homeImplied.toFixed(1)),
-        gameTotal: parseFloat(gameTotal.toFixed(1)),
-        opponent: awayAbbr,
-        source: 'moneyline_derived',
-      };
-      result[awayAbbr] = {
-        impliedRuns: parseFloat(awayImplied.toFixed(1)),
-        gameTotal: parseFloat(gameTotal.toFixed(1)),
-        opponent: homeAbbr,
-        source: 'moneyline_derived',
-      };
+      // Only overwrite if this game has a higher total than existing entry
+      // (prevents a postponed/future game from clobbering today's game)
+      // Also prevents duplicate entries when a team has multiple games listed
+      const existingHome = result[homeAbbr];
+      const existingAway = result[awayAbbr];
+      if (!existingHome || gameTotal > existingHome.gameTotal) {
+        result[homeAbbr] = {
+          impliedRuns: parseFloat(homeImplied.toFixed(1)),
+          gameTotal: parseFloat(gameTotal.toFixed(1)),
+          opponent: awayAbbr,
+          source: 'moneyline_derived',
+        };
+      }
+      if (!existingAway || gameTotal > existingAway.gameTotal) {
+        result[awayAbbr] = {
+          impliedRuns: parseFloat(awayImplied.toFixed(1)),
+          gameTotal: parseFloat(gameTotal.toFixed(1)),
+          opponent: homeAbbr,
+          source: 'moneyline_derived',
+        };
+      }
     });
 
     return respond(200, {
