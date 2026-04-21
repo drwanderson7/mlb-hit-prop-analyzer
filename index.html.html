@@ -2294,7 +2294,7 @@ function playerCard(p, rank) {
       <div class="p-meta">Bats ${p.bats||"?"} · vs ${p.pitcher} (${p.pitcherHand}) — ${p.opponent} · ${p.venue}</div>
       <div class="pills">
         ${lsPill}${scPill}
-        <span class="pill ${xbaC}" style="cursor:pointer;" onclick="showXbaBreakdown(${rank-1})" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
+        <span class="pill ${xbaC}" style="cursor:pointer;" data-player="${p.name}" onclick="showXbaBreakdown(this.dataset.player)" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
         <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
@@ -2325,8 +2325,11 @@ function toggleDiag() {
   if (btn) btn.style.background = isOpen ? 'var(--surface2)' : 'var(--surface)';
 }
 
-function showXbaBreakdown(idx) {
-  const p = allScoredPlayers[idx];
+function showXbaBreakdown(nameOrIdx) {
+  // Accept either a player name (string) or legacy index (number)
+  const p = typeof nameOrIdx === 'string'
+    ? allScoredPlayers.find(p => p.name === nameOrIdx)
+    : allScoredPlayers[nameOrIdx];
   if (!p) return;
   // Compute breakdown on-demand (not stored on every player)
   const name = p.name;
