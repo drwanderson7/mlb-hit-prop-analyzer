@@ -5,8 +5,10 @@ export default async function handler(req) {
   const type = new URL(req.url).searchParams.get('type') || 'batter';
   const hand = new URL(req.url).searchParams.get('hand') || '';
 
+  // pitcher_hand=R/L gets batter xBA split by opposing pitcher handedness (true platoon splits)
+  // handedness=R/L filters by batter hand (not useful for platoon)
   let url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=${type}&year=${year}&position=&team=&min=1&csv=true`;
-  if (hand) url += `&handedness=${hand}`;
+  if (hand) url += `&pitcher_hand=${hand}`;  // true platoon split by opposing pitcher hand
 
   try {
     const res = await fetch(url, {
