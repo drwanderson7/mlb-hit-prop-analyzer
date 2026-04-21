@@ -818,7 +818,16 @@ async function fetchStatcast() {
     if (hand) url += `&hand=${hand}`;
     try {
       const r = await fetch(url);
-      return r.ok ? await r.text() : '';
+      const text = await r.text();
+      // Log what proxy returned for diagnosis
+      if (type === 'batter' && !hand && !yr.toString().includes(new Date().getFullYear()-1)) {
+        const savantStatus = r.headers.get('X-Savant-Status');
+        const rows = r.headers.get('X-Savant-Rows');
+        console.log(`[Statcast proxy] Savant status: ${savantStatus}, rows: ${rows}, text length: ${text.length}, starts with: ${text.substring(0,50)}`);
+      }
+      // If response is JSON (error), return empty
+      if (text.trim().startsWith('{')) return '';
+      return text;
     } catch(e) { return ''; }
   };
 
@@ -1966,11 +1975,11 @@ function renderResults(players) {
   const pitcherCount  = Object.keys(livePitchers).length;
   const oddsCount     = Object.keys(liveOdds).length;
   const oddsLoaded    = players.some(p => p.impliedRuns !== null && p.impliedRuns !== undefined);
-  const statcastSrc   = statcastCount > 50 ? 'live' : statcastCount > 0 ? 'partial' : `${embeddedCount} embedded`;
+  const statcastSrc   = statcastCount > 50 ? `${statcastCount} live` : statcastCount > 0 ? `${statcastCount} live + embedded` : `embedded dict`;
 
   const dataStatus = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
     <span style="padding:3px 9px;border-radius:20px;background:#dcfce7;color:#15803d;">
-      Batter Statcast: ${statcastCount} players (${statcastSrc})</span>
+      Statcast: ${statcastSrc} (${embeddedCount} players)</span>
     <span style="padding:3px 9px;border-radius:20px;background:${pitcherCount>20?'#dcfce7':'#fef9c3'};color:${pitcherCount>20?'#15803d':'#854d0e'};">
       Pitcher Statcast: ${pitcherCount > 0 ? pitcherCount + ' live' : 'SP_STATS fallback'}</span>
     <span style="padding:3px 9px;border-radius:20px;background:${oddsLoaded?'#dcfce7':'#fee2e2'};color:${oddsLoaded?'#15803d':'#b91c1c'};" title="Odds refresh every 10min. Re-run analysis for latest lines.">
