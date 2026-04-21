@@ -811,10 +811,100 @@ async function fetchPitcherStats(gameLineups) {
 
 async function fetchStatcast() {
   const year = new Date().getFullYear();
-  const res = await fetch('/api/statcast?year=' + year);
-  if (!res.ok) throw new Error('proxy returned ' + res.status);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
+  const prev = year - 1;
+  const base = 'https://baseballsavant.mlb.com/leaderboard/expected_statistics';
+  const hdrs = { 'Accept': 'text/csv,text/plain,*/*' };
+
+  // Fetch directly from browser — avoids server-side IP blocking
+  const fetchCsv = async (url) => {
+    try {
+      const r = await fetch(url, { headers: hdrs });
+      return r.ok ? await r.text() : '';
+    } catch(e) { return ''; }
+  };
+
+  const [tCur, tPri, tPit, tRHP, tLHP, tR7] = await Promise.all([
+    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`),
+    fetchCsv(`${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`),
+    fetchCsv(`${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`),
+    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`),
+    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`),
+    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`),
+  ]);
+
+  const parseSavantCsv = (csv, type = 'batter') => {
+    if (!csv || csv.trim().startsWith('{') || csv.trim().startsWith('<')) return {};
+    const lines = csv.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) return {};
+    const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
+    const col = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i >= 0) return i; } return -1; };
+    const iName = col('last_name, first_name','player_name');
+    const iXBA  = col('xba','est_ba');
+    const iK    = col('k_percent');
+    const iHH   = col('hard_hit_percent');
+    const iBrl  = col('barrel_batted_rate','brl_percent');
+    const iWh   = col('whiff_percent');
+    const iBA   = col('ba','batting_average');
+    const iPA   = col('pa');
+    if (iName < 0 || iXBA < 0) return {};
+    const result = {};
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+      const cols = line.split(',').map(c => c.replace(/"/g,'').trim());
+      let name = cols[iName] || '';
+      if (name.includes(',')) { const p = name.split(','); name = p[1].trim()+' '+p[0].trim(); }
+      if (!name) return;
+      const safe = (i, div=1) => { if (i<0||i>=cols.length) return null; const v=parseFloat(cols[i]); return isFinite(v)?v/div:null; };
+      const xba = safe(iXBA);
+      if (!xba || xba < 0 || xba > 0.5) return;
+      const pa = parseInt(cols[iPA])||0;
+      const key = name.toLowerCase();
+      if (type === 'batter') {
+        result[key] = { name, pa, xba, kpct: safe(iK,100), hardhitpct: safe(iHH,100), barrelpct: safe(iBrl,100), ba: safe(iBA) };
+      } else {
+        result[key] = { name, pa, xbaAllowed: xba, kpct: safe(iK,100), hardHitAllowed: safe(iHH,100), barrelAllowed: safe(iBrl,100), whiffPct: safe(iWh,100) };
+      }
+    });
+    return result;
+  };
+
+  const blendMaps = (cur, pri, thresh=100) => {
+    const out = {};
+    new Set([...Object.keys(cur),...Object.keys(pri)]).forEach(k => {
+      const c=cur[k], p=pri[k];
+      if (!c&&!p) return;
+      if (!p) { out[k]={...c,source:'current'}; return; }
+      if (!c||(c.pa||0)<10) { out[k]={...p,source:'prior'}; return; }
+      const wC=Math.min(1,(c.pa||0)/thresh), wP=1-wC;
+      const bv=(a,b)=>a==null&&b==null?null:a==null?b:b==null?a:parseFloat((a*wC+b*wP).toFixed(4));
+      const m={name:c.name||p.name,pa:c.pa,source:`blend(${c.pa}PA)`};
+      new Set([...Object.keys(c),...Object.keys(p)].filter(f=>!['name','pa','source'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,p[f]??null);});
+      out[k]=m;
+    });
+    return out;
+  };
+
+  const batterCur = parseSavantCsv(tCur);
+  const batterPri = parseSavantCsv(tPri);
+  const json = {
+    battersOverall: blendMaps(batterCur, batterPri, 100),
+    battersVsRHP:   blendMaps(parseSavantCsv(tRHP), batterPri, 80),
+    battersVsLHP:   blendMaps(parseSavantCsv(tLHP), batterPri, 60),
+    pitchers:       parseSavantCsv(tPit, 'pitcher'),
+    streak7:        {}, streak14: {},
+  };
+
+  // Compute streaks from rolling data
+  Object.entries(parseSavantCsv(tR7)).forEach(([key, p]) => {
+    if (!p||p.pa<5||p.xba==null) return;
+    let sc=0;
+    if (p.xba>=.320) sc=2; else if (p.xba>=.290) sc=1;
+    else if (p.xba<=.180) sc=-2; else if (p.xba<=.220) sc=-1;
+    json.streak7[key]=json.streak14[key]={xba:p.xba,ba:p.ba,pa:p.pa,kpct:p.kpct,hardhitpct:p.hardhitpct,
+      streakScore:sc,label:sc>=2?'🔥 Hot':sc===1?'↑ Warm':sc<=-2?'🧊 Cold':sc===-1?'↓ Cool':''};
+  });
+
+  // json is now populated — continue with same loading logic below
 
   const validBatter = p => p && (p.xba === null || (p.xba >= 0 && p.xba <= 0.500))
     && (p.kpct === null || (p.kpct >= 0 && p.kpct <= 1))
