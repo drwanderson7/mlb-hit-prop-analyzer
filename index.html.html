@@ -493,12 +493,30 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
     </div>
     <div class="card-body" id="poolsContent">
       <!-- Cloud sync bar -->
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:14px;flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:700;color:var(--muted);">☁️ CLOUD SYNC</span>
-        <span style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Save your pools to the cloud and load them on any device — no account needed.</span>
-        <button class="btn btn-secondary btn-sm" onclick="cloudSave()" style="font-size:12px;">⬆ Save to Cloud</button>
-        <button class="btn btn-secondary btn-sm" onclick="cloudLoad()" style="font-size:12px;">⬇ Load from Cloud</button>
-        <span id="syncStatus" style="font-size:11px;color:var(--muted);"></span>
+      <div style="padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:12px;font-weight:700;color:var(--muted);">📋 SYNC POOLS</span>
+          <span style="font-size:12px;color:var(--muted);flex:1;">Copy your sync code on one device, paste it on another.</span>
+          <button class="btn btn-secondary btn-sm" onclick="generateSyncCode()" style="font-size:12px;">📤 Get Sync Code</button>
+          <button class="btn btn-secondary btn-sm" onclick="showImportCode()" style="font-size:12px;">📥 Import Code</button>
+        </div>
+        <div id="syncCodeArea" style="display:none;margin-top:10px;">
+          <textarea id="syncCodeBox" readonly
+            style="width:100%;height:80px;font-size:11px;font-family:monospace;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);resize:none;color:var(--text);"
+            onclick="this.select()"></textarea>
+          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="copySyncCode()" style="font-size:12px;">Copy to Clipboard</button>
+            <span id="syncCopyStatus" style="font-size:11px;color:var(--green);"></span>
+          </div>
+        </div>
+        <div id="importCodeArea" style="display:none;margin-top:10px;">
+          <textarea id="importCodeBox" placeholder="Paste sync code here..."
+            style="width:100%;height:80px;font-size:11px;font-family:monospace;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);resize:none;color:var(--text);"></textarea>
+          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="importSyncCode()" style="font-size:12px;">Import Pools</button>
+            <span id="importStatus" style="font-size:11px;color:var(--muted);"></span>
+          </div>
+        </div>
       </div>
       <div class="empty" id="poolsEmpty"><div class="empty-icon">🏆</div><p>No pools yet. Create one to start tracking used players.</p></div>
       <div id="poolsList"></div>
@@ -2094,6 +2112,19 @@ function scoreAllPlayers(games, maxOrder, minPA) {
           pitcherHand: opponentSPHand,
           venue: g.venue,
           impliedRuns: impliedRuns,
+          kpctLowConf: (() => {
+            const key = normalize(p.name);
+            const liveEntry = liveStatcast[key] || lookupInMap(liveStatcast, p.name);
+            const livePA = liveEntry?.kpctPA || 0;
+            const inEmbedded = !!(SC_NORM[key] || Object.keys(SC_NORM).find(k => normalize(k) === key.replace(/ (jr|sr|ii|iii)$/,'')));
+            // Low confidence if: confirmed with <100 live PA, OR projected with no embedded entry
+            return (p.confirmed && livePA > 0 && livePA < 100) || (!p.confirmed && !inEmbedded);
+          })(),
+          kpctPA: (() => {
+            const key = normalize(p.name);
+            const liveEntry = liveStatcast[key] || lookupInMap(liveStatcast, p.name);
+            return liveEntry?.kpctPA || 0;
+          })(),
         });
       });
     });
@@ -2479,7 +2510,7 @@ function playerCard(p, rank) {
       <div class="pills">
         ${lsPill}${scPill}
         <span class="pill ${xbaC}" style="cursor:pointer;" data-player="${p.name}" onclick="showXbaBreakdown(this.dataset.player)" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
-        <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
+        <span class="pill ${p.kpctLowConf ? 'warn' : kC}" title="${p.kpctLowConf ? (p.kpctPA > 0 ? 'Small sample: ' + p.kpctPA + ' PA in 2026 — blended with 2025 data' : 'No 2025 Savant data — estimated value') : 'K% from real 2025 Savant data' + (p.kpctPA > 0 ? ' blended with ' + p.kpctPA + ' 2026 PA' : '')}">K% ${p.kpctLowConf ? '~' : ''}${(p.kpct * 100).toFixed(1)}%</span>
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
         ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
@@ -3819,65 +3850,82 @@ async function loadFromCloud() {
 
 // Auto-save to cloud whenever pools change (debounced)
 let cloudSaveTimer = null;
-function cloudSave() {
-  const status = document.getElementById('syncStatus');
-  if (status) status.textContent = 'Saving…';
-  const pin = 'DREW_MLB_POOLS'; // fixed key — only you use this
-  const payload = {
-    pools,
-    tracker: typeof picks !== 'undefined' ? picks : [],
-    savedAt: new Date().toISOString(),
-    pin,
-  };
-  fetch('/api/kv?pin=' + pin, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.error) throw new Error(d.error);
-    if (status) {
-      status.textContent = '✓ Saved at ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      status.style.color = 'var(--green)';
-    }
-  })
-  .catch(e => {
-    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
-  });
+function generateSyncCode() {
+  const area = document.getElementById('syncCodeArea');
+  const box  = document.getElementById('syncCodeBox');
+  const imp  = document.getElementById('importCodeArea');
+  if (!area || !box) return;
+  imp.style.display = 'none';
+  try {
+    const payload = { pools, savedAt: new Date().toISOString(), v: 1 };
+    const code = btoa(encodeURIComponent(JSON.stringify(payload)));
+    box.value = code;
+    area.style.display = 'block';
+    box.select();
+  } catch(e) {
+    alert('Error generating sync code: ' + e.message);
+  }
 }
 
-function cloudLoad() {
-  const status = document.getElementById('syncStatus');
-  if (status) status.textContent = 'Loading…';
-  const pin = 'DREW_MLB_POOLS';
-  fetch('/api/kv?pin=' + pin)
-  .then(r => r.json())
-  .then(d => {
-    if (d.error) throw new Error(d.error);
-    const data = d.data;
-    if (data?.pools) {
-      pools = data.pools;
-      localStorage.setItem('survivorPools', JSON.stringify(pools));
-      renderPools();
-      refreshResultPoolStatus();
-      const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'unknown';
-      if (status) {
-        status.textContent = `✓ Loaded (saved ${savedAt})`;
-        status.style.color = 'var(--green)';
-      }
-    } else {
-      throw new Error('No saved pools found');
-    }
-  })
-  .catch(e => {
-    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
-  });
+function copySyncCode() {
+  const box = document.getElementById('syncCodeBox');
+  const status = document.getElementById('syncCopyStatus');
+  if (!box) return;
+  box.select();
+  try {
+    navigator.clipboard.writeText(box.value).then(() => {
+      if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
+    }).catch(() => {
+      document.execCommand('copy');
+      if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
+    });
+  } catch(e) {
+    document.execCommand('copy');
+    if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
+  }
 }
 
-// Remove old PIN-based functions (replaced by cloudSave/cloudLoad above)
-function triggerAutoSave() {} // no-op — sync is now manual
-function getSyncPin() { return 'DREW_MLB_POOLS'; }
+function showImportCode() {
+  const area = document.getElementById('importCodeArea');
+  const syncArea = document.getElementById('syncCodeArea');
+  if (!area) return;
+  if (syncArea) syncArea.style.display = 'none';
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  if (area.style.display === 'block') {
+    setTimeout(() => document.getElementById('importCodeBox')?.focus(), 100);
+  }
+}
+
+function importSyncCode() {
+  const box    = document.getElementById('importCodeBox');
+  const status = document.getElementById('importStatus');
+  if (!box) return;
+  try {
+    const code = box.value.trim();
+    if (!code) { if (status) { status.textContent = 'Paste a sync code first'; status.style.color = 'var(--red)'; } return; }
+    const payload = JSON.parse(decodeURIComponent(atob(code)));
+    if (!payload.pools || !Array.isArray(payload.pools)) throw new Error('Invalid sync code');
+    pools = payload.pools;
+    localStorage.setItem('survivorPools', JSON.stringify(pools));
+    renderPools();
+    refreshResultPoolStatus();
+    checkShowExposureCard();
+    const savedAt = payload.savedAt
+      ? new Date(payload.savedAt).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})
+      : 'unknown';
+    if (status) { status.textContent = `✓ Imported ${pools.length} pools (saved ${savedAt})`; status.style.color = 'var(--green)'; }
+    document.getElementById('importCodeArea').style.display = 'none';
+    box.value = '';
+  } catch(e) {
+    if (status) { status.textContent = '✗ Invalid code — copy it exactly as generated'; status.style.color = 'var(--red)'; }
+  }
+}
+
+// No-op stubs for old KV functions
+function triggerAutoSave() {}
+function getSyncPin() { return ''; }
+function cloudSave() { generateSyncCode(); }
+function cloudLoad() { showImportCode(); }
 
 // ── MISSING FUNCTION STUBS ────────────────────────────────────────────────────
 // computeScoreModelA: alternate scoring model (Model A) for compare mode
@@ -3966,6 +4014,21 @@ function renderPicksSidebar() {
 }
 
 // purgeOldLineupSaves: clean up stale localStorage entries
+function loadSavedLineups() {
+  // Restore any lineups saved to localStorage from earlier this session
+  try {
+    const saved = localStorage.getItem('mlbSavedLineups');
+    if (saved) {
+      const data = JSON.parse(saved);
+      const cutoff = Date.now() - (4 * 60 * 60 * 1000);
+      if (data.ts && data.ts > cutoff && data.lineups) {
+        return data.lineups;
+      }
+    }
+  } catch(e) {}
+  return null;
+}
+
 function purgeOldLineupSaves() {
   try {
     const cutoff = Date.now() - (4 * 60 * 60 * 1000); // 4 hours
