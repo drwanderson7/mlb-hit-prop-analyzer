@@ -2143,7 +2143,7 @@ function playerCard(p, rank) {
       <div class="p-meta">Bats ${p.bats||"?"} · vs ${p.pitcher} (${p.pitcherHand}) — ${p.opponent} · ${p.venue}</div>
       <div class="pills">
         ${lsPill}${scPill}
-        <span class="pill ${xbaC}">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span></span>
+        <span class="pill ${xbaC}" style="cursor:pointer;" onclick="showXbaBreakdown(${rank-1})" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
         <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
@@ -2163,6 +2163,81 @@ function playerCard(p, rank) {
       <div class="tier-badge">${p.tier}</div>
     </div>
   </div>`;
+}
+
+function showXbaBreakdown(idx) {
+  const p = allScoredPlayers[idx];
+  if (!p) return;
+  // Compute breakdown on-demand (not stored on every player)
+  const name = p.name;
+  const nKey = normalize(name);
+  const scEntry = lookupStatcast(name, p.pitcherHand);
+  const liveOv  = liveStatcast[nKey];
+  const liveSp  = p.pitcherHand === 'R' ? liveVsRHP[nKey] : liveVsLHP[nKey];
+  const emb     = SC_NORM[nKey];
+  const b = {
+    final: p.xba,
+    splitUsed: p.splitUsed || 'overall',
+    splitPA: scEntry?.splitPA || 0,
+    splitConfidence: scEntry?.splitConfidence || 0,
+    liveOverall: liveOv?.xba ?? null,
+    liveSplit: liveSp?.xba ?? null,
+    embeddedXba: emb ? emb[0] : null,
+    source: liveOv ? liveOv.source || 'live' : 'embedded',
+    pa2026: liveOv?.pa ?? 0,
+  };
+
+  const pct = (v) => v != null ? (v * 100).toFixed(1) + '%' : 'N/A';
+  const val = (v) => v != null ? v.toFixed(3) : 'N/A';
+  const wt  = (v) => v != null ? (v * 100).toFixed(0) + '%' : 'N/A';
+
+  const rows = [
+    ['Player', p.name],
+    ['Team', p.team + ' vs ' + p.pitcher + ' (' + p.pitcherHand + ')'],
+    ['', ''],
+    ['── 2026 Live Data ──', ''],
+    ['2026 PA (live)', b.pa2026 > 0 ? b.pa2026 + ' PA' : 'No 2026 data yet'],
+    ['2026 xBA (overall)', val(b.liveOverall)],
+    ['2026 xBA vs ' + p.pitcherHand + 'HP (split)', val(b.liveSplit)],
+    ['', ''],
+    ['── Blending ──', ''],
+    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(1, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(1, b.pa2026/100)) + ' prior' : 'N/A — using embedded'],
+    ['Split confidence', b.splitPA > 0 ? wt(b.splitConfidence) + ' (' + b.splitPA + ' split PA of 80 needed)' : 'No split data — using overall'],
+    ['Embedded 2025 xBA', val(b.embeddedXba)],
+    ['', ''],
+    ['── Final Values Used ──', ''],
+    ['xBA used in model', val(b.final) + ' (' + (b.splitUsed || 'overall') + ')'],
+    ['Source', b.source || 'embedded'],
+    ['K%', pct(p.kpct)],
+    ['Contact-adj xBA (xBA × (1-K%))', ((p.xba || 0) * (1 - (p.kpct || 0.22))).toFixed(3)],
+  ];
+
+  const tableRows = rows.map(([k, v]) => {
+    if (!k && !v) return '<tr><td colspan="2" style="padding:4px 0;"></td></tr>';
+    if (v === '') return `<tr><td colspan="2" style="padding:4px 8px;font-weight:700;color:var(--blue);font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${k}</td></tr>`;
+    return `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--muted);font-size:12px;width:55%;">${k}</td><td style="padding:6px 8px;font-weight:600;font-size:12px;font-family:monospace;">${v}</td></tr>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;padding:0;width:480px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:700;font-size:15px;">${p.name} — xBA Breakdown</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">How the model calculated today's xBA</div>
+        </div>
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);padding:4px 8px;">×</button>
+      </div>
+      <div style="padding:12px 16px;">
+        <table style="width:100%;border-collapse:collapse;">${tableRows}</table>
+      </div>
+      <div style="padding:12px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
+        ℹ️ xBA blends 2026 live data with 2025 embedded stats. Full weight to 2026 at 100+ PA. Split xBA (vs RHP/LHP) gets full weight at 80+ split PA.
+      </div>
+    </div>`;
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
 }
 
 function filterTier(t) {
