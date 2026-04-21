@@ -18,25 +18,30 @@ export default async function handler(req) {
       }
     });
 
+    // Always return the status so frontend can diagnose
+    const statusHdr = { 'Access-Control-Allow-Origin': '*', 'X-Savant-Status': String(res.status) };
+
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: `Savant returned ${res.status}` }), {
-        status: res.status,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      return new Response(JSON.stringify({ error: `Savant returned ${res.status}`, url }), {
+        status: 200, // return 200 so frontend gets the error message
+        headers: { 'Content-Type': 'application/json', ...statusHdr }
       });
     }
 
     const csv = await res.text();
+    const lines = csv.split('\n').length;
     return new Response(csv, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
-        'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'public, max-age=21600',
+        'X-Savant-Rows': String(lines),
+        ...statusHdr,
       }
     });
   } catch(e) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: e.message, url }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
   }
