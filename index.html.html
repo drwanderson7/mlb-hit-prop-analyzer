@@ -812,28 +812,18 @@ async function fetchPitcherStats(gameLineups) {
 async function fetchStatcast() {
   const year = new Date().getFullYear();
   const prev = year - 1;
-  const base = 'https://baseballsavant.mlb.com/leaderboard/expected_statistics';
-  const hdrs = { 'Accept': 'text/csv,text/plain,*/*' };
 
-  // Fetch directly from browser — avoids server-side IP blocking
-  const fetchCsv = async (url) => {
+  const fetchCsv = async (type, yr, hand) => {
+    let url = `/api/statcast?year=${yr}&type=${type}`;
+    if (hand) url += `&hand=${hand}`;
     try {
-      const r = await fetch(url, { headers: hdrs });
+      const r = await fetch(url);
       return r.ok ? await r.text() : '';
     } catch(e) { return ''; }
   };
 
-  const [tCur, tPri, tPit, tRHP, tLHP, tR7] = await Promise.all([
-    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&min=1&csv=true`),
-    fetchCsv(`${base}?type=batter&year=${prev}&position=&team=&min=100&csv=true`),
-    fetchCsv(`${base}?type=pitcher&year=${year}&position=&team=&min=1&csv=true`),
-    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&handedness=R&min=1&csv=true`),
-    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&handedness=L&min=1&csv=true`),
-    fetchCsv(`${base}?type=batter&year=${year}&position=&team=&min=1&rolling_days=7&csv=true`),
-  ]);
-
   const parseSavantCsv = (csv, type = 'batter') => {
-    if (!csv || csv.trim().startsWith('{') || csv.trim().startsWith('<')) return {};
+    if (!csv || csv.trim().startsWith('{') || csv.trim().startsWith('<') || csv.length < 100) return {};
     const lines = csv.trim().split('\n').filter(l => l.trim());
     if (lines.length < 2) return {};
     const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
@@ -856,7 +846,7 @@ async function fetchStatcast() {
       if (!name) return;
       const safe = (i, div=1) => { if (i<0||i>=cols.length) return null; const v=parseFloat(cols[i]); return isFinite(v)?v/div:null; };
       const xba = safe(iXBA);
-      if (!xba || xba < 0 || xba > 0.5) return;
+      if (xba === null || xba < 0 || xba > 0.5) return;
       const pa = parseInt(cols[iPA])||0;
       const key = name.toLowerCase();
       if (type === 'batter') {
@@ -884,82 +874,46 @@ async function fetchStatcast() {
     return out;
   };
 
-  const batterCur = parseSavantCsv(tCur);
-  const batterPri = parseSavantCsv(tPri);
-  const json = {
-    battersOverall: blendMaps(batterCur, batterPri, 100),
-    battersVsRHP:   blendMaps(parseSavantCsv(tRHP), batterPri, 80),
-    battersVsLHP:   blendMaps(parseSavantCsv(tLHP), batterPri, 60),
-    pitchers:       parseSavantCsv(tPit, 'pitcher'),
-    streak7:        {}, streak14: {},
-  };
+  // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
+  const [tCur, tPri, tRHP, tLHP, tPit, tR7] = await Promise.all([
+    fetchCsv('batter', year, ''),
+    fetchCsv('batter', prev, ''),
+    fetchCsv('batter', year, 'R'),
+    fetchCsv('batter', year, 'L'),
+    fetchCsv('pitcher', year, ''),
+    fetchCsv('batter', year, ''),  // rolling not supported in simple proxy - use overall
+  ]);
 
-  // Compute streaks from rolling data
-  Object.entries(parseSavantCsv(tR7)).forEach(([key, p]) => {
-    if (!p||p.pa<5||p.xba==null) return;
-    let sc=0;
-    if (p.xba>=.320) sc=2; else if (p.xba>=.290) sc=1;
-    else if (p.xba<=.180) sc=-2; else if (p.xba<=.220) sc=-1;
-    json.streak7[key]=json.streak14[key]={xba:p.xba,ba:p.ba,pa:p.pa,kpct:p.kpct,hardhitpct:p.hardhitpct,
-      streakScore:sc,label:sc>=2?'🔥 Hot':sc===1?'↑ Warm':sc<=-2?'🧊 Cold':sc===-1?'↓ Cool':''};
-  });
+  const batterCur  = parseSavantCsv(tCur);
+  const batterPri  = parseSavantCsv(tPri);
+  const vsRHPCur   = parseSavantCsv(tRHP);
+  const vsLHPCur   = parseSavantCsv(tLHP);
+  const pitcherMap = parseSavantCsv(tPit, 'pitcher');
 
-  // json is now populated — continue with same loading logic below
+  liveStatcast = blendMaps(batterCur, batterPri, 100);
+  liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
+  liveVsLHP    = blendMaps(vsLHPCur, batterPri, 60);
 
-  const validBatter = p => p && (p.xba === null || (p.xba >= 0 && p.xba <= 0.500))
-    && (p.kpct === null || (p.kpct >= 0 && p.kpct <= 1))
-    && (p.hardhitpct === null || (p.hardhitpct >= 0 && p.hardhitpct <= 1));
-
-  const loadBatterMap = (source, target) => {
-    Object.keys(source || {}).forEach(key => {
-      const p = source[key];
-      if (!validBatter(p)) return;
-      target[normalize(key)] = {
-        xba:        p.xba        ?? null,
-        kpct:       p.kpct       ?? null,
-        hardhitpct: p.hardhitpct ?? null,
-        barrelpct:  p.barrelpct  ?? null,
-        source:     p.source || 'live',
-        pa:         p.pa || 0,
-      };
-    });
-  };
-
-  liveStatcast = {};  loadBatterMap(json.battersOverall, liveStatcast);
-  liveVsRHP    = {};  loadBatterMap(json.battersVsRHP,   liveVsRHP);
-  liveVsLHP    = {};  loadBatterMap(json.battersVsLHP,   liveVsLHP);
-
-  // Pitchers
   livePitchers = {};
-  Object.keys(json.pitchers || {}).forEach(key => {
-    const p = json.pitchers[key];
+  Object.keys(pitcherMap).forEach(key => {
+    const p = pitcherMap[key];
     if (!p) return;
-    if (p.xbaAllowed !== null && (p.xbaAllowed < 0 || p.xbaAllowed > 0.500)) return;
     livePitchers[normalize(key)] = {
       xbaAllowed:     p.xbaAllowed     ?? null,
       kpct:           p.kpct           ?? null,
       hardHitAllowed: p.hardHitAllowed ?? null,
       barrelAllowed:  p.barrelAllowed  ?? null,
       whiffPct:       p.whiffPct       ?? null,
-      source:         p.source || 'live',
+      source: 'live',
     };
   });
 
-  if (Object.keys(liveStatcast).length < 10) throw new Error('too few players parsed');
+  console.log(`[Statcast] Loaded ${Object.keys(liveStatcast).length} batters, ${Object.keys(livePitchers).length} pitchers`);
 
-
-
-  // Parse rolling streak data
+  // streak data not available in simple proxy - leave empty (embedded handles hot/cold)
   streak7 = {}; streak14 = {};
-  const loadStreak = (source, target) => {
-    Object.keys(source || {}).forEach(key => {
-      const p = source[key];
-      if (p && p.streakScore !== undefined) target[normalize(key)] = p;
-    });
-  };
-  loadStreak(json.streak7,  streak7);
-  loadStreak(json.streak14, streak14);
 }
+
 
 async function fetchOdds() {
   const res = await fetch('/api/odds');
