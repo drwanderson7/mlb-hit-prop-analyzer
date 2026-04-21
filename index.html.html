@@ -1042,7 +1042,7 @@ async function fetchStatcast() {
       const xba = safe(iXBA);
       if (xba === null || xba < 0 || xba > 0.5) return;
       const pa = parseInt(cols[iPA])||0;
-      const key = name.toLowerCase();
+      const key = normalize(name); // use normalize so accents/dots match lookupInMap
       if (type === 'batter') {
         result[key] = { name, pa, xba, kpct: safe(iK,100), hardhitpct: safe(iHH,100), barrelpct: safe(iBrl,100), ba: safe(iBA) };
       } else {
@@ -2332,9 +2332,11 @@ function showXbaBreakdown(idx) {
   const name = p.name;
   const nKey = normalize(name);
   const scEntry = lookupStatcast(name, p.pitcherHand);
-  const liveOv  = liveStatcast[nKey];
-  const liveSp  = p.pitcherHand === 'R' ? liveVsRHP[nKey] : liveVsLHP[nKey];
-  const emb     = SC_NORM[nKey];
+  // Use lookupInMap for suffix-aware lookup (handles Jr., Sr., II, III)
+  const liveOv  = lookupInMap(liveStatcast, name);
+  const liveSp  = lookupInMap(p.pitcherHand === 'R' ? liveVsRHP : liveVsLHP, name);
+  const emb     = lookupInMap(SC_NORM, name) ? (() => { const k = Object.keys(SC_NORM).find(k => normalize(k) === normalize(name) || normalize(k) === normalize(name).replace(/ (jr|sr|ii|iii)$/, '')); return k ? {0: SC_NORM[k][0]} : null; })() : null;
+  const embArr  = (() => { const k = Object.keys(SC_NORM).find(k => normalize(k) === nKey || normalize(k) === nKey.replace(/ (jr|sr|ii|iii)$/, '')); return k ? SC_NORM[k] : null; })();
   const b = {
     final: p.xba,
     splitUsed: p.splitUsed || 'overall',
@@ -2342,7 +2344,7 @@ function showXbaBreakdown(idx) {
     splitConfidence: scEntry?.splitConfidence || 0,
     liveOverall: liveOv?.xba ?? null,
     liveSplit: liveSp?.xba ?? null,
-    embeddedXba: emb ? emb[0] : null,
+    embeddedXba: embArr ? embArr[0] : null,
     source: liveOv ? liveOv.source || 'live' : 'embedded',
     pa2026: liveOv?.pa ?? 0,
   };
