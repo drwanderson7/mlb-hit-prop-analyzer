@@ -960,8 +960,21 @@ async function fetchBatterStats(gameLineups) {
       if (!batter.name || !batter.kpct) return;
       const key = normalize(batter.name);
       if (liveStatcast[key]) {
-        // Inject live K% into existing entry
-        if (batter.kpct !== null) liveStatcast[key].kpct = batter.kpct;
+        // Blend live 2026 K% with embedded 2025 K% — same 80/20 cap as xBA
+        // Prevents tiny samples (e.g. 6.3% on 32 PA) from dominating
+        const embeddedKpct = (() => {
+          const scKey = Object.keys(SC_NORM).find(k => normalize(k) === key || normalize(k) === key.replace(/ (jr|sr|ii|iii)$/, ''));
+          return scKey ? SC_NORM[scKey][1] : null;
+        })();
+        if (batter.kpct !== null) {
+          const wLive = Math.min(0.80, (batter.pa || 0) / 150); // full weight at 150 PA for K%
+          const wEmb  = 1 - wLive;
+          liveStatcast[key].kpct = embeddedKpct != null
+            ? parseFloat((batter.kpct * wLive + embeddedKpct * wEmb).toFixed(4))
+            : batter.kpct;
+          liveStatcast[key].kpctLive = batter.kpct;   // store raw for breakdown modal
+          liveStatcast[key].kpctPA   = batter.pa;
+        }
         if (batter.avg !== null) liveStatcast[key].ba = batter.avg;
         liveStatcast[key].pa = Math.max(liveStatcast[key].pa || 0, batter.pa || 0);
       } else if (batter.pa > 0) {
