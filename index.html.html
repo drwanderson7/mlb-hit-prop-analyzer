@@ -1,5 +1,7 @@
 <!DOCTYPE html>
+
 <!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -132,121 +134,187 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   .panel{padding:10px 12px;}
   body{font-size:14px;}
 
-  /* Nav tabs - scrollable on mobile */
-  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
-  .tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
+/* POOLS - stack layout vertically, sidebar below */
+.pools-layout{flex-direction:column !important;gap:10px !important;}
+.pools-sidebar{width:100% !important;position:static !important;}
 
-  /* Header */
-  .header{padding:10px 14px;}
-  .header h1{font-size:15px;}
-  .header .subtitle{font-size:11px;}
-  .header-right{font-size:11px;}
+/* Pool table - make it scrollable horizontally */
+#poolTableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+#poolTableWrap table{min-width:560px;}
 
-  /* KPI strip - 2x2 grid */
-  .kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
-  .kpi{padding:10px;}
-  .kpi-val{font-size:22px;}
-  .kpi-lbl{font-size:10px;}
+/* Pool summary cards - 2 per row */
+.cross-pool-today{display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important;}
+.cross-pool-today > div{min-width:0 !important;}
 
-  /* Filter bar - stack vertically */
-  .filter-bar{flex-wrap:wrap;gap:6px;}
-  .filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
-  .filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
-  .result-count{font-size:11px;width:100%;text-align:right;}
+/* Sync code */
+#syncCodeBox,#importCodeBox{font-size:10px !important;height:60px !important;}
 
-  /* Player cards - tighter on mobile */
-  .player-card{
-    grid-template-columns:20px 1fr auto;
-    gap:6px;
-    padding:10px 10px;
-  }
-  .p-rank{font-size:12px;}
-  .p-name{font-size:13px;}
-  .p-meta{font-size:11px;line-height:1.4;}
-  .p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
+/* Exposure calc table - scrollable */
+#exposureOutput{overflow-x:auto;}
+#exposureOutput table{min-width:480px;}
 
-  /* Pills - smaller on mobile */
-  .pills{gap:3px;margin:5px 0;}
-  .pill{font-size:10px;padding:2px 6px;}
+/* Nav tabs - scrollable on mobile */
+.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
+.tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
 
-  /* Score */
-  .score-big{font-size:24px;}
-  .score-lbl{font-size:9px;}
-  .tier-badge{font-size:10px;padding:2px 6px;}
-  .score-wrap{min-width:48px;text-align:center;}
+/* Header */
+.header{padding:10px 14px;}
+.header h1{font-size:15px;}
+.header .subtitle{font-size:11px;}
+.header-right{font-size:11px;}
 
-  /* Lineups - single column */
-  .lu-grid{grid-template-columns:1fr;}
-  .lu-side{margin-bottom:12px;}
-  .lu-row{padding:5px 8px;}
-  .lu-name{font-size:12px;}
-  .lu-num{font-size:12px;width:18px;}
-  .lu-pos{font-size:11px;}
+/* KPI strip - 2x2 grid */
+.kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
+.kpi{padding:10px;}
+.kpi-val{font-size:22px;}
+.kpi-lbl{font-size:10px;}
 
-  /* Game cards in lineup tab */
-  .game-card{padding:10px 12px;}
+/* Filter bar - stack vertically */
+.filter-bar{flex-wrap:wrap;gap:6px;}
+.filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
+.filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
+.result-count{font-size:11px;width:100%;text-align:right;}
 
-  /* Diag panel - wrap tightly */
-  #diagPanel{gap:4px;}
-  #diagPanel span{font-size:10px !important;padding:2px 6px !important;}
+/* Player cards - tighter on mobile */
+.player-card{
+grid-template-columns:20px 1fr auto;
+gap:6px;
+padding:10px 10px;
+}
+.p-rank{font-size:12px;}
+.p-name{font-size:13px;}
+.p-meta{font-size:11px;line-height:1.4;}
+.p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
 
-  /* Compare models button */
-  #compareModeBtn{font-size:11px;padding:5px 10px;}
+/* Pills - smaller on mobile */
+.pills{gap:3px;margin:5px 0;}
+.pill{font-size:10px;padding:2px 6px;}
 
-  /* Pools table - horizontal scroll */
-  .pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+/* Score */
+.score-big{font-size:24px;}
+.score-lbl{font-size:9px;}
+.tier-badge{font-size:10px;padding:2px 6px;}
+.score-wrap{min-width:48px;text-align:center;}
 
-  /* Status pills at top */
-  .status-bar{flex-wrap:wrap;gap:4px;}
-  .status-bar span{font-size:10px !important;padding:2px 7px !important;}
+/* Lineups - single column */
+.lu-grid{grid-template-columns:1fr;}
+.lu-side{margin-bottom:12px;}
+.lu-row{padding:5px 8px;}
+.lu-name{font-size:12px;}
+.lu-num{font-size:12px;width:18px;}
+.lu-pos{font-size:11px;}
 
-  /* xBA breakdown modal */
-  div[style*="width:480px"]{width:95vw !important;}
+/* Game cards in lineup tab */
+.game-card{padding:10px 12px;}
+
+/* Diag panel - wrap tightly */
+#diagPanel{gap:4px;}
+#diagPanel span{font-size:10px !important;padding:2px 6px !important;}
+
+/* Compare models button */
+#compareModeBtn{font-size:11px;padding:5px 10px;}
+
+/* Pools table - horizontal scroll */
+
+/* Stack pools layout vertically on mobile */
+.pools-layout{flex-direction:column !important;gap:10px !important;}
+.pools-sidebar{width:100% !important;position:static !important;order:999;}
+
+/* Pool table - horizontal scroll for date columns */
+.pools-layout table{min-width:500px;}
+.pools-layout .card{overflow-x:auto;}
+
+/* Pool summary cards - horizontal scroll */
+#poolSummaryCards{overflow-x:auto;-webkit-overflow-scrolling:touch;
+display:flex !important;flex-wrap:nowrap !important;gap:8px !important;padding-bottom:4px;}
+#poolSummaryCards > div{min-width:130px !important;flex-shrink:0;}
+
+/* Sync code textarea */
+#syncCodeBox,#importCodeBox{font-size:10px !important;}
+
+/* Pool header buttons */
+.card-header{flex-wrap:wrap;gap:6px;}
+.card-header button{font-size:11px !important;padding:4px 8px !important;}
+
+/* Exposure calculator table */
+#exposureOutput table{font-size:11px;}
+#exposureOutput td,#exposureOutput th{padding:5px 6px !important;}
+}
+.pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+/* Status pills at top */
+.status-bar{flex-wrap:wrap;gap:4px;}
+.status-bar span{font-size:10px !important;padding:2px 7px !important;}
+
+/* xBA breakdown modal */
+div[style*=“width:480px”]{width:95vw !important;}
+}
+
+/* Schedule tab mobile */
+@media(max-width:640px){
+/* Analyze - settings bar wrap */
+.settings-bar{flex-wrap:wrap;gap:8px;}
+.settings-bar label{font-size:11px;}
+.settings-bar select{font-size:12px;}
+
+/* Schedule - reduce first column */
+.sched-header,.sched-row{gap:4px !important;}
+#scheduleViewContent{font-size:12px;}
+
+/* Tracker - truncate long text */
+.tracker-pitcher{display:none;}
+.tracker-row{font-size:12px;}
+.tracker-row span[style*=“flex:1”]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
+
+/* Help tab - readable */
+.card-body{font-size:13px;line-height:1.6;}
+.help-grid{grid-template-columns:1fr !important;}
 }
 
 /* Very small screens */
 @media(max-width:380px){
-  .tab{font-size:11px;padding:8px 10px;}
-  .pills{gap:2px;}
-  .pill{font-size:9px;padding:1px 5px;}
-  .player-card{padding:8px;}
-  .score-big{font-size:20px;}
+.tab{font-size:11px;padding:8px 10px;}
+.pills{gap:2px;}
+.pill{font-size:9px;padding:1px 5px;}
+.player-card{padding:8px;}
+.score-big{font-size:20px;}
 }
-  /* Pool styles */
-  /* Pool grid */
-  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-  .pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-bottom:1px solid var(--border);}
-  .pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;min-width:0;}
-  .pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue);color:#fff;white-space:nowrap;}
-  .pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
-  .pool-used-section{flex:1;}
-  .pool-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-  .used-list{display:flex;flex-wrap:wrap;gap:5px;}
-  .used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
-  .used-tag:hover{opacity:.75;}
-  .pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
-  .pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
-  .pool-add-input:focus{border-color:var(--blue);}
-  .pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
-  .player-card.used-pool{opacity:.45;border-left-color:var(--muted)!important;}
-  .pill.used{background:#fee2e2;color:var(--red);border-color:#fecaca;}
-  @media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
-  /* Schedule view */
-  .sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-  .sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
-  .sched-row:last-child{border-bottom:none;}
-  .sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
-  .sched-day.great{background:#dcfce7;color:#15803d;}
-  .sched-day.good{background:#d1fae5;color:#065f46;}
-  .sched-day.ok{background:var(--surface2);color:var(--muted);}
-  .sched-day.tough{background:#fef9c3;color:#854d0e;}
-  .sched-day.brutal{background:#fee2e2;color:#b91c1c;}
-  .sched-day.off{background:var(--surface2);color:var(--muted);font-size:10px;}
-  .future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
-  .future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
-  .future-badge.good{background:#dbeafe;color:var(--blue);border:1px solid #bfdbfe;}
-  .future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
+/* Pool styles */
+/* Pool grid */
+.pool-card{background:var(–surface);border:1px solid var(–border);border-radius:8px;overflow:hidden;}
+.pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(–surface2);border-bottom:1px solid var(–border);}
+.pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(–text);outline:none;min-width:0;}
+.pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(–blue);color:#fff;white-space:nowrap;}
+.pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
+.pool-used-section{flex:1;}
+.pool-section-label{font-size:10px;font-weight:700;color:var(–muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.used-list{display:flex;flex-wrap:wrap;gap:5px;}
+.used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(–red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
+.used-tag:hover{opacity:.75;}
+.pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(–border);flex-wrap:wrap;}
+.pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(–border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
+.pool-add-input:focus{border-color:var(–blue);}
+.pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(–border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
+.player-card.used-pool{opacity:.45;border-left-color:var(–muted)!important;}
+.pill.used{background:#fee2e2;color:var(–red);border-color:#fecaca;}
+@media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
+/* Schedule view */
+.sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(–border);font-size:11px;font-weight:700;color:var(–muted);text-transform:uppercase;letter-spacing:.4px;}
+.sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(–border);font-size:13px;}
+.sched-row:last-child{border-bottom:none;}
+.sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
+.sched-day.great{background:#dcfce7;color:#15803d;}
+.sched-day.good{background:#d1fae5;color:#065f46;}
+.sched-day.ok{background:var(–surface2);color:var(–muted);}
+.sched-day.tough{background:#fef9c3;color:#854d0e;}
+.sched-day.brutal{background:#fee2e2;color:#b91c1c;}
+.sched-day.off{background:var(–surface2);color:var(–muted);font-size:10px;}
+.future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+.future-badge.good{background:#dbeafe;color:var(–blue);border:1px solid #bfdbfe;}
+.future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
 </style>
+
 </head>
 <body>
 
@@ -269,6 +337,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- ANALYZE TAB -->
+
 <div class="panel active" id="panel-analyze">
 
   <div class="card" style="margin-top:8px;">
@@ -329,34 +398,37 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </div>
       </div>
 
-      <div class="step-list" id="stepList" style="display:none;">
-        <div class="step" id="step-schedule">
-          <div class="step-dot pending" id="dot-schedule">1</div>
-          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
-        </div>
-        <div class="step" id="step-statcast">
-          <div class="step-dot pending" id="dot-statcast">2</div>
-          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
-        </div>
-        <div class="step" id="step-lineups">
-          <div class="step-dot pending" id="dot-lineups">3</div>
-          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
-        </div>
-        <div class="step" id="step-score">
-          <div class="step-dot pending" id="dot-score">4</div>
-          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
-        </div>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
-          ⚡ Run Analysis
-        </button>
-        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
-        <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
-      </div>
-      <div id="errBox" style="display:none;margin-top:12px;"></div>
+```
+  <div class="step-list" id="stepList" style="display:none;">
+    <div class="step" id="step-schedule">
+      <div class="step-dot pending" id="dot-schedule">1</div>
+      <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
     </div>
+    <div class="step" id="step-statcast">
+      <div class="step-dot pending" id="dot-statcast">2</div>
+      <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
+    </div>
+    <div class="step" id="step-lineups">
+      <div class="step-dot pending" id="dot-lineups">3</div>
+      <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+    </div>
+    <div class="step" id="step-score">
+      <div class="step-dot pending" id="dot-score">4</div>
+      <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+      ⚡ Run Analysis
+    </button>
+    <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+    <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
+  </div>
+  <div id="errBox" style="display:none;margin-top:12px;"></div>
+</div>
+```
+
   </div>
 
   <div class="card">
@@ -370,9 +442,11 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- LINEUPS TAB -->
+
 <div class="panel" id="panel-lineups">
 
   <!-- FantasyLabs paste import -->
+
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
       📋 Import Lineups
@@ -402,6 +476,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- RESULTS TAB -->
+
 <div class="panel" id="panel-results">
   <div id="diagContainer" style="margin-bottom:4px;">
     <button onclick="toggleDiag()" id="diagToggleBtn"
@@ -418,6 +493,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- HELP TAB -->
+
 <div class="panel" id="panel-help">
   <div class="card">
     <div class="card-header">📊 Data Sources</div>
@@ -449,16 +525,19 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </tbody>
       </table>
 
-      <div class="divider"></div>
+```
+  <div class="divider"></div>
 
-      <strong style="font-size:13px;">Tiers</strong>
-      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
-        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
-        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
-        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
-        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
-      </ul>
-    </div>
+  <strong style="font-size:13px;">Tiers</strong>
+  <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+    <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+    <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+    <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+    <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+  </ul>
+</div>
+```
+
   </div>
 
   <div class="card">
@@ -473,11 +552,14 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- POOLS TAB -->
+
 <div class="panel" id="panel-pools">
   <div style="display:flex;gap:14px;align-items:flex-start;">
 
-    <!-- LEFT: Pool table + summary (flex 1) -->
-    <div style="flex:1;min-width:0;">
+```
+<!-- LEFT: Pool table + summary (flex 1) -->
+<div style="flex:1;min-width:0;">
+```
 
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -528,27 +610,30 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   </div>
     </div>
 
-    <!-- RIGHT: Top picks sidebar -->
-    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
-      <div class="card" style="margin-top:8px;">
-        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
-          <span>🎯 Top Picks</span>
-          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
-        </div>
-        <div class="card-body" style="padding:0;">
-          <div id="picksSidebar" style="font-size:13px;">
-            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
-              Run analysis on the Analyze tab to see recommendations here.
-            </div>
-          </div>
+```
+<!-- RIGHT: Top picks sidebar -->
+<div class="pools-sidebar" style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+      <span>🎯 Top Picks</span>
+      <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="picksSidebar" style="font-size:13px;">
+        <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+          Run analysis on the Analyze tab to see recommendations here.
         </div>
       </div>
     </div>
+  </div>
+</div>
+```
 
   </div>
 </div>
 
 <!-- OPTIMAL EXPOSURE CALCULATOR -->
+
 <div class="card" id="exposureCalcCard" style="margin-top:16px;display:none;">
   <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleExposureCalc()">
     <span>🎯 Optimal Exposure Calculator</span>
@@ -570,6 +655,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- SCHEDULE TAB -->
+
 <div class="panel" id="panel-schedule">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -590,6 +676,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- TRACKER TAB -->
+
 <div class="panel" id="panel-tracker">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -672,23 +759,9 @@ function switchTab(t) {
 // Format: {id, away, awayAbbr, home, homeAbbr, time, venue, awaySP, homeSP}
 // Updated: Tue Apr 7, 2026
 const TODAYS_GAMES = [
-  // Auto-updated: Apr 21, 2026
-  // Tool will try live MLB API first; this is the fallback
-  {id:'g1',away:'Houston Astros',awayAbbr:'HOU',home:'Cleveland Guardians',homeAbbr:'CLE',time:'5:10 PM ET',venue:'Progressive Field',awaySP:'Ryan Weiss',homeSP:'Parker Messick'},
-  {id:'g2',away:'Cincinnati Reds',awayAbbr:'CIN',home:'Tampa Bay Rays',homeAbbr:'TB',time:'5:40 PM ET',venue:'Tropicana Field',awaySP:'Chase Burns',homeSP:'Steven Matz'},
-  {id:'g3',away:'St. Louis Cardinals',awayAbbr:'STL',home:'Miami Marlins',homeAbbr:'MIA',time:'5:40 PM ET',venue:'loanDepot park',awaySP:'Dustin May',homeSP:'Chris Paddack'},
-  {id:'g4',away:'Milwaukee Brewers',awayAbbr:'MIL',home:'Detroit Tigers',homeAbbr:'DET',time:'5:40 PM ET',venue:'Comerica Park',awaySP:'Kyle Harrison',homeSP:'Keider Montero'},
-  {id:'g5',away:'Atlanta Braves',awayAbbr:'ATL',home:'Washington Nationals',homeAbbr:'WSH',time:'5:45 PM ET',venue:'Nationals Park',awaySP:'Reynaldo Lopez',homeSP:'Foster Griffin'},
-  {id:'g6',away:'New York Yankees',awayAbbr:'NYY',home:'Boston Red Sox',homeAbbr:'BOS',time:'5:45 PM ET',venue:'Fenway Park',awaySP:'Luis Gil',homeSP:'Connelly Early'},
-  {id:'g7',away:'Minnesota Twins',awayAbbr:'MIN',home:'New York Mets',homeAbbr:'NYM',time:'6:10 PM ET',venue:'Citi Field',awaySP:'Simeon Woods Richardson',homeSP:'Nolan McLean'},
-  {id:'g8',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Kansas City Royals',homeAbbr:'KC',time:'6:40 PM ET',venue:'Kauffman Stadium',awaySP:'Shane Baz',homeSP:'Kris Bubic'},
-  {id:'g9',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Chicago Cubs',homeAbbr:'CHC',time:'6:40 PM ET',venue:'Wrigley Field',awaySP:'Jesus Luzardo',homeSP:'Shota Imanaga'},
-  {id:'g10',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Texas Rangers',homeAbbr:'TEX',time:'7:05 PM ET',venue:'Globe Life Field',awaySP:'TBD',homeSP:'TBD'},
-  {id:'g11',away:'San Diego Padres',awayAbbr:'SD',home:'Colorado Rockies',homeAbbr:'COL',time:'7:40 PM ET',venue:'Coors Field',awaySP:'Randy Vasquez',homeSP:'TBD'},
-  {id:'g12',away:'Toronto Blue Jays',awayAbbr:'TOR',home:'Los Angeles Angels',homeAbbr:'LAA',time:'8:38 PM ET',venue:'Angel Stadium',awaySP:'Patrick Corbin',homeSP:'Jack Kochanowicz'},
-  {id:'g13',away:'Athletics',awayAbbr:'ATH',home:'Seattle Mariners',homeAbbr:'SEA',time:'8:40 PM ET',venue:'T-Mobile Park',awaySP:'Jacob Lopez',homeSP:'Luis Castillo'},
-  {id:'g14',away:'Chicago White Sox',awayAbbr:'CHW',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'8:40 PM ET',venue:'Chase Field',awaySP:'Sean Burke',homeSP:'Merrill Kelly'},
-  {id:'g15',away:'Los Angeles Dodgers',awayAbbr:'LAD',home:'San Francisco Giants',homeAbbr:'SF',time:'8:45 PM ET',venue:'Oracle Park',awaySP:'Yoshinobu Yamamoto',homeSP:'Landen Roupp'},
+  // Auto-updated: Apr 22, 2026
+  // Tool will try live MLB API first; this is the fallback if API fails
+  // Update daily with that day's slate
 ];
 
 async function loadSchedule() {
@@ -1725,7 +1798,7 @@ const DEPTH_CHARTS = {
   'SF':  ['Luis Arraez','Matt Chapman','Rafael Devers','Willy Adames','Jung Hoo Lee','Heliot Ramos','Casey Schmitt','Patrick Bailey','Harrison Bader'],
   'LAD': ['Mookie Betts','Shohei Ohtani','Freddie Freeman','Kyle Tucker','Will Smith','Teoscar Hernandez','Max Muncy','Andy Pages','Miguel Rojas'],
   'SD':  ['Ramon Laureano','Fernando Tatis Jr.','Jackson Merrill','Manny Machado','Xander Bogaerts','Gavin Sheets','Miguel Andujar','Freddy Fermin','Jake Cronenworth'],
-  'COL': ['Zac Veen','Ryan McMahon','C.J. Cron','Ezequiel Tovar','Elias Díaz','Brenton Doyle','Sean Bouchard','Alan Trejo','Nolan Jones'],
+  'COL': ['Edouard Julien','Mickey Moniak','Hunter Goodman','TJ Rumfield','Ezequiel Tovar','Troy Johnston','Willi Castro','Brenton Doyle','Kyle Karros'],
 };
 
 // SP_STATS: [ERA, WHIP, K/9, hand] — covers ~100 active starters
@@ -2620,6 +2693,173 @@ function showXbaBreakdown(nameOrIdx) {
   document.body.appendChild(modal);
 }
 
+
+// ── FULL SCORE BREAKDOWN MODAL ────────────────────────────────────────────────
+function showScoreBreakdown(playerName) {
+  const p = allScoredPlayers.find(p => p.name === playerName);
+  if (!p) return;
+
+  // Recompute all intermediate values on-demand
+  const nKey  = normalize(p.name);
+  const sc    = lookupStatcast(p.name, p.pitcherHand);
+  const xba   = sc?.xba ?? 0.255;
+  const kpct  = sc?.kpct ?? 0.22;
+  const hh    = sc?.hardhitpct ?? 0.38;
+  const barrel = sc?.barrelpct ?? 0.07;
+
+  // xBA score
+  const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  const splitConf   = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
+  const xbaScore    = Math.round(rawXbaScore * splitConf + 50 * (1 - splitConf));
+
+  // Contact adj
+  const contactAdj  = xba * (1 - kpct);
+  const contactScore = Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
+
+  // Barrel score
+  const barrelScore = Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
+
+  // Pitcher score
+  const spSC = p.spStatcast ? livePitchers[normalize(p.pitcher)] : null;
+  const spStats = getSPStats(p.pitcher, p.pitcherHand);
+  let spScore, spDetail;
+  if (p.spStatcast && spSC) {
+    const spK   = spSC.kpct ?? 0.22;
+    const spXBA = spSC.xbaAllowed ?? 0.255;
+    const spHH  = spSC.hardHitAllowed ?? 0.38;
+    const spWh  = spSC.whiffPct ?? 0.25;
+    const spBar = spSC.barrelAllowed ?? 0.07;
+    const kComp   = Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
+    const xbaComp = Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
+    const hhComp  = Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
+    const whComp  = Math.min(100,Math.max(0,(1-(spWh-0.15)/(0.42-0.15))*100));
+    const barComp = Math.min(100,Math.max(0,((spBar-0.02)/(0.18-0.02))*100));
+    spScore = kComp*0.38 + xbaComp*0.35 + hhComp*0.15 + whComp*0.08 + barComp*0.04;
+    spDetail = [
+      `K%: ${(spK*100).toFixed(0)}% → comp ${kComp.toFixed(0)} × 38%`,
+      `xBA allowed: ${spXBA.toFixed(3)} → comp ${xbaComp.toFixed(0)} × 35%`,
+      `HH%: ${(spHH*100).toFixed(0)}% → comp ${hhComp.toFixed(0)} × 15%`,
+      `Whiff%: ${(spWh*100).toFixed(0)}% → comp ${whComp.toFixed(0)} × 8%`,
+    ].join('<br>');
+  } else {
+    const k9   = spStats.k9 || 8.5;
+    const whip = spStats.whip || 1.35;
+    const k9Comp   = Math.min(100,Math.max(0,(1-(k9-4.0)/(14.0-4.0))*100));
+    const whipComp = Math.min(100,Math.max(0,((whip-0.80)/(1.90-0.80))*100));
+    spScore = k9Comp*0.65 + whipComp*0.35;
+    spDetail = `K/9: ${k9.toFixed(1)} → comp ${k9Comp.toFixed(0)} × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${whipComp.toFixed(0)} × 35%`;
+  }
+
+  const switchBonus = p.bats === 'S' ? 5 : 0;
+  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
+  const pitcherFactor = 0.70 + (matchupScore / 100) * 0.60;
+  const pitcherAdjContact = Math.min(100, Math.max(0, contactScore * pitcherFactor));
+
+  // Park
+  const pk = parkScore(p.venue);
+
+  // Order
+  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
+  const slotPA   = paBySlot[Math.min((p.battingOrder||5)-1, 8)];
+  const orderScore = Math.round(((slotPA-3.6)/(4.7-3.6))*100);
+
+  // Implied runs
+  let impliedScore = 50;
+  const ir = p.impliedRuns;
+  if (ir != null) {
+    const raw = Math.min(100,Math.max(0,((ir-2.0)/(7.0-2.0))*100));
+    const damp = (p.battingOrder||5) <= 2 ? 0.20 : (p.battingOrder||5) <= 5 ? 0.55 : 1.0;
+    impliedScore = Math.round(50 + (raw-50)*damp);
+  }
+
+  const streakAdj = p.streakAdj || 0;
+  const rawComp = pitcherAdjContact*0.52 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.08 + pk.score*0.05;
+  const finalScore = Math.min(100, Math.max(0, Math.round(rawComp + streakAdj)));
+
+  // Build row helper
+  const row = (label, value, score, weight, contribution, note='', highlight=false) => `
+    <tr style="border-bottom:1px solid var(--border);${highlight?'background:var(--surface2);':''}">
+      <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${label}</td>
+      <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${value}</td>
+      <td style="padding:7px 10px;text-align:center;">
+        <span style="font-size:12px;font-weight:700;color:${score>=70?'var(--green)':score>=40?'var(--blue)':'var(--red)'};">${score.toFixed(0)}</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${weight}</td>
+      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;color:var(--text);">${contribution}</td>
+    </tr>`;
+
+  const subrow = (text) => `
+    <tr>
+      <td colspan="5" style="padding:2px 10px 5px 20px;font-size:11px;color:var(--muted);">${text}</td>
+    </tr>`;
+
+  const divider = (label) => `
+    <tr>
+      <td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${label}</td>
+    </tr>`;
+
+  const tableHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Component</th>
+          <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Value</th>
+          <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Score/100</th>
+          <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Weight</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${divider('── Batter Profile ──')}
+        ${row('xBA ('+( sc?.splitUsed||'overall')+')', xba.toFixed(3), rawXbaScore, '—', '(used below)', `Split conf: ${(splitConf*100).toFixed(0)}%`)}
+        ${row('K%', (kpct*100).toFixed(1)+'%', 100-kpct*250, '—', '(used below)')}
+        ${row('Contact-adj xBA (xBA×(1-K%))', contactAdj.toFixed(3), contactScore, '—', `raw score ${contactScore.toFixed(0)}`)}
+        ${row('Barrel%', (barrel*100).toFixed(1)+'%', barrelScore, '8%', (barrelScore*0.08).toFixed(1)+' pts')}
+        ${divider('── Pitcher Matchup ──')}
+        ${row(p.pitcher+' ('+(p.spStatcast?'Live Statcast':'SP_STATS fallback')+')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
+        ${subrow(spDetail)}
+        ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '52%', (pitcherAdjContact*0.52).toFixed(1)+' pts', '', true)}
+        ${divider('── Game Environment ──')}
+        ${row('Batting order (slot '+p.battingOrder+')', slotPA.toFixed(1)+' PA/game', orderScore, '8%', (orderScore*0.08).toFixed(1)+' pts')}
+        ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScore, '14%', (impliedScore*0.14).toFixed(1)+' pts', ir!=null?`Dampener: ${p.battingOrder<=2?'20%':p.battingOrder<=5?'55%':'100%'}`:'')}
+        ${row('Park factor', pk.label, pk.score, '5%', (pk.score*0.05).toFixed(1)+' pts')}
+        ${streakAdj !== 0 ? row('Streak adjustment', streakAdj > 0 ? '🔥 Hot' : '🧊 Cold', 50+streakAdj*10, '—', (streakAdj>0?'+':'')+streakAdj+' pts') : ''}
+        ${divider('── Final Score ──')}
+        <tr style="background:var(--surface2);">
+          <td colspan="3" style="padding:10px;font-weight:700;font-size:14px;">COMPOSITE SCORE</td>
+          <td style="padding:10px;text-align:center;font-size:11px;color:var(--muted);">sum</td>
+          <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${finalScore>=65?'var(--green)':finalScore>=57?'var(--blue)':finalScore>=48?'var(--yellow)':'var(--red)'};">${finalScore}</td>
+        </tr>
+        <tr>
+          <td colspan="5" style="padding:4px 10px 8px;font-size:11px;color:var(--muted);">
+            Raw: ${rawComp.toFixed(2)} pts${streakAdj!==0?' + '+streakAdj+' streak adj':''} = ${finalScore}
+            &nbsp;·&nbsp; Tier: <strong>${p.tier}</strong>
+            &nbsp;·&nbsp; Platoon: ${p.platoon?.label||'—'}
+          </td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;width:640px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;">
+        <div>
+          <div style="font-weight:700;font-size:15px;">${p.name} — Full Score Breakdown</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${p.teamFull} · vs ${p.pitcher} (${p.pitcherHand}) · ${p.venue}</div>
+        </div>
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;">×</button>
+      </div>
+      <div style="padding:0;">${tableHTML}</div>
+      <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
+        💡 Click the score on any player card to see this breakdown. xBA pill 🔍 shows detailed xBA blend calculation.
+      </div>
+    </div>`;
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
 function filterTier(t) {
   const search = document.getElementById('playerSearch');
   if (search) search.value = '';
@@ -3196,7 +3436,7 @@ function renderCrossPool() {
     <div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📅 Today — ${todayLabel}</div>`;
 
   if (todayRows.length) {
-    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;">`;
+    html += `<div class="cross-pool-today" style="display:flex;flex-wrap:wrap;gap:8px;">`;
     todayRows.forEach(([name, d]) => {
       const scored = allScoredPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
       const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=65?'var(--green)':scored.compositeScore>=57?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
@@ -3578,10 +3818,10 @@ function renderTracker() {
       const tierColor = p.tier === 'Elite' ? 'var(--green)' : p.tier === 'Strong' ? 'var(--blue)' : p.tier === 'Lean' ? 'var(--yellow)' : 'var(--red)';
       const hitStr = p.hits !== null ? `${p.hits}-${p.atBats}` : '';
 
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      html += `<div class="tracker-row" style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
         <span style="font-size:16px;">${resultIcon}</span>
         <span style="flex:1;font-weight:600;">${p.name}</span>
-        <span style="font-size:11px;color:var(--muted);">${p.team} · vs ${p.pitcher||'?'}</span>
+        <span class="tracker-pitcher" style="font-size:11px;color:var(--muted);">${p.team} · vs ${p.pitcher||'?'}</span>
         <span style="font-size:11px;font-weight:700;color:${tierColor};">${p.score}</span>
         <span style="font-size:12px;font-weight:600;${resultStyle};">${hitStr}</span>
         ${p.gotHit === null ? `<button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 7px;" onclick="manualResult('${day.date}','${p.name.replace(/'/g,"\'")}',true)">✓ Hit</button>
@@ -4047,5 +4287,6 @@ function purgeOldLineupSaves() {
 }
 
 </script>
+
 </body>
 </html>
