@@ -2329,16 +2329,15 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   //   Slots 6-9: full effect — these hitters lose PA in low-scoring blowout losses
   let impliedScore = 50; // neutral default when no odds data
   if (impliedRuns !== null && impliedRuns !== undefined) {
-    // Scale 2.0 → 7.0 runs to 0 → 100 (extended upper range for big offensive games)
+    // Base: same offensive environment signal for ALL hitters (high runs = good for everyone)
     impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.0) / (7.0 - 2.0)) * 100));
-    // Order-based dampening — more aggressive differentiation
-    // Leadoff/2-hole: only 20% of the implied runs effect (always get their PAs)
-    // 3-5 hole: 55% of effect
-    // 6-9 hole: 100% of effect (real PA risk in low-scoring games)
-    const orderDampener = player.order <= 2 ? 0.20
-                        : player.order <= 5 ? 0.55
-                        : 1.0;
-    impliedScore = Math.round(50 + (impliedScore - 50) * orderDampener);
+    // PA penalty: only bottom-order hitters (6-9) in low-run games face real PA loss risk
+    // Above 4.5 runs: no penalty for anyone. Below 4.5: bottom order loses up to 15 pts.
+    if (player.order >= 6 && impliedRuns < 4.5) {
+      const paPenalty = ((4.5 - impliedRuns) / (4.5 - 2.0)) * 15;
+      impliedScore = Math.max(0, Math.round(impliedScore - paPenalty));
+    }
+    impliedScore = Math.round(impliedScore);
   }
 
   // Streak adjustment: ±5 points based on hot/cold rolling windows
@@ -2768,8 +2767,11 @@ function showScoreBreakdown(playerName) {
   const ir = p.impliedRuns;
   if (ir != null) {
     const raw = Math.min(100,Math.max(0,((ir-2.0)/(7.0-2.0))*100));
-    const damp = (p.battingOrder||5) <= 2 ? 0.20 : (p.battingOrder||5) <= 5 ? 0.55 : 1.0;
-    impliedScore = Math.round(50 + (raw-50)*damp);
+    impliedScore = Math.round(raw);
+    if ((p.battingOrder||5) >= 6 && ir < 4.5) {
+      const paPenalty = ((4.5 - ir) / (4.5 - 2.0)) * 15;
+      impliedScore = Math.max(0, Math.round(impliedScore - paPenalty));
+    }
   }
 
   const streakAdj = p.streakAdj || 0;
@@ -2821,7 +2823,7 @@ function showScoreBreakdown(playerName) {
         ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '52%', (pitcherAdjContact*0.52).toFixed(1)+' pts', '', true)}
         ${divider('── Game Environment ──')}
         ${row('Batting order (slot '+p.battingOrder+')', slotPA.toFixed(1)+' PA/game', orderScore, '8%', (orderScore*0.08).toFixed(1)+' pts')}
-        ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScore, '14%', (impliedScore*0.14).toFixed(1)+' pts', ir!=null?`Dampener: ${p.battingOrder<=2?'20%':p.battingOrder<=5?'55%':'100%'}`:'')}
+        ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScore, '14%', (impliedScore*0.14).toFixed(1)+' pts', ir!=null&&(p.battingOrder||5)>=6&&ir<4.5?`PA penalty: -${(((4.5-ir)/(4.5-2.0))*15).toFixed(0)} pts (low-run PA risk)`:'Same for all slots')}
         ${row('Park factor', pk.label, pk.score, '5%', (pk.score*0.05).toFixed(1)+' pts')}
         ${streakAdj !== 0 ? row('Streak adjustment', streakAdj > 0 ? '🔥 Hot' : '🧊 Cold', 50+streakAdj*10, '—', (streakAdj>0?'+':'')+streakAdj+' pts') : ''}
         ${divider('── Final Score ──')}
