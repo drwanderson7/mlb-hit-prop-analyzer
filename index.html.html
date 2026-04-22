@@ -2785,51 +2785,7 @@ function showScoreBreakdown(playerName) {
   const _pitcherAdjContact = Math.min(100, Math.max(0, contactScore * _pitcherFactor));
 
   // Park
-  const pk = parkScore(p.venue);
-
-  // Order
-  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
-  const slotPA   = paBySlot[Math.min((p.battingOrder||5)-1, 8)];
-  const orderScore = Math.round(((slotPA-3.6)/(4.7-3.6))*100);
-
-  // Implied runs
-  let impliedScore = 50;
-  const ir = p.impliedRuns;
-  if (ir != null) {
-    const raw = Math.min(100,Math.max(0,((ir-2.0)/(7.0-2.0))*100));
-    impliedScore = Math.round(raw);
-    if ((p.battingOrder||5) >= 6 && ir < 4.5) {
-      const paPenalty = ((4.5 - ir) / (4.5 - 2.0)) * 15;
-      impliedScore = Math.max(0, Math.round(impliedScore - paPenalty));
-    }
-  }
-
-  const streakAdj = p.streakAdj || 0;
-  const rawComp = pitcherAdjContact*0.52 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.08 + pk.score*0.05;
-  const finalScore = Math.min(100, Math.max(0, Math.round(rawComp + streakAdj)));
-
-  // Build row helper
-  const row = (label, value, score, weight, contribution, note='', highlight=false) => `
-    <tr style="border-bottom:1px solid var(--border);${highlight?'background:var(--surface2);':''}">
-      <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${label}</td>
-      <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${value}</td>
-      <td style="padding:7px 10px;text-align:center;">
-        <span style="font-size:12px;font-weight:700;color:${score>=70?'var(--green)':score>=40?'var(--blue)':'var(--red)'};">${score.toFixed(0)}</span>
-      </td>
-      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${weight}</td>
-      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;color:var(--text);">${contribution}</td>
-    </tr>`;
-
-  const subrow = (text) => `
-    <tr>
-      <td colspan="5" style="padding:2px 10px 5px 20px;font-size:11px;color:var(--muted);">${text}</td>
-    </tr>`;
-
-  const divider = (label) => `
-    <tr>
-      <td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${label}</td>
-    </tr>`;
-
+  
   const tableHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
