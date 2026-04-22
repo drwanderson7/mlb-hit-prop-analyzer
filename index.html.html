@@ -951,8 +951,8 @@ function extractLineups(games) {
 // ── Live Statcast via Vercel proxy ───────────────────────────────────────────
 let liveStatcast = {};
 let livePitcherStats = {}; // keyed by MLB player ID   // overall batter stats (K%, HH%, Barrel%)
-let liveVsRHP = {};      // batter xBA + stats vs RHP only
-let liveVsLHP = {};      // batter xBA + stats vs LHP only
+let liveVsRHP = {};      // split xBA disabled
+let liveVsLHP = {};      // split xBA disabled
 
 // ── Diagnostics ───────────────────────────────────────────────────────────────
 // Tracks every API call so issues show in UI without opening DevTools
@@ -1185,21 +1185,16 @@ async function fetchStatcast() {
     return out;
   };
 
-  // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
-  // pitcher_hand=R/L gets true platoon splits (batter xBA vs RHP / vs LHP)
-  const [tCur, tPri, tPit, tPitPri, tRHP, tLHP] = await Promise.all([
+  // Fetch in parallel - overall batter xBA only (split xBA disabled)
+  const [tCur, tPri, tPit, tPitPri] = await Promise.all([
     fetchCsv('batter',  year, ''),      // overall batter xBA 2026
     fetchCsv('batter',  prev, ''),      // prior year batter for blend
     fetchCsv('pitcher', year, ''),      // pitcher stats 2026
     fetchCsv('pitcher', prev, ''),      // prior year pitcher for blend
-    fetchCsv('batter',  year, 'R'),     // xBA vs RHP (pitcher_hand=R)
-    fetchCsv('batter',  year, 'L'),     // xBA vs LHP (pitcher_hand=L)
   ]);
 
   const batterCur  = parseSavantCsv(tCur);
   const batterPri  = parseSavantCsv(tPri);
-  const vsRHPCur   = parseSavantCsv(tRHP);
-  const vsLHPCur   = parseSavantCsv(tLHP);
   const pitcherMapCur = parseSavantCsv(tPit, 'pitcher');
   const pitcherMapPri = parseSavantCsv(tPitPri, 'pitcher');
 
@@ -1232,8 +1227,8 @@ async function fetchStatcast() {
   });
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
-  liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
-  liveVsLHP    = blendMaps(vsLHPCur, batterPri, 60);
+  liveVsRHP    = {};
+  liveVsLHP    = {};
 
   livePitchers = {};
   Object.keys(pitcherMap).forEach(key => {
@@ -1547,15 +1542,11 @@ function lookupInMap(map, name) {
   return null;
 }
 
-// Look up batter stats — spHand determines which split xBA to use
-// Returns: { xba (split-specific), kpct, hardhitpct, barrelpct, splitUsed }
+// Look up batter stats — overall xBA only (split functionality disabled)
+// Returns: { xba, kpct, hardhitpct, barrelpct, splitUsed }
 function lookupStatcast(name, spHand) {
   // Get overall stats (K%, HH%, Barrel%) — these are more stable overall than splits
   const overall = lookupInMap(liveStatcast, name);
-
-  // Get split-specific xBA based on opposing SP hand
-  const splitMap = spHand === 'R' ? liveVsRHP : spHand === 'L' ? liveVsLHP : null;
-  const splitStats = splitMap ? lookupInMap(splitMap, name) : null;
 
   // Embedded fallback for overall stats
   const embKey = normalize(name);
@@ -1570,49 +1561,18 @@ function lookupStatcast(name, spHand) {
     }
   }
 
-  if (!overall && !splitStats && !embedded) return null;
+  if (!overall && !embedded) return null;
 
-  // xBA: prefer split, fall back to overall live, then embedded
-  const splitXBA  = splitStats?.xba  ?? null;
-  const overallXBA = overall?.xba ?? embedded?.xba ?? null;
-
-  // Blend split xBA with overall when split PA is low
-  // splitStats.pa tells us how many PA in that split — fewer = more weight to overall
-  let xba = overallXBA;
-  let splitUsed = 'overall';
-  if (splitXBA !== null && overallXBA !== null) {
-    const splitPA = splitStats?.pa || 0;
-    // Confidence ramp: 0 PA = 0% split, 80+ PA = 100% split
-    // More aggressive than before — need 80 PA for full confidence vs 60
-    const wSplit = Math.min(1, splitPA / 80);
-    const wOverall = 1 - wSplit;
-    xba = parseFloat((splitXBA * wSplit + overallXBA * wOverall).toFixed(3));
-    splitUsed = splitPA >= 80 ? (spHand === 'R' ? 'vsRHP' : 'vsLHP')
-               : splitPA >= 20 ? `blend(${splitPA}PA)`
-               : 'overall';
-    // Store split PA count so scoring can apply a confidence penalty
-    return {
-      xba,
-      kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
-      hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
-      barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
-      splitUsed,
-      splitPA,      // expose PA count for confidence weighting in score
-      splitConfidence: parseFloat(wSplit.toFixed(2)), // 0-1
-    };
-  } else if (splitXBA !== null) {
-    xba = splitXBA;
-    splitUsed = spHand === 'R' ? 'vsRHP' : 'vsLHP';
-  }
+  const xba = overall?.xba ?? embedded?.xba ?? null;
 
   return {
     xba,
     kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
     hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
     barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
-    splitUsed,
-    splitPA:         splitStats?.pa ?? 0,
-    splitConfidence: splitXBA !== null ? Math.min(1, (splitStats?.pa || 0) / 80) : 0,
+    splitUsed: 'overall',
+    splitPA: 0,
+    splitConfidence: 0,
   };
 }
 
@@ -2362,6 +2322,11 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // K% is NO LONGER a separate component — it's baked into contactAdjScore to avoid double-counting.
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
+  const platoonAdj =
+    platoon?.adv === true  && bats !== 'S' ? 3 :
+    platoon?.adv === false && bats !== 'S' ? -3 :
+    0;
+
   const rawComposite =
     pitcherAdjContact * 0.56 +  // contactAdjXba × pitcherFactor — primary hit probability signal
                                  // increased from 0.52: barrel weight moved here (hit prop = contact, not power)
@@ -2369,7 +2334,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     orderScore        * 0.08 +  // PA volume by batting slot
     barrelScore       * 0.04 +  // Barrel% — reduced from 0.08: power ≠ hits, rewards contact artists
     pk.score          * 0.05 +  // park factor
-    0;                          // weights: .56+.14+.08+.04+.05 = 0.87 + streakAdj(±5pts)
+    platoonAdj;                 // weights: .56+.14+.08+.04+.05 = 0.87 + platoonAdj(±3) + streakAdj(±5pts)
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite + streakAdj)));
 
@@ -2444,6 +2409,19 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
 
   return {
     compositeScore: composite,
+    rawComposite: rawComposite,
+    pitcherAdjContact: pitcherAdjContact,
+    contactScore: contactScore,
+    pitcherFactor: pitcherFactor,
+    barrelScoreValue: barrelScore,
+    orderScoreValue: orderScore,
+    impliedScoreValue: impliedScore,
+    parkScoreValue: pk.score,
+    parkScoreLabel: pk.label,
+    platoonAdj,
+    slotPA,
+    matchupScore,
+    spDetailText: spDetail,
     tier,
     xba,
     kpct,
@@ -2459,7 +2437,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     xba7:          streak?.xba7    ?? null,
     xba14:         streak?.xba14   ?? null,
     streakPa7:     streak?.pa7     ?? 0,
-    splitUsed: sc?.splitUsed || 'overall',
+    splitUsed: 'overall',
     spStatcast: !!(spSC?.fromStatcast && spSC.kpct !== null),
     spKpct:  spSC?.kpct           ?? null,
     spXBA:   spSC?.xbaAllowed     ?? null,
@@ -2637,7 +2615,7 @@ function showXbaBreakdown(nameOrIdx) {
   const scEntry = lookupStatcast(name, p.pitcherHand);
   // Use lookupInMap for suffix-aware lookup (handles Jr., Sr., II, III)
   const liveOv  = lookupInMap(liveStatcast, name);
-  const liveSp  = lookupInMap(p.pitcherHand === 'R' ? liveVsRHP : liveVsLHP, name);
+  const liveSp  = null;
   const emb     = lookupInMap(SC_NORM, name) ? (() => { const k = Object.keys(SC_NORM).find(k => normalize(k) === normalize(name) || normalize(k) === normalize(name).replace(/ (jr|sr|ii|iii)$/, '')); return k ? {0: SC_NORM[k][0]} : null; })() : null;
   const embArr  = (() => { const k = Object.keys(SC_NORM).find(k => normalize(k) === nKey || normalize(k) === nKey.replace(/ (jr|sr|ii|iii)$/, '')); return k ? SC_NORM[k] : null; })();
   const b = {
@@ -2666,15 +2644,15 @@ function showXbaBreakdown(nameOrIdx) {
     ['2026 PA (live)', b.pa2026 > 0 ? b.pa2026 + ' PA' : 'No 2026 data yet'],
     ['2026 xBA — raw Savant', b.liveOverallRaw != null ? b.liveOverallRaw.toFixed(3) : b.liveOverall != null ? b.liveOverall.toFixed(3)+' (no raw stored)' : 'N/A'],
     ['2026 xBA — after 80/20 blend', b.liveOverall != null ? b.liveOverall.toFixed(3) : 'N/A'],
-    ['2026 xBA vs ' + p.pitcherHand + 'HP (split)', val(b.liveSplit)],
+    ['2026 xBA split', 'Disabled'],
     ['', ''],
     ['── Blending ──', ''],
     ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(0.80, b.pa2026/100)) + ' 2026 / ' + wt(1 - Math.min(0.80, b.pa2026/100)) + ' 2025' : 'N/A — using embedded'],
-    ['Split confidence', b.splitPA > 0 ? wt(b.splitConfidence) + ' (' + b.splitPA + ' split PA of 80 needed)' : 'No split data — using overall'],
+    ['Split confidence', 'Disabled — using overall xBA only'],
     ['Embedded 2025 xBA', val(b.embeddedXba)],
     ['', ''],
     ['── Final Values Used ──', ''],
-    ['xBA used in model', val(b.final) + ' (' + (b.splitUsed || 'overall') + ')'],
+    ['xBA used in model', val(b.final) + ' (overall only)'],
     ['Source', b.source || 'embedded'],
     ['K%', pct(p.kpct)],
     ['Contact-adj xBA (xBA × (1-K%))', ((p.xba || 0) * (1 - (p.kpct || 0.22))).toFixed(3)],
@@ -2792,7 +2770,29 @@ function showScoreBreakdown(playerName) {
   }
 
   const streakAdj = p.streakAdj || 0;
-  const rawComp = pitcherAdjContact*0.56 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.04 + pk.score*0.05;
+  const platoonAdj = p.platoonAdj ?? (
+    p.platoon?.adv === true  && p.bats !== 'S' ? 3 :
+    p.platoon?.adv === false && p.bats !== 'S' ? -3 :
+    0
+  );
+  const contactScoreDisplay = p.contactScore ?? contactScore;
+  const pitcherAdjContactDisplay = p.pitcherAdjContact ?? pitcherAdjContact;
+  const pitcherFactorDisplay = p.pitcherFactor ?? pitcherFactor;
+  const barrelScoreDisplay = p.barrelScoreValue ?? barrelScore;
+  const orderScoreDisplay = p.orderScoreValue ?? orderScore;
+  const impliedScoreDisplay = p.impliedScoreValue ?? impliedScore;
+  const parkScoreDisplay = p.parkScoreValue ?? pk.score;
+  const parkLabelDisplay = p.parkScoreLabel ?? pk.label;
+  const slotPADisplay = p.slotPA ?? slotPA;
+  const matchupScoreDisplay = p.matchupScore ?? matchupScore;
+  const rawComp = p.rawComposite ?? (
+    pitcherAdjContactDisplay * 0.56 +
+    impliedScoreDisplay      * 0.14 +
+    orderScoreDisplay        * 0.08 +
+    barrelScoreDisplay       * 0.04 +
+    parkScoreDisplay         * 0.05 +
+    platoonAdj
+  );
   const finalScore = p.compositeScore;
 
   // Build row helper
@@ -2835,14 +2835,15 @@ function showScoreBreakdown(playerName) {
         ${row('Contact-adj xBA (xBA×(1-K%))', contactAdj.toFixed(3), contactScore, '—', `raw score ${contactScore.toFixed(0)}`)}
         ${row('Barrel%', (barrel*100).toFixed(1)+'%', barrelScore, '4%', (barrelScore*0.04).toFixed(1)+' pts', 'Power metric — reduced weight for hit props')}
         ${divider('── Pitcher Matchup ──')}
-        ${row(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
+        ${row(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '', matchupScoreDisplay, '—', `factor ${pitcherFactorDisplay.toFixed(3)}`)}
         ${p.spStatcast&&p.spKpct!=null ? subrow(`K%: ${(p.spKpct*100).toFixed(1)}% · xBA allowed: ${p.spXBA!=null?p.spXBA.toFixed(3):'N/A'} · HH%: ${p.spHH!=null?(p.spHH*100).toFixed(0)+'%':'N/A'}<br>${(() => { const lp = livePitchers[normalize(p.pitcher)]; return lp ? `${lp.pa||'?'} BF in 2026 · ${lp.source||'live'}` : ''; })()}`) : ''}
         ${subrow(spDetail)}
-        ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '56%', (pitcherAdjContact*0.56).toFixed(1)+' pts', '', true)}
+        ${row('Contact × Pitcher Factor', `${contactScoreDisplay.toFixed(0)} × ${pitcherFactorDisplay.toFixed(3)}`, pitcherAdjContactDisplay, '56%', (pitcherAdjContactDisplay*0.56).toFixed(1)+' pts', '', true)}
         ${divider('── Game Environment ──')}
-        ${row('Batting order (slot '+p.battingOrder+')', slotPA.toFixed(1)+' PA/game', orderScore, '8%', (orderScore*0.08).toFixed(1)+' pts')}
-        ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScore, '14%', (impliedScore*0.14).toFixed(1)+' pts', ir!=null&&(p.battingOrder||5)>=6&&ir<4.5?`PA penalty: -${(((4.5-ir)/(4.5-2.0))*15).toFixed(0)} pts (low-run PA risk)`:'Same for all slots')}
-        ${row('Park factor', pk.label, pk.score, '5%', (pk.score*0.05).toFixed(1)+' pts')}
+        ${row('Batting order (slot '+p.battingOrder+')', slotPADisplay.toFixed(1)+' PA/game', orderScoreDisplay, '8%', (orderScoreDisplay*0.08).toFixed(1)+' pts')}
+        ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScoreDisplay, '14%', (impliedScoreDisplay*0.14).toFixed(1)+' pts', ir!=null&&(p.battingOrder||5)>=6&&ir<4.5?`PA penalty: -${(((4.5-ir)/(4.5-2.0))*15).toFixed(0)} pts (low-run PA risk)`:'Same for all slots')}
+        ${row('Park factor', parkLabelDisplay, parkScoreDisplay, '5%', (parkScoreDisplay*0.05).toFixed(1)+' pts')}
+        ${platoonAdj !== 0 ? row('Platoon adjustment', p.platoon?.label || 'Platoon', 50 + platoonAdj * 10, 'flat', (platoonAdj>0?'+':'') + platoonAdj + ' pts') : ''}
         ${streakAdj !== 0 ? row('Streak adjustment', streakAdj > 0 ? '🔥 Hot' : '🧊 Cold', 50+streakAdj*10, '—', (streakAdj>0?'+':'')+streakAdj+' pts') : ''}
         ${divider('── Final Score ──')}
         <tr style="background:var(--surface2);">
