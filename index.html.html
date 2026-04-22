@@ -2421,7 +2421,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     platoonAdj,
     slotPA,
     matchupScore,
-    spDetailText: spDetail,
+    spDetailText: '',
     tier,
     xba,
     kpct,
@@ -2775,16 +2775,16 @@ function showScoreBreakdown(playerName) {
     p.platoon?.adv === false && p.bats !== 'S' ? -3 :
     0
   );
-  const contactScoreDisplay = p.contactScore ?? contactScore;
-  const pitcherAdjContactDisplay = p.pitcherAdjContact ?? pitcherAdjContact;
-  const pitcherFactorDisplay = p.pitcherFactor ?? pitcherFactor;
-  const barrelScoreDisplay = p.barrelScoreValue ?? barrelScore;
-  const orderScoreDisplay = p.orderScoreValue ?? orderScore;
-  const impliedScoreDisplay = p.impliedScoreValue ?? impliedScore;
-  const parkScoreDisplay = p.parkScoreValue ?? pk.score;
-  const parkLabelDisplay = p.parkScoreLabel ?? pk.label;
-  const slotPADisplay = p.slotPA ?? slotPA;
-  const matchupScoreDisplay = p.matchupScore ?? matchupScore;
+  const contactScoreDisplay = p.contactScore ?? 50;
+  const pitcherAdjContactDisplay = p.pitcherAdjContact ?? 50;
+  const pitcherFactorDisplay = p.pitcherFactor ?? 1.0;
+  const barrelScoreDisplay = p.barrelScoreValue ?? 50;
+  const orderScoreDisplay = p.orderScoreValue ?? 50;
+  const impliedScoreDisplay = p.impliedScoreValue ?? 50;
+  const parkScoreDisplay = p.parkScoreValue ?? 50;
+  const parkLabelDisplay = p.parkScoreLabel ?? 'Neutral';
+  const slotPADisplay = p.slotPA ?? 4.2;
+  const matchupScoreDisplay = p.matchupScore ?? 50;
   const rawComp = p.rawComposite ?? (
     pitcherAdjContactDisplay * 0.56 +
     impliedScoreDisplay      * 0.14 +
