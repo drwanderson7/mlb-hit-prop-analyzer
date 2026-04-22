@@ -951,8 +951,8 @@ function extractLineups(games) {
 // ── Live Statcast via Vercel proxy ───────────────────────────────────────────
 let liveStatcast = {};
 let livePitcherStats = {}; // keyed by MLB player ID   // overall batter stats (K%, HH%, Barrel%)
-let liveVsRHP = {};      // split xBA disabled
-let liveVsLHP = {};      // split xBA disabled
+let liveVsRHP = {};      // batter xBA + stats vs RHP only
+let liveVsLHP = {};      // batter xBA + stats vs LHP only
 
 // ── Diagnostics ───────────────────────────────────────────────────────────────
 // Tracks every API call so issues show in UI without opening DevTools
@@ -1185,16 +1185,21 @@ async function fetchStatcast() {
     return out;
   };
 
-  // Fetch in parallel - overall batter xBA only (split xBA disabled)
-  const [tCur, tPri, tPit, tPitPri] = await Promise.all([
+  // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
+  // pitcher_hand=R/L gets true platoon splits (batter xBA vs RHP / vs LHP)
+  const [tCur, tPri, tPit, tPitPri, tRHP, tLHP] = await Promise.all([
     fetchCsv('batter',  year, ''),      // overall batter xBA 2026
     fetchCsv('batter',  prev, ''),      // prior year batter for blend
     fetchCsv('pitcher', year, ''),      // pitcher stats 2026
     fetchCsv('pitcher', prev, ''),      // prior year pitcher for blend
+    fetchCsv('batter',  year, 'R'),     // xBA vs RHP (pitcher_hand=R)
+    fetchCsv('batter',  year, 'L'),     // xBA vs LHP (pitcher_hand=L)
   ]);
 
   const batterCur  = parseSavantCsv(tCur);
   const batterPri  = parseSavantCsv(tPri);
+  const vsRHPCur   = parseSavantCsv(tRHP);
+  const vsLHPCur   = parseSavantCsv(tLHP);
   const pitcherMapCur = parseSavantCsv(tPit, 'pitcher');
   const pitcherMapPri = parseSavantCsv(tPitPri, 'pitcher');
 
@@ -1227,8 +1232,8 @@ async function fetchStatcast() {
   });
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
-  liveVsRHP    = {};
-  liveVsLHP    = {};
+  liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
+  liveVsLHP    = blendMaps(vsLHPCur, batterPri, 60);
 
   livePitchers = {};
   Object.keys(pitcherMap).forEach(key => {
@@ -1545,34 +1550,40 @@ function lookupInMap(map, name) {
 // Look up batter stats — overall xBA only (split functionality disabled)
 // Returns: { xba, kpct, hardhitpct, barrelpct, splitUsed }
 function lookupStatcast(name, spHand) {
-  // Get overall stats (K%, HH%, Barrel%) — these are more stable overall than splits
   const overall = lookupInMap(liveStatcast, name);
 
-  // Embedded fallback for overall stats
   const embKey = normalize(name);
   let embedded = null;
-  if (SC_NORM[embKey]) { const s = SC_NORM[embKey]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+  if (SC_NORM[embKey]) {
+    const s = SC_NORM[embKey];
+    embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] };
+  }
   if (!embedded) {
     const parts = embKey.split(' ');
     if (parts.length >= 2) {
-      const lLast = parts[parts.length-1], lInit = parts[0][0];
-      const match = Object.keys(SC_NORM).find(k => { const kp=k.split(' '); return kp[kp.length-1]===lLast && kp[0][0]===lInit; });
-      if (match) { const s = SC_NORM[match]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+      const lLast = parts[parts.length - 1], lInit = parts[0][0];
+      const match = Object.keys(SC_NORM).find(k => {
+        const kp = k.split(' ');
+        return kp[kp.length - 1] === lLast && kp[0][0] === lInit;
+      });
+      if (match) {
+        const s = SC_NORM[match];
+        embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] };
+      }
     }
   }
 
   if (!overall && !embedded) return null;
 
-  const xba = overall?.xba ?? embedded?.xba ?? null;
-
   return {
-    xba,
-    kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
-    hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
-    barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+    xba:         overall?.xba         ?? embedded?.xba         ?? null,
+    kpct:        overall?.kpct        ?? embedded?.kpct        ?? null,
+    hardhitpct:  overall?.hardhitpct  ?? embedded?.hardhitpct  ?? null,
+    barrelpct:   overall?.barrelpct   ?? embedded?.barrelpct   ?? null,
     splitUsed: 'overall',
     splitPA: 0,
     splitConfidence: 0,
+    pa: overall?.pa ?? 0,
   };
 }
 
@@ -2179,14 +2190,11 @@ function scoreAllPlayers(games, maxOrder, minPA) {
 }
 
 function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns, streak) {
-  // --- Batter split xBA (30%) ---
+  // --- Batter xBA (overall only; split functionality disabled) ---
   const xba = (sc?.xba != null && sc.xba > 0) ? sc.xba : 0.255;
   const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
-  // Split confidence: when split PA is low, regress xBA score toward league avg (50)
-  // Full confidence at 80+ split PA, pure regression at 0 PA
-  const splitConf = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
-  const leagueAvgXbaScore = 50;
-  const xbaScore = Math.round(rawXbaScore * splitConf + leagueAvgXbaScore * (1 - splitConf));
+  const splitConf = 0;
+  const xbaScore = rawXbaScore;
 
   // --- Batter K% and contact metrics ---
   const hh     = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
@@ -2262,11 +2270,11 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     spScore = k9Comp * 0.65 + whipComp * 0.35;
   }
 
-  // No flat platoon bonus — split xBA already encodes platoon advantage.
-  // Switch hitters get a small bonus since they always have the favorable side.
+  // Direct platoon adjustment: favorable side gets +3, same-side gets -3.
+  // Switch hitters do not get an extra bump here.
   const spPlatoon = spStats?.platoon || 'normal';
   const platoon = platoonLabel(bats, spHand, spPlatoon);
-  const switchBonus = (bats === 'S') ? 5 : 0;
+  const switchBonus = 0;
   const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
 
   // ── Pitcher as multiplier on contactAdjXba ─────────────────────────────────
@@ -2334,7 +2342,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     orderScore        * 0.08 +  // PA volume by batting slot
     barrelScore       * 0.04 +  // Barrel% — reduced from 0.08: power ≠ hits, rewards contact artists
     pk.score          * 0.05 +  // park factor
-    platoonAdj;                 // weights: .56+.14+.08+.04+.05 = 0.87 + platoonAdj(±3) + streakAdj(±5pts)
+    platoonAdj;                 // +3 favorable platoon / -3 same-side
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite + streakAdj)));
 
@@ -2409,19 +2417,18 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
 
   return {
     compositeScore: composite,
-    rawComposite: rawComposite,
-    pitcherAdjContact: pitcherAdjContact,
+    rawComposite,
     contactScore: contactAdjScore,
-    pitcherFactor: pitcherFactor,
+    pitcherAdjContact,
+    pitcherFactor,
     barrelScoreValue: barrelScore,
     orderScoreValue: orderScore,
     impliedScoreValue: impliedScore,
     parkScoreValue: pk.score,
     parkScoreLabel: pk.label,
-    platoonAdj,
     slotPA,
     matchupScore,
-    spDetailText: '',
+    platoonAdj,
     tier,
     xba,
     kpct,
@@ -2621,12 +2628,12 @@ function showXbaBreakdown(nameOrIdx) {
   const b = {
     final: p.xba,
     splitUsed: p.splitUsed || 'overall',
-    splitPA: scEntry?.splitPA || 0,
-    splitConfidence: scEntry?.splitConfidence || 0,
+    splitPA: 0,
+    splitConfidence: 0,
     liveOverall: liveOv?.xba ?? null,
     liveOverallRaw: liveOv?.xbaRaw ?? null,  // pre-blend raw Savant xBA
-    liveSplit: liveSp?.xba ?? null,
-    liveSplitRaw: liveSp?.xbaRaw ?? null,
+    liveSplit: null,
+    liveSplitRaw: null,
     embeddedXba: embArr ? embArr[0] : null,
     source: liveOv ? liveOv.source || 'live' : 'embedded',
     pa2026: liveOv?.pa ?? 0,
@@ -2692,28 +2699,16 @@ function showScoreBreakdown(playerName) {
   const p = allScoredPlayers.find(p => p.name === playerName);
   if (!p) return;
 
-  // Recompute all intermediate values on-demand
-  const nKey  = normalize(p.name);
-  const sc    = lookupStatcast(p.name, p.pitcherHand);
-  const xba   = sc?.xba ?? 0.255;
-  const kpct  = sc?.kpct ?? 0.22;
-  const hh    = sc?.hardhitpct ?? 0.38;
-  const barrel = sc?.barrelpct ?? 0.07;
+  const sc = lookupStatcast(p.name, p.pitcherHand);
+  const xba = p.xba ?? sc?.xba ?? 0.255;
+  const kpct = p.kpct ?? sc?.kpct ?? 0.22;
+  const barrel = p.barrelpct ?? sc?.barrelpct ?? 0.07;
 
-  // xBA score
   const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
-  const splitConf   = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
-  const xbaScore    = Math.round(rawXbaScore * splitConf + 50 * (1 - splitConf));
+  const contactAdj = xba * (1 - kpct);
+  const contactScore = p.contactScore ?? Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
+  const barrelScore = p.barrelScoreValue ?? Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
 
-  // Contact adj
-  const contactAdj  = xba * (1 - kpct);
-  const contactScore = Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
-
-  // Barrel score
-  const barrelScore = Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
-
-  // Pitcher score — use values already computed in computeScore (stored on player object)
-  // This ensures breakdown matches the actual score (avoids re-lookup failures)
   const spStats = getSPStats(p.pitcher, p.pitcherHand);
   let spScore, spDetail;
   if (p.spStatcast && p.spKpct != null) {
@@ -2721,87 +2716,76 @@ function showScoreBreakdown(playerName) {
     const spXBA = p.spXBA   ?? 0.255;
     const spHH  = p.spHH    ?? 0.38;
     const spSC2 = livePitchers[normalize(p.pitcher)] || {};
-    const spWh  = spSC2.whiffPct       ?? 0.25;
-    const spBar = spSC2.barrelAllowed  ?? 0.07;
-    const kComp   = Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
-    const xbaComp = Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
-    const hhComp  = Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
-    const whComp  = Math.min(100,Math.max(0,(1-(spWh-0.15)/(0.42-0.15))*100));
-    const barComp = Math.min(100,Math.max(0,((spBar-0.02)/(0.18-0.02))*100));
-    spScore = kComp*0.38 + xbaComp*0.35 + hhComp*0.15 + whComp*0.08 + barComp*0.04;
+    const spWh  = spSC2.whiffPct      ?? 0.25;
+    const spBar = spSC2.barrelAllowed ?? 0.07;
+    const kComp   = Math.min(100, Math.max(0, (1 - (spK - 0.10) / (0.40 - 0.10)) * 100));
+    const xbaComp = Math.min(100, Math.max(0, ((spXBA - 0.150) / (0.330 - 0.150)) * 100));
+    const hhComp  = Math.min(100, Math.max(0, ((spHH - 0.25) / (0.60 - 0.25)) * 100));
+    const whComp  = Math.min(100, Math.max(0, (1 - (spWh - 0.15) / (0.42 - 0.15)) * 100));
+    const barComp = Math.min(100, Math.max(0, ((spBar - 0.02) / (0.18 - 0.02)) * 100));
+    spScore = kComp * 0.38 + xbaComp * 0.35 + hhComp * 0.15 + whComp * 0.08 + barComp * 0.04;
     spDetail = [
-      `K%: ${(spK*100).toFixed(0)}% → comp ${kComp.toFixed(0)} × 38%`,
+      `K%: ${(spK * 100).toFixed(0)}% → comp ${kComp.toFixed(0)} × 38%`,
       `xBA allowed: ${spXBA.toFixed(3)} → comp ${xbaComp.toFixed(0)} × 35%`,
-      `HH%: ${(spHH*100).toFixed(0)}% → comp ${hhComp.toFixed(0)} × 15%`,
-      `Whiff%: ${(spWh*100).toFixed(0)}% → comp ${whComp.toFixed(0)} × 8%`,
+      `HH%: ${(spHH * 100).toFixed(0)}% → comp ${hhComp.toFixed(0)} × 15%`,
+      `Whiff%: ${(spWh * 100).toFixed(0)}% → comp ${whComp.toFixed(0)} × 8%`,
     ].join('<br>');
   } else {
     const k9   = spStats.k9 || 8.5;
     const whip = spStats.whip || 1.35;
-    const k9Comp   = Math.min(100,Math.max(0,(1-(k9-4.0)/(14.0-4.0))*100));
-    const whipComp = Math.min(100,Math.max(0,((whip-0.80)/(1.90-0.80))*100));
-    spScore = k9Comp*0.65 + whipComp*0.35;
+    const k9Comp   = Math.min(100, Math.max(0, (1 - (k9 - 4.0) / (14.0 - 4.0)) * 100));
+    const whipComp = Math.min(100, Math.max(0, ((whip - 0.80) / (1.90 - 0.80)) * 100));
+    spScore = k9Comp * 0.65 + whipComp * 0.35;
     spDetail = `K/9: ${k9.toFixed(1)} → comp ${k9Comp.toFixed(0)} × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${whipComp.toFixed(0)} × 35%`;
   }
 
-  const switchBonus = p.bats === 'S' ? 5 : 0;
-  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
-  const pitcherFactor = 0.70 + (matchupScore / 100) * 0.60;
-  const pitcherAdjContact = Math.min(100, Math.max(0, contactScore * pitcherFactor));
+  const matchupScore = p.matchupScore ?? spScore;
+  const pitcherFactor = p.pitcherFactor ?? (0.70 + (matchupScore / 100) * 0.60);
+  const pitcherAdjContact = p.pitcherAdjContact ?? Math.min(100, Math.max(0, contactScore * pitcherFactor));
 
-  // Park
   const pk = parkScore(p.venue);
+  const parkScoreDisplay = p.parkScoreValue ?? pk.score;
+  const parkLabelDisplay = p.parkScoreLabel ?? pk.label;
 
-  // Order
-  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
-  const slotPA   = paBySlot[Math.min((p.battingOrder||5)-1, 8)];
-  const orderScore = Math.round(((slotPA-3.6)/(4.7-3.6))*100);
+  const paBySlot = [4.7, 4.6, 4.5, 4.4, 4.3, 4.2, 4.0, 3.8, 3.6];
+  const slotPADisplay = p.slotPA ?? paBySlot[Math.min((p.battingOrder || 5) - 1, 8)];
+  const orderScoreDisplay = p.orderScoreValue ?? Math.round(((slotPADisplay - 3.6) / (4.7 - 3.6)) * 100);
 
-  // Implied runs
-  let impliedScore = 50;
+  let impliedScoreCalc = 50;
   const ir = p.impliedRuns;
   if (ir != null) {
-    const raw = Math.min(100,Math.max(0,((ir-2.0)/(7.0-2.0))*100));
-    impliedScore = Math.round(raw);
-    if ((p.battingOrder||5) >= 6 && ir < 4.5) {
+    impliedScoreCalc = Math.round(Math.min(100, Math.max(0, ((ir - 2.0) / (7.0 - 2.0)) * 100)));
+    if ((p.battingOrder || 5) >= 6 && ir < 4.5) {
       const paPenalty = ((4.5 - ir) / (4.5 - 2.0)) * 15;
-      impliedScore = Math.max(0, Math.round(impliedScore - paPenalty));
+      impliedScoreCalc = Math.max(0, Math.round(impliedScoreCalc - paPenalty));
     }
   }
+  const impliedScoreDisplay = p.impliedScoreValue ?? impliedScoreCalc;
 
   const streakAdj = p.streakAdj || 0;
-  const platoonAdj = p.platoonAdj ?? (
-    p.platoon?.adv === true  && p.bats !== 'S' ? 3 :
-    p.platoon?.adv === false && p.bats !== 'S' ? -3 :
-    0
-  );
-  const contactScoreDisplay = p.contactScore ?? 50;
-  const pitcherAdjContactDisplay = p.pitcherAdjContact ?? 50;
-  const pitcherFactorDisplay = p.pitcherFactor ?? 1.0;
-  const barrelScoreDisplay = p.barrelScoreValue ?? 50;
-  const orderScoreDisplay = p.orderScoreValue ?? 50;
-  const impliedScoreDisplay = p.impliedScoreValue ?? 50;
-  const parkScoreDisplay = p.parkScoreValue ?? 50;
-  const parkLabelDisplay = p.parkScoreLabel ?? 'Neutral';
-  const slotPADisplay = p.slotPA ?? 4.2;
-  const matchupScoreDisplay = p.matchupScore ?? 50;
+  const platoonAdj =
+    p.platoonAdj ?? (
+      p.platoon?.adv === true && p.bats !== 'S' ? 3 :
+      p.platoon?.adv === false && p.bats !== 'S' ? -3 :
+      0
+    );
+
   const rawComp = p.rawComposite ?? (
-    pitcherAdjContactDisplay * 0.56 +
-    impliedScoreDisplay      * 0.14 +
-    orderScoreDisplay        * 0.08 +
-    barrelScoreDisplay       * 0.04 +
-    parkScoreDisplay         * 0.05 +
+    pitcherAdjContact * 0.56 +
+    impliedScoreDisplay * 0.14 +
+    orderScoreDisplay * 0.08 +
+    barrelScore * 0.04 +
+    parkScoreDisplay * 0.05 +
     platoonAdj
   );
   const finalScore = p.compositeScore;
 
-  // Build row helper
   const row = (label, value, score, weight, contribution, note='', highlight=false) => `
-    <tr style="border-bottom:1px solid var(--border);${highlight?'background:var(--surface2);':''}">
+    <tr style="border-bottom:1px solid var(--border);${highlight ? 'background:var(--surface2);' : ''}">
       <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${label}</td>
       <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${value}</td>
       <td style="padding:7px 10px;text-align:center;">
-        <span style="font-size:12px;font-weight:700;color:${score>=70?'var(--green)':score>=40?'var(--blue)':'var(--red)'};">${score.toFixed(0)}</span>
+        <span style="font-size:12px;font-weight:700;color:${score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--blue)' : 'var(--red)'};">${score.toFixed(0)}</span>
       </td>
       <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${weight}</td>
       <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;color:var(--text);">${contribution}</td>
@@ -2830,32 +2814,32 @@ function showScoreBreakdown(playerName) {
       </thead>
       <tbody>
         ${divider('── Batter Profile ──')}
-        ${row('xBA ('+( sc?.splitUsed||'overall')+')', xba.toFixed(3), rawXbaScore, '—', '(used below)', `Split conf: ${(splitConf*100).toFixed(0)}%`)}
-        ${row('K%', (kpct*100).toFixed(1)+'%', 100-kpct*250, '—', '(used below)')}
+        ${row('xBA (overall)', xba.toFixed(3), rawXbaScore, '—', '(used below)')}
+        ${row('K%', (kpct * 100).toFixed(1) + '%', 100 - kpct * 250, '—', '(used below)')}
         ${row('Contact-adj xBA (xBA×(1-K%))', contactAdj.toFixed(3), contactScore, '—', `raw score ${contactScore.toFixed(0)}`)}
-        ${row('Barrel%', (barrel*100).toFixed(1)+'%', barrelScore, '4%', (barrelScore*0.04).toFixed(1)+' pts', 'Power metric — reduced weight for hit props')}
+        ${row('Barrel%', (barrel * 100).toFixed(1) + '%', barrelScore, '4%', (barrelScore * 0.04).toFixed(1) + ' pts')}
         ${divider('── Pitcher Matchup ──')}
-        ${row(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '', matchupScoreDisplay, '—', `factor ${pitcherFactorDisplay.toFixed(3)}`)}
-        ${p.spStatcast&&p.spKpct!=null ? subrow(`K%: ${(p.spKpct*100).toFixed(1)}% · xBA allowed: ${p.spXBA!=null?p.spXBA.toFixed(3):'N/A'} · HH%: ${p.spHH!=null?(p.spHH*100).toFixed(0)+'%':'N/A'}<br>${(() => { const lp = livePitchers[normalize(p.pitcher)]; return lp ? `${lp.pa||'?'} BF in 2026 · ${lp.source||'live'}` : ''; })()}`) : ''}
+        ${row(p.pitcher + ' (' + (p.spStatcast && p.spKpct != null ? 'Live Statcast' : 'SP_STATS fallback') + ')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
+        ${p.spStatcast && p.spKpct != null ? subrow(`K%: ${(p.spKpct * 100).toFixed(1)}% · xBA allowed: ${p.spXBA != null ? p.spXBA.toFixed(3) : 'N/A'} · HH%: ${p.spHH != null ? (p.spHH * 100).toFixed(0) + '%' : 'N/A'}<br>${(() => { const lp = livePitchers[normalize(p.pitcher)]; return lp ? `${lp.pa || '?'} BF in 2026 · ${lp.source || 'live'}` : ''; })()}`) : ''}
         ${subrow(spDetail)}
-        ${row('Contact × Pitcher Factor', `${contactScoreDisplay.toFixed(0)} × ${pitcherFactorDisplay.toFixed(3)}`, pitcherAdjContactDisplay, '56%', (pitcherAdjContactDisplay*0.56).toFixed(1)+' pts', '', true)}
+        ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '56%', (pitcherAdjContact * 0.56).toFixed(1) + ' pts', '', true)}
         ${divider('── Game Environment ──')}
-        ${row('Batting order (slot '+p.battingOrder+')', slotPADisplay.toFixed(1)+' PA/game', orderScoreDisplay, '8%', (orderScoreDisplay*0.08).toFixed(1)+' pts')}
-        ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScoreDisplay, '14%', (impliedScoreDisplay*0.14).toFixed(1)+' pts', ir!=null&&(p.battingOrder||5)>=6&&ir<4.5?`PA penalty: -${(((4.5-ir)/(4.5-2.0))*15).toFixed(0)} pts (low-run PA risk)`:'Same for all slots')}
-        ${row('Park factor', parkLabelDisplay, parkScoreDisplay, '5%', (parkScoreDisplay*0.05).toFixed(1)+' pts')}
-        ${platoonAdj !== 0 ? row('Platoon adjustment', p.platoon?.label || 'Platoon', 50 + platoonAdj * 10, 'flat', (platoonAdj>0?'+':'') + platoonAdj + ' pts') : ''}
-        ${streakAdj !== 0 ? row('Streak adjustment', streakAdj > 0 ? '🔥 Hot' : '🧊 Cold', 50+streakAdj*10, '—', (streakAdj>0?'+':'')+streakAdj+' pts') : ''}
+        ${row('Batting order (slot ' + p.battingOrder + ')', slotPADisplay.toFixed(1) + ' PA/game', orderScoreDisplay, '8%', (orderScoreDisplay * 0.08).toFixed(1) + ' pts')}
+        ${row('Implied runs', ir != null ? ir.toFixed(1) + ' proj runs' : 'No odds data', impliedScoreDisplay, '14%', (impliedScoreDisplay * 0.14).toFixed(1) + ' pts', ir != null && (p.battingOrder || 5) >= 6 && ir < 4.5 ? `PA penalty: -${(((4.5 - ir) / (4.5 - 2.0)) * 15).toFixed(0)} pts (low-run PA risk)` : 'Same for all slots')}
+        ${row('Park factor', parkLabelDisplay, parkScoreDisplay, '5%', (parkScoreDisplay * 0.05).toFixed(1) + ' pts')}
+        ${platoonAdj !== 0 ? row('Platoon adjustment', p.platoon?.label || 'Platoon', 50 + platoonAdj * 10, 'flat', (platoonAdj > 0 ? '+' : '') + platoonAdj + ' pts') : ''}
+        ${streakAdj !== 0 ? row('Streak adjustment', streakAdj > 0 ? '🔥 Hot' : '🧊 Cold', 50 + streakAdj * 10, '—', (streakAdj > 0 ? '+' : '') + streakAdj + ' pts') : ''}
         ${divider('── Final Score ──')}
         <tr style="background:var(--surface2);">
           <td colspan="3" style="padding:10px;font-weight:700;font-size:14px;">COMPOSITE SCORE</td>
           <td style="padding:10px;text-align:center;font-size:11px;color:var(--muted);">sum</td>
-          <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${finalScore>=65?'var(--green)':finalScore>=57?'var(--blue)':finalScore>=48?'var(--yellow)':'var(--red)'};">${finalScore}</td>
+          <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${finalScore >= 65 ? 'var(--green)' : finalScore >= 57 ? 'var(--blue)' : finalScore >= 48 ? 'var(--yellow)' : 'var(--red)'};">${finalScore}</td>
         </tr>
         <tr>
           <td colspan="5" style="padding:4px 10px 8px;font-size:11px;color:var(--muted);">
-            Raw: ${rawComp.toFixed(2)} pts${streakAdj!==0?' + '+streakAdj+' streak adj':''} = ${finalScore}
+            Raw: ${rawComp.toFixed(2)} pts${streakAdj !== 0 ? ' + ' + streakAdj + ' streak adj' : ''} = ${finalScore}
             &nbsp;·&nbsp; Tier: <strong>${p.tier}</strong>
-            &nbsp;·&nbsp; Platoon: ${p.platoon?.label||'—'}
+            &nbsp;·&nbsp; Platoon: ${p.platoon?.label || '—'}
           </td>
         </tr>
       </tbody>
@@ -2874,12 +2858,15 @@ function showScoreBreakdown(playerName) {
       </div>
       <div style="padding:0;">${tableHTML}</div>
       <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
-        💡 Click the score on any player card to see this breakdown. xBA pill 🔍 shows detailed xBA blend calculation.
+        💡 Click the score on any player card to see this breakdown. xBA pill 🔎 shows detailed xBA blend calculation.
       </div>
     </div>`;
-  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
 }
+
+// Show detailed xBA blend breakdown modal
 
 function filterTier(t) {
   const search = document.getElementById('playerSearch');
