@@ -1245,18 +1245,22 @@ async function fetchStatcast() {
       hardHitAllowed: p.hardHitAllowed ?? null,
       barrelAllowed:  p.barrelAllowed  ?? null,
       whiffPct:       p.whiffPct       ?? null,
-      source: 'live',
+      pa:             p.pa             ?? null,   // 2026 BF for blend display
+      source:         p.source         ?? 'live', // blend info e.g. "blend(16%26/84%25)"
     };
   });
 
   const nBat = Object.keys(liveStatcast).length;
   const nPit = Object.keys(livePitchers).length;
+  const nPitBlended = Object.values(pitcherMap).filter(p => p.source?.includes('blend')).length;
+  const nPitCurOnly = Object.values(pitcherMap).filter(p => p.source === '2026-only').length;
   window._statcastFetchedAt = new Date();
   window._statcastPlayerCount = nBat;
   DIAG.log('Statcast/parse', { status: nBat > 0 ? '200' : 'warn',
     rows: nBat, ms: 0,
     ...(nBat === 0 ? { error: 'parsed 0 batters — check CSV format' } : {}) });
-  DIAG.log('Pitchers/parse', { status: nPit > 0 ? '200' : 'warn', rows: nPit });
+  DIAG.log('Pitchers/parse', { status: nPit > 0 ? '200' : 'warn', rows: nPit,
+    detail: nPit > 0 ? `${nPitBlended} blended, ${nPitCurOnly} 2026-only` : null });
 
   // streak data not available in simple proxy - leave empty (embedded handles hot/cold)
   streak7 = {}; streak14 = {};
@@ -2831,7 +2835,8 @@ function showScoreBreakdown(playerName) {
         ${row('Contact-adj xBA (xBA×(1-K%))', contactAdj.toFixed(3), contactScore, '—', `raw score ${contactScore.toFixed(0)}`)}
         ${row('Barrel%', (barrel*100).toFixed(1)+'%', barrelScore, '4%', (barrelScore*0.04).toFixed(1)+' pts', 'Power metric — reduced weight for hit props')}
         ${divider('── Pitcher Matchup ──')}
-        ${row(p.pitcher+' ('+(p.spStatcast?'Live Statcast':'SP_STATS fallback')+')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
+        ${row(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
+        ${p.spStatcast&&p.spKpct!=null ? subrow(`K%: ${(p.spKpct*100).toFixed(1)}% · xBA allowed: ${p.spXBA!=null?p.spXBA.toFixed(3):'N/A'} · HH%: ${p.spHH!=null?(p.spHH*100).toFixed(0)+'%':'N/A'}<br>${(() => { const lp = livePitchers[normalize(p.pitcher)]; return lp ? `${lp.pa||'?'} BF in 2026 · ${lp.source||'live'}` : ''; })()}`) : ''}
         ${subrow(spDetail)}
         ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '56%', (pitcherAdjContact*0.56).toFixed(1)+' pts', '', true)}
         ${divider('── Game Environment ──')}
