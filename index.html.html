@@ -2331,9 +2331,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
   const platoonAdj =
-    platoon?.adv === true  && bats !== 'S' ? 3 :
-    platoon?.adv === false && bats !== 'S' ? -3 :
-    0;
+  platoon?.adv === true && bats !== 'S' ? 3 : 0;
 
   const rawComposite =
     pitcherAdjContact * 0.56 +  // contactAdjXba × pitcherFactor — primary hit probability signal
@@ -2342,7 +2340,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     orderScore        * 0.08 +  // PA volume by batting slot
     barrelScore       * 0.04 +  // Barrel% — reduced from 0.08: power ≠ hits, rewards contact artists
     pk.score          * 0.05 +  // park factor
-    platoonAdj;                 // +3 favorable platoon / -3 same-side
+    platoonAdj;                 // +3 favorable platoon
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite + streakAdj)));
 
