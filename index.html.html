@@ -2792,8 +2792,8 @@ function showScoreBreakdown(playerName) {
   }
 
   const streakAdj = p.streakAdj || 0;
-  const rawComp = pitcherAdjContact*0.52 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.08 + pk.score*0.05;
-  const finalScore = Math.min(100, Math.max(0, Math.round(rawComp + streakAdj)));
+  const rawComp = pitcherAdjContact*0.56 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.04 + pk.score*0.05;
+  const finalScore = p.compositeScore;
 
   // Build row helper
   const row = (label, value, score, weight, contribution, note='', highlight=false) => `
