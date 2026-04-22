@@ -2446,21 +2446,9 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   if (xba < 0.230) reasons.push('weak xBA (' + xbaStr + splitSuffix + ')');
   const reasoning = reasons.length ? reasons.join(' · ') + '.' : 'Moderate profile across all factors.';
 
-  // Store all intermediate values for exact breakdown display
   return {
     compositeScore: composite,
     tier,
-    xba,
-    _debug: {  // exact values used in scoring — breakdown reads these
-      xbaScore, rawXbaScore, splitConf,
-      contactAdj: contactAdjXba, contactScore: contactAdjScore,
-      barrelScore, kScore,
-      spScore, matchupScore, pitcherFactor, pitcherAdjContact,
-      orderScore, slotPA,
-      impliedScore,
-      pkScore: pk.score, pkLabel: pk.label,
-      rawComposite,
-    },
     xba,
     kpct,
     hardhitpct: hh,
@@ -2545,7 +2533,7 @@ function renderResults(players) {
   // Sample blend weight from top player to show typical 2026 vs 2025 weight
   const samplePlayer = allScoredPlayers[0];
   const samplePA = samplePlayer ? (liveStatcast[normalize(samplePlayer.name)]?.pa || 0) : 0;
-  const blendPct = samplePA > 0 ? Math.round(Math.min(80, samplePA / 100 * 100)) : 0; // cap at 80% matches blendMaps
+  const blendPct = samplePA > 0 ? Math.round(Math.min(100, samplePA / 100 * 100)) : 0;
   const blendNote = samplePA > 0 ? ` · ${blendPct}% 2026 / ${100-blendPct}% 2025` : ' · using 2025 embedded';
 
   const dataStatus = `<div class="status-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
@@ -2730,25 +2718,29 @@ function showScoreBreakdown(playerName) {
   const p = allScoredPlayers.find(p => p.name === playerName);
   if (!p) return;
 
-  // Use pre-computed debug values from computeScore for exact match
+  // Use the exact sc that was used during scoring (stored on player object)
+  // Re-lookup would give different results if liveVsRHP changed
   const nKey = normalize(p.name);
   const sc   = p._sc || lookupStatcast(p.name, p.pitcherHand);
-  const dbg  = p._debug || {};  // exact intermediate values from scoring
+  const xba   = sc?.xba ?? 0.255;
+  const kpct  = sc?.kpct ?? 0.22;
+  const hh    = sc?.hardhitpct ?? 0.38;
+  const barrel = sc?.barrelpct ?? 0.07;
 
-  const xba       = sc?.xba ?? p.xba ?? 0.255;
-  const kpct      = sc?.kpct ?? p.kpct ?? 0.22;
-  const hh        = sc?.hardhitpct ?? p.hardhitpct ?? 0.38;
-  const barrel    = sc?.barrelpct ?? p.barrelpct ?? 0.07;
+  // xBA score
+  const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  const splitConf   = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
+  const xbaScore    = Math.round(rawXbaScore * splitConf + 50 * (1 - splitConf));
 
-  // Use stored scores if available, otherwise recalculate
-  const rawXbaScore  = dbg.rawXbaScore ?? Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
-  const splitConf    = dbg.splitConf   ?? (sc?.splitConfidence ?? 0);
-  const xbaScore     = dbg.xbaScore    ?? Math.round(rawXbaScore * splitConf + 50 * (1 - splitConf));
-  const contactAdj   = dbg.contactAdj  ?? (xba * (1 - kpct));
-  const contactScore = dbg.contactScore ?? Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
-  const barrelScore  = dbg.barrelScore  ?? Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
+  // Contact adj
+  const contactAdj  = xba * (1 - kpct);
+  const contactScore = Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
 
-  // Pitcher score — use stored _debug values for exact match
+  // Barrel score
+  const barrelScore = Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
+
+  // Pitcher score — use values already computed in computeScore (stored on player object)
+  // This ensures breakdown matches the actual score (avoids re-lookup failures)
   const spStats = getSPStats(p.pitcher, p.pitcherHand);
   let spScore, spDetail;
   if (p.spStatcast && p.spKpct != null) {
@@ -2780,12 +2772,56 @@ function showScoreBreakdown(playerName) {
   }
 
   const switchBonus = p.bats === 'S' ? 5 : 0;
-  const _matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
-  const _pitcherFactor = 0.70 + (_matchupScore / 100) * 0.60;
-  const _pitcherAdjContact = Math.min(100, Math.max(0, contactScore * _pitcherFactor));
+  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
+  const pitcherFactor = 0.70 + (matchupScore / 100) * 0.60;
+  const pitcherAdjContact = Math.min(100, Math.max(0, contactScore * pitcherFactor));
 
   // Park
-  
+  const pk = parkScore(p.venue);
+
+  // Order
+  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
+  const slotPA   = paBySlot[Math.min((p.battingOrder||5)-1, 8)];
+  const orderScore = Math.round(((slotPA-3.6)/(4.7-3.6))*100);
+
+  // Implied runs
+  let impliedScore = 50;
+  const ir = p.impliedRuns;
+  if (ir != null) {
+    const raw = Math.min(100,Math.max(0,((ir-2.0)/(7.0-2.0))*100));
+    impliedScore = Math.round(raw);
+    if ((p.battingOrder||5) >= 6 && ir < 4.5) {
+      const paPenalty = ((4.5 - ir) / (4.5 - 2.0)) * 15;
+      impliedScore = Math.max(0, Math.round(impliedScore - paPenalty));
+    }
+  }
+
+  const streakAdj = p.streakAdj || 0;
+  const rawComp = pitcherAdjContact*0.52 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.08 + pk.score*0.05;
+  const finalScore = Math.min(100, Math.max(0, Math.round(rawComp + streakAdj)));
+
+  // Build row helper
+  const row = (label, value, score, weight, contribution, note='', highlight=false) => `
+    <tr style="border-bottom:1px solid var(--border);${highlight?'background:var(--surface2);':''}">
+      <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${label}</td>
+      <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${value}</td>
+      <td style="padding:7px 10px;text-align:center;">
+        <span style="font-size:12px;font-weight:700;color:${score>=70?'var(--green)':score>=40?'var(--blue)':'var(--red)'};">${score.toFixed(0)}</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${weight}</td>
+      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;color:var(--text);">${contribution}</td>
+    </tr>`;
+
+  const subrow = (text) => `
+    <tr>
+      <td colspan="5" style="padding:2px 10px 5px 20px;font-size:11px;color:var(--muted);">${text}</td>
+    </tr>`;
+
+  const divider = (label) => `
+    <tr>
+      <td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${label}</td>
+    </tr>`;
+
   const tableHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
