@@ -2596,9 +2596,9 @@ function playerCard(p, rank) {
       </div>
       <div class="p-reasoning">${p.reasoning}</div>
     </div>
-    <div class="score-wrap">
+    <div class="score-wrap" data-player="${p.name}" onclick="showScoreBreakdown(this.dataset.player)" style="cursor:pointer;" title="Click for full score breakdown">
       <div class="score-big" style="color:${scColor}">${p.compositeScore}</div>
-      <div class="score-lbl">Score</div>
+      <div class="score-lbl">SCORE ▸</div>
       <div class="tier-badge">${p.tier}</div>
     </div>
   </div>`;
