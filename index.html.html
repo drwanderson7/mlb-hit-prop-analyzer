@@ -1187,14 +1187,17 @@ async function fetchStatcast() {
 
   // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
   // pitcher_hand=R/L gets true platoon splits (batter xBA vs RHP / vs LHP)
-  const [tCur, tPri, tPit, tPitPri, tRHP, tLHP] = await Promise.all([
+  // NOTE: pitcher_hand=R/L is NOT a valid Savant expected_statistics param
+  // Removing split fetches — they return bad/wrong data
+  // Using overall xBA only; platoon advantage still shown via platoonLabel()
+  const [tCur, tPri, tPit, tPitPri] = await Promise.all([
     fetchCsv('batter',  year, ''),      // overall batter xBA 2026
     fetchCsv('batter',  prev, ''),      // prior year batter for blend
     fetchCsv('pitcher', year, ''),      // pitcher stats 2026
     fetchCsv('pitcher', prev, ''),      // prior year pitcher for blend
-    fetchCsv('batter',  year, 'R'),     // xBA vs RHP (pitcher_hand=R)
-    fetchCsv('batter',  year, 'L'),     // xBA vs LHP (pitcher_hand=L)
   ]);
+  const tRHP = tCur;  // no valid split endpoint — use overall
+  const tLHP = tCur;
 
   const batterCur  = parseSavantCsv(tCur);
   const batterPri  = parseSavantCsv(tPri);
@@ -2187,6 +2190,7 @@ function scoreAllPlayers(games, maxOrder, minPA) {
           ...scored,
           scoreA: scoredA.compositeScore,
           tierA:  scoredA.tier,
+          _sc: sc,  // store exact statcast lookup used in scoring for breakdown accuracy
           name: p.name,
           team: myAbbr,
           teamFull: myTeam,
@@ -2714,9 +2718,10 @@ function showScoreBreakdown(playerName) {
   const p = allScoredPlayers.find(p => p.name === playerName);
   if (!p) return;
 
-  // Recompute all intermediate values on-demand
-  const nKey  = normalize(p.name);
-  const sc    = lookupStatcast(p.name, p.pitcherHand);
+  // Use the exact sc that was used during scoring (stored on player object)
+  // Re-lookup would give different results if liveVsRHP changed
+  const nKey = normalize(p.name);
+  const sc   = p._sc || lookupStatcast(p.name, p.pitcherHand);
   const xba   = sc?.xba ?? 0.255;
   const kpct  = sc?.kpct ?? 0.22;
   const hh    = sc?.hardhitpct ?? 0.38;
