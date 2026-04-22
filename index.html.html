@@ -1187,19 +1187,49 @@ async function fetchStatcast() {
 
   // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
   // pitcher_hand=R/L gets true platoon splits (batter xBA vs RHP / vs LHP)
-  const [tCur, tPri, tPit, tRHP, tLHP] = await Promise.all([
-    fetchCsv('batter', year, ''),      // overall xBA
-    fetchCsv('batter', prev, ''),      // prior year for blend
-    fetchCsv('pitcher', year, ''),     // pitcher stats
-    fetchCsv('batter', year, 'R'),     // xBA vs RHP (pitcher_hand=R)
-    fetchCsv('batter', year, 'L'),     // xBA vs LHP (pitcher_hand=L)
+  const [tCur, tPri, tPit, tPitPri, tRHP, tLHP] = await Promise.all([
+    fetchCsv('batter',  year, ''),      // overall batter xBA 2026
+    fetchCsv('batter',  prev, ''),      // prior year batter for blend
+    fetchCsv('pitcher', year, ''),      // pitcher stats 2026
+    fetchCsv('pitcher', prev, ''),      // prior year pitcher for blend
+    fetchCsv('batter',  year, 'R'),     // xBA vs RHP (pitcher_hand=R)
+    fetchCsv('batter',  year, 'L'),     // xBA vs LHP (pitcher_hand=L)
   ]);
 
   const batterCur  = parseSavantCsv(tCur);
   const batterPri  = parseSavantCsv(tPri);
   const vsRHPCur   = parseSavantCsv(tRHP);
   const vsLHPCur   = parseSavantCsv(tLHP);
-  const pitcherMap = parseSavantCsv(tPit, 'pitcher');
+  const pitcherMapCur = parseSavantCsv(tPit, 'pitcher');
+  const pitcherMapPri = parseSavantCsv(tPitPri, 'pitcher');
+
+  // Blend pitcher stats: same 80/20 logic as batters
+  // Full weight to 2026 at 150 BF (pitchers need more sample than batters)
+  // Below 50 BF: mostly 2025
+  const pitcherMap = {};
+  const PITCHER_THRESH = 150; // BF for full 2026 weight
+  new Set([...Object.keys(pitcherMapCur), ...Object.keys(pitcherMapPri)]).forEach(key => {
+    const c = pitcherMapCur[key];
+    const p = pitcherMapPri[key];
+    if (!c && !p) return;
+    if (!p) { pitcherMap[key] = { ...c, source: '2026-only' }; return; }
+    if (!c || (c.pa||0) < 10) { pitcherMap[key] = { ...p, source: '2025-only' }; return; }
+    const wC = Math.min(0.80, (c.pa||0) / PITCHER_THRESH);
+    const wP = 1 - wC;
+    const bv = (a, b) => a==null&&b==null ? null : a==null ? b : b==null ? a : parseFloat((a*wC+b*wP).toFixed(4));
+    const wCpct = Math.round(wC*100);
+    pitcherMap[key] = {
+      name: c.name||p.name,
+      pa: c.pa,
+      paRaw: c.pa,  // raw 2026 BF for transparency
+      xbaAllowed:     bv(c.xbaAllowed,     p.xbaAllowed),
+      kpct:           bv(c.kpct,           p.kpct),
+      hardHitAllowed: bv(c.hardHitAllowed, p.hardHitAllowed),
+      barrelAllowed:  bv(c.barrelAllowed,  p.barrelAllowed),
+      whiffPct:       bv(c.whiffPct,       p.whiffPct),
+      source: `blend(${wCpct}%26/${100-wCpct}%25)`,
+    };
+  });
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
   liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
@@ -2700,16 +2730,17 @@ function showScoreBreakdown(playerName) {
   // Barrel score
   const barrelScore = Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
 
-  // Pitcher score
-  const spSC = p.spStatcast ? livePitchers[normalize(p.pitcher)] : null;
+  // Pitcher score — use values already computed in computeScore (stored on player object)
+  // This ensures breakdown matches the actual score (avoids re-lookup failures)
   const spStats = getSPStats(p.pitcher, p.pitcherHand);
   let spScore, spDetail;
-  if (p.spStatcast && spSC) {
-    const spK   = spSC.kpct ?? 0.22;
-    const spXBA = spSC.xbaAllowed ?? 0.255;
-    const spHH  = spSC.hardHitAllowed ?? 0.38;
-    const spWh  = spSC.whiffPct ?? 0.25;
-    const spBar = spSC.barrelAllowed ?? 0.07;
+  if (p.spStatcast && p.spKpct != null) {
+    const spK   = p.spKpct  ?? 0.22;
+    const spXBA = p.spXBA   ?? 0.255;
+    const spHH  = p.spHH    ?? 0.38;
+    const spSC2 = livePitchers[normalize(p.pitcher)] || {};
+    const spWh  = spSC2.whiffPct       ?? 0.25;
+    const spBar = spSC2.barrelAllowed  ?? 0.07;
     const kComp   = Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
     const xbaComp = Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
     const hhComp  = Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
