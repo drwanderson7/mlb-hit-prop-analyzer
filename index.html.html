@@ -622,6 +622,346 @@ function parkScore(venue) {
   return { label: 'Pitcher-Friendly', cls: 'bad', score: 0 };
 }
 
+// ── Early function definitions (must load before line 3680 GitHub truncation) ──
+
+function purgeOldLineupSaves() {
+  try {
+    const cutoff = Date.now() - (4 * 60 * 60 * 1000);
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('mlbLineup_') || k.startsWith('mlbImported_')) {
+        try {
+          const ts = parseInt(localStorage.getItem(k + '_ts') || '0');
+          if (ts && ts < cutoff) {
+            localStorage.removeItem(k);
+            localStorage.removeItem(k + '_ts');
+          }
+        } catch(e) {}
+      }
+    });
+  } catch(e) {}
+}
+
+
+
+function generateSyncCode() {
+  const area = document.getElementById('syncCodeArea');
+  const box  = document.getElementById('syncCodeBox');
+  const imp  = document.getElementById('importCodeArea');
+  if (!area || !box) return;
+  if (imp) imp.style.display = 'none';
+  try {
+    const payload = { pools, savedAt: new Date().toISOString(), v: 1 };
+    const code = btoa(encodeURIComponent(JSON.stringify(payload)));
+    box.value = code;
+    area.style.display = 'block';
+    box.select();
+  } catch(e) { alert('Error generating sync code: ' + e.message); }
+}
+
+
+
+function copySyncCode() {
+  const box = document.getElementById('syncCodeBox');
+  const status = document.getElementById('syncCopyStatus');
+  if (!box) return;
+  box.select();
+  try {
+    navigator.clipboard.writeText(box.value).then(() => {
+      if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
+    }).catch(() => { document.execCommand('copy'); if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); } });
+  } catch(e) { document.execCommand('copy'); }
+}
+
+
+
+function showImportCode() {
+  const area = document.getElementById('importCodeArea');
+  const syncArea = document.getElementById('syncCodeArea');
+  if (!area) return;
+  if (syncArea) syncArea.style.display = 'none';
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  if (area.style.display === 'block') setTimeout(() => document.getElementById('importCodeBox')?.focus(), 100);
+}
+
+
+
+function importSyncCode() {
+  const box    = document.getElementById('importCodeBox');
+  const status = document.getElementById('importStatus');
+  if (!box) return;
+  try {
+    const code = box.value.trim();
+    if (!code) { if (status) { status.textContent = 'Paste a sync code first'; status.style.color = 'var(--red)'; } return; }
+    const payload = JSON.parse(decodeURIComponent(atob(code)));
+    if (!payload.pools || !Array.isArray(payload.pools)) throw new Error('Invalid sync code');
+    pools = payload.pools;
+    localStorage.setItem('survivorPools', JSON.stringify(pools));
+    renderPools();
+    refreshResultPoolStatus();
+    checkShowExposureCard();
+    const savedAt = payload.savedAt ? new Date(payload.savedAt).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : 'unknown';
+    if (status) { status.textContent = `✓ Imported ${pools.length} pools (saved ${savedAt})`; status.style.color = 'var(--green)'; }
+    document.getElementById('importCodeArea').style.display = 'none';
+    box.value = '';
+  } catch(e) {
+    if (status) { status.textContent = '✗ Invalid code — copy it exactly as generated'; status.style.color = 'var(--red)'; }
+  }
+}
+
+
+
+function showScoreBreakdown(playerName) {
+  const p = allScoredPlayers.find(p => p.name === playerName);
+  if (!p) return;
+
+  const sc = lookupStatcast(p.name, p.pitcherHand);
+  const xba    = p.xba    ?? sc?.xba    ?? 0.255;
+  const kpct   = p.kpct   ?? sc?.kpct   ?? 0.22;
+  const barrel = p.barrelpct ?? sc?.barrelpct ?? 0.07;
+
+  const rawXbaScore  = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  const contactAdj   = xba * (1 - kpct);
+  const contactScore = p.contactScore ?? Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
+  const barrelScore  = p.barrelScoreValue ?? Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
+
+  const spStats = getSPStats(p.pitcher, p.pitcherHand);
+  let spScore, spDetail;
+  if (p.spStatcast && p.spKpct != null) {
+    const spK = p.spKpct ?? 0.22;
+    const spXBA = p.spXBA ?? 0.255;
+    const spHH  = p.spHH  ?? 0.38;
+    const spSC2 = livePitchers[normalize(p.pitcher)] || {};
+    const spWh  = spSC2.whiffPct ?? 0.25;
+    const spBar = spSC2.barrelAllowed ?? 0.07;
+    const kComp   = Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
+    const xbaComp = Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
+    const hhComp  = Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
+    const whComp  = Math.min(100,Math.max(0,(1-(spWh-0.15)/(0.42-0.15))*100));
+    const barComp = Math.min(100,Math.max(0,((spBar-0.02)/(0.18-0.02))*100));
+    spScore = kComp*0.38 + xbaComp*0.35 + hhComp*0.15 + whComp*0.08 + barComp*0.04;
+    spDetail = `K%: ${(spK*100).toFixed(0)}% → comp ${kComp.toFixed(0)} × 38%<br>xBA allowed: ${spXBA.toFixed(3)} → comp ${xbaComp.toFixed(0)} × 35%<br>HH%: ${(spHH*100).toFixed(0)}% → comp ${hhComp.toFixed(0)} × 15%`;
+  } else {
+    const k9 = spStats.k9 || 8.5;
+    const whip = spStats.whip || 1.35;
+    const k9Comp   = Math.min(100,Math.max(0,(1-(k9-4.0)/(14.0-4.0))*100));
+    const whipComp = Math.min(100,Math.max(0,((whip-0.80)/(1.90-0.80))*100));
+    spScore = k9Comp*0.65 + whipComp*0.35;
+    spDetail = `K/9: ${k9.toFixed(1)} → comp ${k9Comp.toFixed(0)} × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${whipComp.toFixed(0)} × 35%`;
+  }
+
+  const matchupScore      = p.matchupScore      ?? spScore;
+  const pitcherFactor     = p.pitcherFactor     ?? (0.70 + (matchupScore/100)*0.60);
+  const pitcherAdjContact = p.pitcherAdjContact ?? Math.min(100, Math.max(0, contactScore * pitcherFactor));
+  const pk           = parkScore(p.venue);
+  const pkScore      = p.parkScoreValue  ?? pk.score;
+  const pkLabel      = p.parkScoreLabel  ?? pk.label;
+  const paBySlot     = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
+  const slotPA       = p.slotPA          ?? paBySlot[Math.min((p.battingOrder||5)-1,8)];
+  const orderScore   = p.orderScoreValue ?? Math.round(((slotPA-3.6)/(4.7-3.6))*100);
+  const impliedScore = p.impliedScoreValue ?? 50;
+  const platoonAdj   = p.platoonAdj ?? 0;
+  const streakAdj    = p.streakAdj  || 0;
+  const ir           = p.impliedRuns;
+  const rawComp      = p.rawComposite ?? (pitcherAdjContact*0.56 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.04 + pkScore*0.05 + platoonAdj);
+  const finalScore   = p.compositeScore;
+
+  const row = (label, value, score, weight, contribution, note='', highlight=false) =>
+    `<tr style="border-bottom:1px solid var(--border);${highlight?'background:var(--surface2);':''}">
+      <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${label}</td>
+      <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${value}</td>
+      <td style="padding:7px 10px;text-align:center;"><span style="font-size:12px;font-weight:700;color:${score>=70?'var(--green)':score>=40?'var(--blue)':'var(--red)'};">${score.toFixed(0)}</span></td>
+      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${weight}</td>
+      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;">${contribution}</td>
+    </tr>`;
+  const subrow = (text) => `<tr><td colspan="5" style="padding:2px 10px 5px 20px;font-size:11px;color:var(--muted);">${text}</td></tr>`;
+  const divider = (label) => `<tr><td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${label}</td></tr>`;
+
+  const tableHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
+      <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Component</th>
+      <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Value</th>
+      <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Score/100</th>
+      <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Weight</th>
+      <th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Points</th>
+    </tr></thead>
+    <tbody>
+      ${divider('── Batter Profile ──')}
+      ${row('xBA (overall)', xba.toFixed(3), rawXbaScore, '—', '(used below)')}
+      ${row('K%', (kpct*100).toFixed(1)+'%', 100-kpct*250, '—', '(used below)')}
+      ${row('Contact-adj xBA (xBA×(1-K%))', contactAdj.toFixed(3), contactScore, '—', `raw score ${contactScore.toFixed(0)}`)}
+      ${row('Barrel%', (barrel*100).toFixed(1)+'%', barrelScore, '4%', (barrelScore*0.04).toFixed(1)+' pts')}
+      ${divider('── Pitcher Matchup ──')}
+      ${row(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
+      ${p.spStatcast&&p.spKpct!=null ? subrow(`K%: ${(p.spKpct*100).toFixed(1)}% · xBA allowed: ${p.spXBA!=null?p.spXBA.toFixed(3):'N/A'}<br>${(()=>{const lp=livePitchers[normalize(p.pitcher)];return lp?`${lp.pa||'?'} BF in 2026 · ${lp.source||'live'}`:''})()}`) : ''}
+      ${subrow(spDetail)}
+      ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '56%', (pitcherAdjContact*0.56).toFixed(1)+' pts', '', true)}
+      ${divider('── Game Environment ──')}
+      ${row('Batting order (slot '+p.battingOrder+')', slotPA.toFixed(1)+' PA/game', orderScore, '8%', (orderScore*0.08).toFixed(1)+' pts')}
+      ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScore, '14%', (impliedScore*0.14).toFixed(1)+' pts', ir!=null&&(p.battingOrder||5)>=6&&ir<4.5?`PA penalty applied`:'Same for all slots')}
+      ${row('Park factor', pkLabel, pkScore, '5%', (pkScore*0.05).toFixed(1)+' pts')}
+      ${platoonAdj!==0?row('Platoon bonus', p.platoon?.label||'Favorable', 65, 'flat', (platoonAdj>0?'+':'')+platoonAdj+' pts'):''}
+      ${streakAdj!==0?row('Streak adj', streakAdj>0?'🔥 Hot':'🧊 Cold', 50+streakAdj*10, '—', (streakAdj>0?'+':'')+streakAdj+' pts'):''}
+      ${divider('── Final Score ──')}
+      <tr style="background:var(--surface2);">
+        <td colspan="3" style="padding:10px;font-weight:700;font-size:14px;">COMPOSITE SCORE</td>
+        <td style="padding:10px;text-align:center;font-size:11px;color:var(--muted);">sum</td>
+        <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${finalScore>=65?'var(--green)':finalScore>=57?'var(--blue)':finalScore>=48?'var(--yellow)':'var(--red)'};">${finalScore}</td>
+      </tr>
+      <tr><td colspan="5" style="padding:4px 10px 8px;font-size:11px;color:var(--muted);">
+        Raw: ${rawComp.toFixed(2)} pts${streakAdj!==0?' + '+streakAdj+' streak adj':''} = ${finalScore} · Tier: <strong>${p.tier}</strong> · Platoon: ${p.platoon?.label||'—'}
+      </td></tr>
+    </tbody></table>`;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = `<div style="background:var(--surface);border-radius:12px;width:640px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;">
+      <div><div style="font-weight:700;font-size:15px;">${p.name} — Full Score Breakdown</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">${p.teamFull} · vs ${p.pitcher} (${p.pitcherHand}) · ${p.venue}</div></div>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;">×</button>
+    </div>
+    <div style="padding:0;">${tableHTML}</div>
+    <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
+      💡 Click the score on any player card to see this breakdown.
+    </div></div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+
+
+
+function cloudSave() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Saving…';
+  const pin = 'DREW_MLB_POOLS'; // fixed key — only you use this
+  const payload = {
+    pools,
+    tracker: typeof picks !== 'undefined' ? picks : [],
+    savedAt: new Date().toISOString(),
+    pin,
+  };
+  fetch('/api/kv?pin=' + pin, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
+    if (status) {
+      status.textContent = '✓ Saved at ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      status.style.color = 'var(--green)';
+    }
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
+}
+
+
+
+function cloudLoad() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Loading…';
+  const pin = 'DREW_MLB_POOLS';
+  fetch('/api/kv?pin=' + pin)
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
+    const data = d.data;
+    if (data?.pools) {
+      pools = data.pools;
+      localStorage.setItem('survivorPools', JSON.stringify(pools));
+      renderPools();
+      refreshResultPoolStatus();
+      const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'unknown';
+      if (status) {
+        status.textContent = `✓ Loaded (saved ${savedAt})`;
+        status.style.color = 'var(--green)';
+      }
+    } else {
+      throw new Error('No saved pools found');
+    }
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
+}
+
+
+
+function triggerAutoSave() {}
+// ── End early definitions ──
+
+function loadSavedLineups() {
+  try {
+    const saved = localStorage.getItem('mlbSavedLineups');
+    if (saved) {
+      const data = JSON.parse(saved);
+      const cutoff = Date.now() - (4 * 60 * 60 * 1000);
+      if (data.ts && data.ts > cutoff && data.lineups) return data.lineups;
+    }
+  } catch(e) {}
+  return null;
+}
+
+function renderPicksSidebar() {
+  const el = document.getElementById('picksSidebar');
+  if (!el || !allScoredPlayers.length) return;
+  const today = new Date().toLocaleDateString('en-CA');
+  const activePool = pools.find(p => p.id === activePoolId);
+  const usedNames = activePool
+    ? new Set(activePool.used.map(u => (typeof u === 'string' ? u : u.name).toLowerCase()))
+    : new Set();
+  const top20 = allScoredPlayers.slice(0, 20);
+  const scoreColor = s => s >= 65 ? 'var(--green)' : s >= 57 ? 'var(--blue)' : 'var(--yellow)';
+  const header = activePool
+    ? `<div style="font-size:11px;background:var(--blue);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:8px;text-align:center;">Click a player to add to <strong>${activePool.name}</strong></div>`
+    : `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-align:center;">Activate a pool to quick-add picks</div>`;
+  el.innerHTML = header + top20.map(p => {
+    const isUsed = usedNames.has(p.name.toLowerCase());
+    return `<div onclick="${activePool && !isUsed ? `markUsed('${p.name}','${activePool.id}','${today}')` : ''}"
+      style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-bottom:3px;
+      cursor:${activePool && !isUsed ? 'pointer' : 'default'};background:${isUsed ? 'var(--surface2)' : 'transparent'};opacity:${isUsed ? '0.5' : '1'};"
+      onmouseenter="if(!${isUsed})this.style.background='var(--surface2)'"
+      onmouseleave="this.style.background='${isUsed ? 'var(--surface2)' : 'transparent'}'">
+      <span style="font-weight:700;color:${scoreColor(p.compositeScore)};font-size:13px;min-width:28px;">${p.compositeScore}</span>
+      <span style="font-size:12px;flex:1;font-weight:${isUsed ? '400' : '600'};">${p.name}</span>
+      <span style="font-size:10px;color:var(--muted);">${p.team}</span>
+      ${isUsed ? '<span style="font-size:10px;color:var(--muted);">✓</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function computeScoreModelA(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns, streak) {
+  const xba    = (sc?.xba   != null && sc.xba   > 0) ? sc.xba   : 0.255;
+  const kpct   = (sc?.kpct  != null) ? sc.kpct  : 0.22;
+  const hh     = (sc?.hardhitpct != null) ? sc.hardhitpct : 0.38;
+  const barrel = (sc?.barrelpct  != null) ? sc.barrelpct  : 0.07;
+  const xbaScore   = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  const kScore     = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
+  const hhScore    = Math.min(100, Math.max(0, ((hh - 0.25) / (0.60 - 0.25)) * 100));
+  const brlScore   = Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
+  const pk         = parkScore(venue);
+  const paBySlot   = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
+  const orderScore = Math.round(((paBySlot[Math.min(player.order-1,8)] - 3.6) / 1.1) * 100);
+  let impliedScore = 50;
+  if (impliedRuns != null) impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.0) / 5.0) * 100));
+  const k9   = spStats?.k9   || 8.5;
+  const whip = spStats?.whip || 1.35;
+  const spScore = Math.min(100, Math.max(0, (1-(k9-4.0)/10.0)*65 + ((whip-0.80)/1.10)*35));
+  const composite = Math.round(xbaScore*0.30 + kScore*0.22 + spScore*0.18 + orderScore*0.12 + hhScore*0.08 + brlScore*0.05 + pk.score*0.05);
+  const clamped = Math.min(100, Math.max(0, composite));
+  let tier = 'Avoid';
+  if (clamped >= 65) tier = 'Elite';
+  else if (clamped >= 57) tier = 'Strong';
+  else if (clamped >= 48) tier = 'Lean';
+  return { compositeScore: clamped, tier };
+}
+
+
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let todayGames = [];
 let selectedPks = new Set();
@@ -3667,264 +4007,13 @@ async function loadFromCloud() {
 
 // Auto-save to cloud whenever pools change (debounced)
 let cloudSaveTimer = null;
-function cloudSave() {
-  const status = document.getElementById('syncStatus');
-  if (status) status.textContent = 'Saving…';
-  const pin = 'DREW_MLB_POOLS'; // fixed key — only you use this
-  const payload = {
-    pools,
-    tracker: typeof picks !== 'undefined' ? picks : [],
-    savedAt: new Date().toISOString(),
-    pin,
-  };
-  fetch('/api/kv?pin=' + pin, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.error) throw new Error(d.error);
-    if (status) {
-      status.textContent = '✓ Saved at ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      status.style.color = 'var(--green)';
-    }
-  })
-  .catch(e => {
-    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
-  });
-}
-
-function cloudLoad() {
-  const status = document.getElementById('syncStatus');
-  if (status) status.textContent = 'Loading…';
-  const pin = 'DREW_MLB_POOLS';
-  fetch('/api/kv?pin=' + pin)
-  .then(r => r.json())
-  .then(d => {
-    if (d.error) throw new Error(d.error);
-    const data = d.data;
-    if (data?.pools) {
-      pools = data.pools;
-      localStorage.setItem('survivorPools', JSON.stringify(pools));
-      renderPools();
-      refreshResultPoolStatus();
-      const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'unknown';
-      if (status) {
-        status.textContent = `✓ Loaded (saved ${savedAt})`;
-        status.style.color = 'var(--green)';
-      }
-    } else {
-      throw new Error('No saved pools found');
-    }
-  })
-  .catch(e => {
-    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
-  });
-}
-
 // Remove old PIN-based functions (replaced by cloudSave/cloudLoad above)
-function triggerAutoSave() {} // no-op — sync is now manual
+ // no-op — sync is now manual
 function getSyncPin() { return 'DREW_MLB_POOLS'; }
-
-function generateSyncCode() {
-  const area = document.getElementById('syncCodeArea');
-  const box  = document.getElementById('syncCodeBox');
-  const imp  = document.getElementById('importCodeArea');
-  if (!area || !box) return;
-  if (imp) imp.style.display = 'none';
-  try {
-    const payload = { pools, savedAt: new Date().toISOString(), v: 1 };
-    const code = btoa(encodeURIComponent(JSON.stringify(payload)));
-    box.value = code;
-    area.style.display = 'block';
-    box.select();
-  } catch(e) { alert('Error generating sync code: ' + e.message); }
-}
-
-function copySyncCode() {
-  const box = document.getElementById('syncCodeBox');
-  const status = document.getElementById('syncCopyStatus');
-  if (!box) return;
-  box.select();
-  try {
-    navigator.clipboard.writeText(box.value).then(() => {
-      if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
-    }).catch(() => { document.execCommand('copy'); if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); } });
-  } catch(e) { document.execCommand('copy'); }
-}
-
-function showImportCode() {
-  const area = document.getElementById('importCodeArea');
-  const syncArea = document.getElementById('syncCodeArea');
-  if (!area) return;
-  if (syncArea) syncArea.style.display = 'none';
-  area.style.display = area.style.display === 'none' ? 'block' : 'none';
-  if (area.style.display === 'block') setTimeout(() => document.getElementById('importCodeBox')?.focus(), 100);
-}
-
-function importSyncCode() {
-  const box    = document.getElementById('importCodeBox');
-  const status = document.getElementById('importStatus');
-  if (!box) return;
-  try {
-    const code = box.value.trim();
-    if (!code) { if (status) { status.textContent = 'Paste a sync code first'; status.style.color = 'var(--red)'; } return; }
-    const payload = JSON.parse(decodeURIComponent(atob(code)));
-    if (!payload.pools || !Array.isArray(payload.pools)) throw new Error('Invalid sync code');
-    pools = payload.pools;
-    localStorage.setItem('survivorPools', JSON.stringify(pools));
-    renderPools();
-    refreshResultPoolStatus();
-    checkShowExposureCard();
-    const savedAt = payload.savedAt ? new Date(payload.savedAt).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : 'unknown';
-    if (status) { status.textContent = `✓ Imported ${pools.length} pools (saved ${savedAt})`; status.style.color = 'var(--green)'; }
-    document.getElementById('importCodeArea').style.display = 'none';
-    box.value = '';
-  } catch(e) {
-    if (status) { status.textContent = '✗ Invalid code — copy it exactly as generated'; status.style.color = 'var(--red)'; }
-  }
-}
 
 function cloudSave() { generateSyncCode(); }
 function cloudLoad() { showImportCode(); }
 function triggerAutoSave() {}
-
-function showScoreBreakdown(playerName) {
-  const p = allScoredPlayers.find(p => p.name === playerName);
-  if (!p) return;
-
-  const sc = lookupStatcast(p.name, p.pitcherHand);
-  const xba    = p.xba    ?? sc?.xba    ?? 0.255;
-  const kpct   = p.kpct   ?? sc?.kpct   ?? 0.22;
-  const barrel = p.barrelpct ?? sc?.barrelpct ?? 0.07;
-
-  const rawXbaScore  = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
-  const contactAdj   = xba * (1 - kpct);
-  const contactScore = p.contactScore ?? Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
-  const barrelScore  = p.barrelScoreValue ?? Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
-
-  const spStats = getSPStats(p.pitcher, p.pitcherHand);
-  let spScore, spDetail;
-  if (p.spStatcast && p.spKpct != null) {
-    const spK = p.spKpct ?? 0.22;
-    const spXBA = p.spXBA ?? 0.255;
-    const spHH  = p.spHH  ?? 0.38;
-    const spSC2 = livePitchers[normalize(p.pitcher)] || {};
-    const spWh  = spSC2.whiffPct ?? 0.25;
-    const spBar = spSC2.barrelAllowed ?? 0.07;
-    const kComp   = Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
-    const xbaComp = Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
-    const hhComp  = Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
-    const whComp  = Math.min(100,Math.max(0,(1-(spWh-0.15)/(0.42-0.15))*100));
-    const barComp = Math.min(100,Math.max(0,((spBar-0.02)/(0.18-0.02))*100));
-    spScore = kComp*0.38 + xbaComp*0.35 + hhComp*0.15 + whComp*0.08 + barComp*0.04;
-    spDetail = `K%: ${(spK*100).toFixed(0)}% → comp ${kComp.toFixed(0)} × 38%<br>xBA allowed: ${spXBA.toFixed(3)} → comp ${xbaComp.toFixed(0)} × 35%<br>HH%: ${(spHH*100).toFixed(0)}% → comp ${hhComp.toFixed(0)} × 15%`;
-  } else {
-    const k9 = spStats.k9 || 8.5;
-    const whip = spStats.whip || 1.35;
-    const k9Comp   = Math.min(100,Math.max(0,(1-(k9-4.0)/(14.0-4.0))*100));
-    const whipComp = Math.min(100,Math.max(0,((whip-0.80)/(1.90-0.80))*100));
-    spScore = k9Comp*0.65 + whipComp*0.35;
-    spDetail = `K/9: ${k9.toFixed(1)} → comp ${k9Comp.toFixed(0)} × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${whipComp.toFixed(0)} × 35%`;
-  }
-
-  const matchupScore      = p.matchupScore      ?? spScore;
-  const pitcherFactor     = p.pitcherFactor     ?? (0.70 + (matchupScore/100)*0.60);
-  const pitcherAdjContact = p.pitcherAdjContact ?? Math.min(100, Math.max(0, contactScore * pitcherFactor));
-  const pk           = parkScore(p.venue);
-  const pkScore      = p.parkScoreValue  ?? pk.score;
-  const pkLabel      = p.parkScoreLabel  ?? pk.label;
-  const paBySlot     = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
-  const slotPA       = p.slotPA          ?? paBySlot[Math.min((p.battingOrder||5)-1,8)];
-  const orderScore   = p.orderScoreValue ?? Math.round(((slotPA-3.6)/(4.7-3.6))*100);
-  const impliedScore = p.impliedScoreValue ?? 50;
-  const platoonAdj   = p.platoonAdj ?? 0;
-  const streakAdj    = p.streakAdj  || 0;
-  const ir           = p.impliedRuns;
-  const rawComp      = p.rawComposite ?? (pitcherAdjContact*0.56 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.04 + pkScore*0.05 + platoonAdj);
-  const finalScore   = p.compositeScore;
-
-  const row = (label, value, score, weight, contribution, note='', highlight=false) =>
-    `<tr style="border-bottom:1px solid var(--border);${highlight?'background:var(--surface2);':''}">
-      <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${label}</td>
-      <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${value}</td>
-      <td style="padding:7px 10px;text-align:center;"><span style="font-size:12px;font-weight:700;color:${score>=70?'var(--green)':score>=40?'var(--blue)':'var(--red)'};">${score.toFixed(0)}</span></td>
-      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${weight}</td>
-      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;">${contribution}</td>
-    </tr>`;
-  const subrow = (text) => `<tr><td colspan="5" style="padding:2px 10px 5px 20px;font-size:11px;color:var(--muted);">${text}</td></tr>`;
-  const divider = (label) => `<tr><td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${label}</td></tr>`;
-
-  const tableHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
-    <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
-      <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Component</th>
-      <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Value</th>
-      <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Score/100</th>
-      <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Weight</th>
-      <th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Points</th>
-    </tr></thead>
-    <tbody>
-      ${divider('── Batter Profile ──')}
-      ${row('xBA (overall)', xba.toFixed(3), rawXbaScore, '—', '(used below)')}
-      ${row('K%', (kpct*100).toFixed(1)+'%', 100-kpct*250, '—', '(used below)')}
-      ${row('Contact-adj xBA (xBA×(1-K%))', contactAdj.toFixed(3), contactScore, '—', `raw score ${contactScore.toFixed(0)}`)}
-      ${row('Barrel%', (barrel*100).toFixed(1)+'%', barrelScore, '4%', (barrelScore*0.04).toFixed(1)+' pts')}
-      ${divider('── Pitcher Matchup ──')}
-      ${row(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
-      ${p.spStatcast&&p.spKpct!=null ? subrow(`K%: ${(p.spKpct*100).toFixed(1)}% · xBA allowed: ${p.spXBA!=null?p.spXBA.toFixed(3):'N/A'}<br>${(()=>{const lp=livePitchers[normalize(p.pitcher)];return lp?`${lp.pa||'?'} BF in 2026 · ${lp.source||'live'}`:''})()}`) : ''}
-      ${subrow(spDetail)}
-      ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '56%', (pitcherAdjContact*0.56).toFixed(1)+' pts', '', true)}
-      ${divider('── Game Environment ──')}
-      ${row('Batting order (slot '+p.battingOrder+')', slotPA.toFixed(1)+' PA/game', orderScore, '8%', (orderScore*0.08).toFixed(1)+' pts')}
-      ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScore, '14%', (impliedScore*0.14).toFixed(1)+' pts', ir!=null&&(p.battingOrder||5)>=6&&ir<4.5?`PA penalty applied`:'Same for all slots')}
-      ${row('Park factor', pkLabel, pkScore, '5%', (pkScore*0.05).toFixed(1)+' pts')}
-      ${platoonAdj!==0?row('Platoon bonus', p.platoon?.label||'Favorable', 65, 'flat', (platoonAdj>0?'+':'')+platoonAdj+' pts'):''}
-      ${streakAdj!==0?row('Streak adj', streakAdj>0?'🔥 Hot':'🧊 Cold', 50+streakAdj*10, '—', (streakAdj>0?'+':'')+streakAdj+' pts'):''}
-      ${divider('── Final Score ──')}
-      <tr style="background:var(--surface2);">
-        <td colspan="3" style="padding:10px;font-weight:700;font-size:14px;">COMPOSITE SCORE</td>
-        <td style="padding:10px;text-align:center;font-size:11px;color:var(--muted);">sum</td>
-        <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${finalScore>=65?'var(--green)':finalScore>=57?'var(--blue)':finalScore>=48?'var(--yellow)':'var(--red)'};">${finalScore}</td>
-      </tr>
-      <tr><td colspan="5" style="padding:4px 10px 8px;font-size:11px;color:var(--muted);">
-        Raw: ${rawComp.toFixed(2)} pts${streakAdj!==0?' + '+streakAdj+' streak adj':''} = ${finalScore} · Tier: <strong>${p.tier}</strong> · Platoon: ${p.platoon?.label||'—'}
-      </td></tr>
-    </tbody></table>`;
-
-  const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML = `<div style="background:var(--surface);border-radius:12px;width:640px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;">
-      <div><div style="font-weight:700;font-size:15px;">${p.name} — Full Score Breakdown</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px;">${p.teamFull} · vs ${p.pitcher} (${p.pitcherHand}) · ${p.venue}</div></div>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;">×</button>
-    </div>
-    <div style="padding:0;">${tableHTML}</div>
-    <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
-      💡 Click the score on any player card to see this breakdown.
-    </div></div>`;
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  document.body.appendChild(modal);
-}
-
-
-function purgeOldLineupSaves() {
-  try {
-    const cutoff = Date.now() - (4 * 60 * 60 * 1000);
-    Object.keys(localStorage).forEach(k => {
-      if (k.startsWith('mlbLineup_') || k.startsWith('mlbImported_')) {
-        try {
-          const ts = parseInt(localStorage.getItem(k + '_ts') || '0');
-          if (ts && ts < cutoff) {
-            localStorage.removeItem(k);
-            localStorage.removeItem(k + '_ts');
-          }
-        } catch(e) {}
-      }
-    });
-  } catch(e) {}
-}
 
 </script>
 </body>
