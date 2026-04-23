@@ -132,25 +132,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   .panel{padding:10px 12px;}
   body{font-size:14px;}
 
-  /* POOLS - stack layout vertically, sidebar below */
-  .pools-layout{flex-direction:column !important;gap:10px !important;}
-  .pools-sidebar{width:100% !important;position:static !important;}
-
-  /* Pool table - make it scrollable horizontally */
-  #poolTableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  #poolTableWrap table{min-width:560px;}
-
-  /* Pool summary cards - 2 per row */
-  .cross-pool-today{display:grid !important;grid-template-columns:1fr 1fr;gap:8px !important;}
-  .cross-pool-today > div{min-width:0 !important;}
-
-  /* Sync code */
-  #syncCodeBox,#importCodeBox{font-size:10px !important;height:60px !important;}
-
-  /* Exposure calc table - scrollable */
-  #exposureOutput{overflow-x:auto;}
-  #exposureOutput table{min-width:480px;}
-
   /* Nav tabs - scrollable on mobile */
   .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
   .tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
@@ -213,32 +194,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   #compareModeBtn{font-size:11px;padding:5px 10px;}
 
   /* Pools table - horizontal scroll */
-  
-  /* Stack pools layout vertically on mobile */
-  .pools-layout{flex-direction:column !important;gap:10px !important;}
-  .pools-sidebar{width:100% !important;position:static !important;order:999;}
-
-  /* Pool table - horizontal scroll for date columns */
-  .pools-layout table{min-width:500px;}
-  .pools-layout .card{overflow-x:auto;}
-
-  /* Pool summary cards - horizontal scroll */
-  #poolSummaryCards{overflow-x:auto;-webkit-overflow-scrolling:touch;
-    display:flex !important;flex-wrap:nowrap !important;gap:8px !important;padding-bottom:4px;}
-  #poolSummaryCards > div{min-width:130px !important;flex-shrink:0;}
-
-  /* Sync code textarea */
-  #syncCodeBox,#importCodeBox{font-size:10px !important;}
-
-  /* Pool header buttons */
-  .card-header{flex-wrap:wrap;gap:6px;}
-  .card-header button{font-size:11px !important;padding:4px 8px !important;}
-
-  /* Exposure calculator table */
-  #exposureOutput table{font-size:11px;}
-  #exposureOutput td,#exposureOutput th{padding:5px 6px !important;}
-}
-.pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
   /* Status pills at top */
   .status-bar{flex-wrap:wrap;gap:4px;}
@@ -246,27 +202,6 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 
   /* xBA breakdown modal */
   div[style*="width:480px"]{width:95vw !important;}
-}
-
-/* Schedule tab mobile */
-@media(max-width:640px){
-  /* Analyze - settings bar wrap */
-  .settings-bar{flex-wrap:wrap;gap:8px;}
-  .settings-bar label{font-size:11px;}
-  .settings-bar select{font-size:12px;}
-
-  /* Schedule - reduce first column */
-  .sched-header,.sched-row{gap:4px !important;}
-  #scheduleViewContent{font-size:12px;}
-
-  /* Tracker - truncate long text */
-  .tracker-pitcher{display:none;}
-  .tracker-row{font-size:12px;}
-  .tracker-row span[style*="flex:1"]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;}
-
-  /* Help tab - readable */
-  .card-body{font-size:13px;line-height:1.6;}
-  .help-grid{grid-template-columns:1fr !important;}
 }
 
 /* Very small screens */
@@ -558,30 +493,12 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
     </div>
     <div class="card-body" id="poolsContent">
       <!-- Cloud sync bar -->
-      <div style="padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span style="font-size:12px;font-weight:700;color:var(--muted);">📋 SYNC POOLS</span>
-          <span style="font-size:12px;color:var(--muted);flex:1;">Copy your sync code on one device, paste it on another.</span>
-          <button class="btn btn-secondary btn-sm" onclick="generateSyncCode()" style="font-size:12px;">📤 Get Sync Code</button>
-          <button class="btn btn-secondary btn-sm" onclick="showImportCode()" style="font-size:12px;">📥 Import Code</button>
-        </div>
-        <div id="syncCodeArea" style="display:none;margin-top:10px;">
-          <textarea id="syncCodeBox" readonly
-            style="width:100%;height:80px;font-size:11px;font-family:monospace;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);resize:none;color:var(--text);"
-            onclick="this.select()"></textarea>
-          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
-            <button class="btn btn-primary btn-sm" onclick="copySyncCode()" style="font-size:12px;">Copy to Clipboard</button>
-            <span id="syncCopyStatus" style="font-size:11px;color:var(--green);"></span>
-          </div>
-        </div>
-        <div id="importCodeArea" style="display:none;margin-top:10px;">
-          <textarea id="importCodeBox" placeholder="Paste sync code here..."
-            style="width:100%;height:80px;font-size:11px;font-family:monospace;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);resize:none;color:var(--text);"></textarea>
-          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
-            <button class="btn btn-primary btn-sm" onclick="importSyncCode()" style="font-size:12px;">Import Pools</button>
-            <span id="importStatus" style="font-size:11px;color:var(--muted);"></span>
-          </div>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">☁️ CLOUD SYNC</span>
+        <span style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Save your pools to the cloud and load them on any device — no account needed.</span>
+        <button class="btn btn-secondary btn-sm" onclick="cloudSave()" style="font-size:12px;">⬆ Save to Cloud</button>
+        <button class="btn btn-secondary btn-sm" onclick="cloudLoad()" style="font-size:12px;">⬇ Load from Cloud</button>
+        <span id="syncStatus" style="font-size:11px;color:var(--muted);"></span>
       </div>
       <div class="empty" id="poolsEmpty"><div class="empty-icon">🏆</div><p>No pools yet. Create one to start tracking used players.</p></div>
       <div id="poolsList"></div>
@@ -594,7 +511,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
     </div>
 
     <!-- RIGHT: Top picks sidebar -->
-    <div class="pools-sidebar" style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
       <div class="card" style="margin-top:8px;">
         <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
           <span>🎯 Top Picks</span>
@@ -719,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
   });
   loadSchedule();
-  purgeOldLineupSaves();
+  purgeOldLineupsaves();
   // Restore any lineups imported earlier today
   const hadSaved = loadSavedLineups();
 });
@@ -737,9 +654,23 @@ function switchTab(t) {
 // Format: {id, away, awayAbbr, home, homeAbbr, time, venue, awaySP, homeSP}
 // Updated: Tue Apr 7, 2026
 const TODAYS_GAMES = [
-  // Auto-updated: Apr 22, 2026
-  // Tool will try live MLB API first; this is the fallback if API fails
-  // Update daily with that day's slate
+  // Auto-updated: Apr 21, 2026
+  // Tool will try live MLB API first; this is the fallback
+  {id:'g1',away:'Houston Astros',awayAbbr:'HOU',home:'Cleveland Guardians',homeAbbr:'CLE',time:'5:10 PM ET',venue:'Progressive Field',awaySP:'Ryan Weiss',homeSP:'Parker Messick'},
+  {id:'g2',away:'Cincinnati Reds',awayAbbr:'CIN',home:'Tampa Bay Rays',homeAbbr:'TB',time:'5:40 PM ET',venue:'Tropicana Field',awaySP:'Chase Burns',homeSP:'Steven Matz'},
+  {id:'g3',away:'St. Louis Cardinals',awayAbbr:'STL',home:'Miami Marlins',homeAbbr:'MIA',time:'5:40 PM ET',venue:'loanDepot park',awaySP:'Dustin May',homeSP:'Chris Paddack'},
+  {id:'g4',away:'Milwaukee Brewers',awayAbbr:'MIL',home:'Detroit Tigers',homeAbbr:'DET',time:'5:40 PM ET',venue:'Comerica Park',awaySP:'Kyle Harrison',homeSP:'Keider Montero'},
+  {id:'g5',away:'Atlanta Braves',awayAbbr:'ATL',home:'Washington Nationals',homeAbbr:'WSH',time:'5:45 PM ET',venue:'Nationals Park',awaySP:'Reynaldo Lopez',homeSP:'Foster Griffin'},
+  {id:'g6',away:'New York Yankees',awayAbbr:'NYY',home:'Boston Red Sox',homeAbbr:'BOS',time:'5:45 PM ET',venue:'Fenway Park',awaySP:'Luis Gil',homeSP:'Connelly Early'},
+  {id:'g7',away:'Minnesota Twins',awayAbbr:'MIN',home:'New York Mets',homeAbbr:'NYM',time:'6:10 PM ET',venue:'Citi Field',awaySP:'Simeon Woods Richardson',homeSP:'Nolan McLean'},
+  {id:'g8',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Kansas City Royals',homeAbbr:'KC',time:'6:40 PM ET',venue:'Kauffman Stadium',awaySP:'Shane Baz',homeSP:'Kris Bubic'},
+  {id:'g9',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Chicago Cubs',homeAbbr:'CHC',time:'6:40 PM ET',venue:'Wrigley Field',awaySP:'Jesus Luzardo',homeSP:'Shota Imanaga'},
+  {id:'g10',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Texas Rangers',homeAbbr:'TEX',time:'7:05 PM ET',venue:'Globe Life Field',awaySP:'TBD',homeSP:'TBD'},
+  {id:'g11',away:'San Diego Padres',awayAbbr:'SD',home:'Colorado Rockies',homeAbbr:'COL',time:'7:40 PM ET',venue:'Coors Field',awaySP:'Randy Vasquez',homeSP:'TBD'},
+  {id:'g12',away:'Toronto Blue Jays',awayAbbr:'TOR',home:'Los Angeles Angels',homeAbbr:'LAA',time:'8:38 PM ET',venue:'Angel Stadium',awaySP:'Patrick Corbin',homeSP:'Jack Kochanowicz'},
+  {id:'g13',away:'Athletics',awayAbbr:'ATH',home:'Seattle Mariners',homeAbbr:'SEA',time:'8:40 PM ET',venue:'T-Mobile Park',awaySP:'Jacob Lopez',homeSP:'Luis Castillo'},
+  {id:'g14',away:'Chicago White Sox',awayAbbr:'CHW',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'8:40 PM ET',venue:'Chase Field',awaySP:'Sean Burke',homeSP:'Merrill Kelly'},
+  {id:'g15',away:'Los Angeles Dodgers',awayAbbr:'LAD',home:'San Francisco Giants',homeAbbr:'SF',time:'8:45 PM ET',venue:'Oracle Park',awaySP:'Yoshinobu Yamamoto',homeSP:'Landen Roupp'},
 ];
 
 async function loadSchedule() {
@@ -887,8 +818,9 @@ async function runAnalysis() {
   // Step 2: Fetch Statcast + odds in parallel
   setStep('statcast', 'running', 'Fetching Statcast + odds data...');
   DIAG.calls = {}; // reset on each analysis run
+  window._lastRunAt = new Date();
   try {
-    await Promise.all([fetchStatcast().catch(() => {}), fetchOdds().catch(() => {}), fetchPitcherStats(gameLineups).catch(() => {}), fetchBatterStats(gameLineups).catch(() => {})]);
+    await Promise.all([fetchStatcast().catch(() => {}), fetchOdds().catch(() => {}), fetchPitcherStats(gameLineups).catch(() => {})]);
     const liveSrc = Object.values(liveStatcast)[0]?.source || 'live';
     const oddsMsg = Object.keys(liveOdds).length > 0 ? ' · odds loaded' : ' · odds unavailable';
     setStep('statcast', 'done', `${Object.keys(liveStatcast).length} players — ${liveSrc.includes('blend') ? '2026+2025 blend' : liveSrc === 'prior' ? '2025 data' : 'live 2026'}${oddsMsg}`);
@@ -913,7 +845,15 @@ async function runAnalysis() {
   scoredPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
   scoredPlayers.forEach((p, i) => p.rank = i + 1);
   // Store full pool for search, but only render topN by default
+  // Store previous run scores for delta display
+  const prevScores = {};
+  allScoredPlayers.forEach(p => { prevScores[p.name] = p.compositeScore; });
   allScoredPlayers = [...scoredPlayers];
+  // Annotate with score delta vs previous run
+  allScoredPlayers.forEach(p => {
+    const prev = prevScores[p.name];
+    p.scoreDelta = (prev != null && prev !== p.compositeScore) ? p.compositeScore - prev : null;
+  });
   const top = scoredPlayers.slice(0, topN);
   renderResults(top);
   renderPicksSidebar();
@@ -1010,53 +950,6 @@ const LIVE_NORM = {};
 
 
 // ── Fetch live pitcher stats from MLB Stats API ───────────────────────────────
-async function fetchBatterStats(gameLineups) {
-  // Collect all confirmed batter IDs from lineups
-  const ids = new Set();
-  gameLineups.forEach(g => {
-    (g.awayConfirmed || []).forEach(p => { if (p.id || p.person?.id) ids.add(String(p.id || p.person.id)); });
-    (g.homeConfirmed || []).forEach(p => { if (p.id || p.person?.id) ids.add(String(p.id || p.person.id)); });
-  });
-  if (!ids.size) return;
-
-  try {
-    const idList = [...ids].join(',');
-    const res = await fetch(`/api/batters?ids=${idList}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    // Merge live K% into liveStatcast by player name
-    Object.values(data).forEach(batter => {
-      if (!batter.name || !batter.kpct) return;
-      const key = normalize(batter.name);
-      if (liveStatcast[key]) {
-        // Blend live 2026 K% with embedded 2025 K% — same 80/20 cap as xBA
-        // Prevents tiny samples (e.g. 6.3% on 32 PA) from dominating
-        const embeddedKpct = (() => {
-          const scKey = Object.keys(SC_NORM).find(k => normalize(k) === key || normalize(k) === key.replace(/ (jr|sr|ii|iii)$/, ''));
-          return scKey ? SC_NORM[scKey][1] : null;
-        })();
-        if (batter.kpct !== null) {
-          const wLive = Math.min(0.80, (batter.pa || 0) / 150); // full weight at 150 PA for K%
-          const wEmb  = 1 - wLive;
-          liveStatcast[key].kpct = embeddedKpct != null
-            ? parseFloat((batter.kpct * wLive + embeddedKpct * wEmb).toFixed(4))
-            : batter.kpct;
-          liveStatcast[key].kpctLive = batter.kpct;   // store raw for breakdown modal
-          liveStatcast[key].kpctPA   = batter.pa;
-        }
-        if (batter.avg !== null) liveStatcast[key].ba = batter.avg;
-        liveStatcast[key].pa = Math.max(liveStatcast[key].pa || 0, batter.pa || 0);
-      } else if (batter.pa > 0) {
-        // Player not in Savant yet — add minimal entry with live stats
-        liveStatcast[key] = { name: batter.name, pa: batter.pa, xba: null, kpct: batter.kpct, hardhitpct: null, barrelpct: null, ba: batter.avg, source: 'mlb-api' };
-      }
-    });
-    DIAG.log('BatterStats/K%', { status: '200', rows: Object.keys(data).length });
-  } catch(e) {
-    DIAG.log('BatterStats/K%', { error: e.message });
-  }
-}
-
 async function fetchPitcherStats(gameLineups) {
   // Collect all unique pitcher IDs from selected games
   const ids = new Set();
@@ -1158,7 +1051,7 @@ async function fetchStatcast() {
       const xba = safe(iXBA);
       if (xba === null || xba < 0 || xba > 0.5) return;
       const pa = parseInt(cols[iPA])||0;
-      const key = normalize(name); // use normalize so accents/dots match lookupInMap
+      const key = name.toLowerCase();
       if (type === 'batter') {
         result[key] = { name, pa, xba, kpct: safe(iK,100), hardhitpct: safe(iHH,100), barrelpct: safe(iBrl,100), ba: safe(iBA) };
       } else {
@@ -1175,61 +1068,30 @@ async function fetchStatcast() {
       if (!c&&!p) return;
       if (!p) { out[k]={...c,source:'current'}; return; }
       if (!c||(c.pa||0)<10) { out[k]={...p,source:'prior'}; return; }
-      const wC=Math.min(0.80,(c.pa||0)/thresh), wP=1-wC; // cap at 80% — 2025 always ≥20%
+      const wC=Math.min(1,(c.pa||0)/thresh), wP=1-wC;
       const bv=(a,b)=>a==null&&b==null?null:a==null?b:b==null?a:parseFloat((a*wC+b*wP).toFixed(4));
-      const wCpct=Math.round(wC*100); const m={name:c.name||p.name,pa:c.pa,source:`blend(${wCpct}%26/${100-wCpct}%25)`,
-        xbaRaw:c.xba??null}; // store pre-blend raw xBA for transparency
-      new Set([...Object.keys(c),...Object.keys(p)].filter(f=>!['name','pa','source','xbaRaw'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,p[f]??null);});
+      const m={name:c.name||p.name,pa:c.pa,source:`blend(${c.pa}PA)`};
+      new Set([...Object.keys(c),...Object.keys(p)].filter(f=>!['name','pa','source'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,p[f]??null);});
       out[k]=m;
     });
     return out;
   };
 
   // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
-  // pitcher_hand=R/L gets true platoon splits (batter xBA vs RHP / vs LHP)
-  const [tCur, tPri, tPit, tPitPri, tRHP, tLHP] = await Promise.all([
-    fetchCsv('batter',  year, ''),      // overall batter xBA 2026
-    fetchCsv('batter',  prev, ''),      // prior year batter for blend
-    fetchCsv('pitcher', year, ''),      // pitcher stats 2026
-    fetchCsv('pitcher', prev, ''),      // prior year pitcher for blend
-    fetchCsv('batter',  year, 'R'),     // xBA vs RHP (pitcher_hand=R)
-    fetchCsv('batter',  year, 'L'),     // xBA vs LHP (pitcher_hand=L)
+  const [tCur, tPri, tRHP, tLHP, tPit, tR7] = await Promise.all([
+    fetchCsv('batter', year, ''),
+    fetchCsv('batter', prev, ''),
+    fetchCsv('batter', year, 'R'),
+    fetchCsv('batter', year, 'L'),
+    fetchCsv('pitcher', year, ''),
+    fetchCsv('batter', year, ''),  // rolling not supported in simple proxy - use overall
   ]);
 
   const batterCur  = parseSavantCsv(tCur);
   const batterPri  = parseSavantCsv(tPri);
   const vsRHPCur   = parseSavantCsv(tRHP);
   const vsLHPCur   = parseSavantCsv(tLHP);
-  const pitcherMapCur = parseSavantCsv(tPit, 'pitcher');
-  const pitcherMapPri = parseSavantCsv(tPitPri, 'pitcher');
-
-  // Blend pitcher stats: same 80/20 logic as batters
-  // Full weight to 2026 at 150 BF (pitchers need more sample than batters)
-  // Below 50 BF: mostly 2025
-  const pitcherMap = {};
-  const PITCHER_THRESH = 150; // BF for full 2026 weight
-  new Set([...Object.keys(pitcherMapCur), ...Object.keys(pitcherMapPri)]).forEach(key => {
-    const c = pitcherMapCur[key];
-    const p = pitcherMapPri[key];
-    if (!c && !p) return;
-    if (!p) { pitcherMap[key] = { ...c, source: '2026-only' }; return; }
-    if (!c || (c.pa||0) < 10) { pitcherMap[key] = { ...p, source: '2025-only' }; return; }
-    const wC = Math.min(0.80, (c.pa||0) / PITCHER_THRESH);
-    const wP = 1 - wC;
-    const bv = (a, b) => a==null&&b==null ? null : a==null ? b : b==null ? a : parseFloat((a*wC+b*wP).toFixed(4));
-    const wCpct = Math.round(wC*100);
-    pitcherMap[key] = {
-      name: c.name||p.name,
-      pa: c.pa,
-      paRaw: c.pa,  // raw 2026 BF for transparency
-      xbaAllowed:     bv(c.xbaAllowed,     p.xbaAllowed),
-      kpct:           bv(c.kpct,           p.kpct),
-      hardHitAllowed: bv(c.hardHitAllowed, p.hardHitAllowed),
-      barrelAllowed:  bv(c.barrelAllowed,  p.barrelAllowed),
-      whiffPct:       bv(c.whiffPct,       p.whiffPct),
-      source: `blend(${wCpct}%26/${100-wCpct}%25)`,
-    };
-  });
+  const pitcherMap = parseSavantCsv(tPit, 'pitcher');
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
   liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
@@ -1245,22 +1107,18 @@ async function fetchStatcast() {
       hardHitAllowed: p.hardHitAllowed ?? null,
       barrelAllowed:  p.barrelAllowed  ?? null,
       whiffPct:       p.whiffPct       ?? null,
-      pa:             p.pa             ?? null,   // 2026 BF for blend display
-      source:         p.source         ?? 'live', // blend info e.g. "blend(16%26/84%25)"
+      source: 'live',
     };
   });
 
   const nBat = Object.keys(liveStatcast).length;
   const nPit = Object.keys(livePitchers).length;
-  const nPitBlended = Object.values(pitcherMap).filter(p => p.source?.includes('blend')).length;
-  const nPitCurOnly = Object.values(pitcherMap).filter(p => p.source === '2026-only').length;
   window._statcastFetchedAt = new Date();
   window._statcastPlayerCount = nBat;
   DIAG.log('Statcast/parse', { status: nBat > 0 ? '200' : 'warn',
     rows: nBat, ms: 0,
     ...(nBat === 0 ? { error: 'parsed 0 batters — check CSV format' } : {}) });
-  DIAG.log('Pitchers/parse', { status: nPit > 0 ? '200' : 'warn', rows: nPit,
-    detail: nPit > 0 ? `${nPitBlended} blended, ${nPitCurOnly} 2026-only` : null });
+  DIAG.log('Pitchers/parse', { status: nPit > 0 ? '200' : 'warn', rows: nPit });
 
   // streak data not available in simple proxy - leave empty (embedded handles hot/cold)
   streak7 = {}; streak14 = {};
@@ -1304,143 +1162,7 @@ async function fetchOdds() {
   }
 }
 
-const STATCAST={"Jordan Walker":[0.207,0.318,0.5,0.109],"Masyn Winn":[0.240,0.19,0.346,0.048],"Lars Nootbaar":[0.231,0.204,0.5,0.102],"Ivan Herrera":[0.275,0.186,0.477,0.11],"Brendan Donovan":[0.280,0.13,0.409,0.088],"Pete Alonso":[0.274,0.228,0.544,0.189],"Brandon Nimmo":[0.252,0.216,0.502,0.088],"Alex Bregman":[0.254,0.141,0.444,0.066],"Marcus Semien":[0.243,0.174,0.35,0.067],"Willson Contreras":[0.257,0.252,0.49,0.139],"Brandon Lowe":[0.253,0.269,0.466,0.129],"Starling Marte":[0.248,0.207,0.404,0.078],"Marcell Ozuna":[0.239,0.243,0.446,0.114],"Cody Bellinger":[0.254,0.137,0.379,0.075],"Juan Soto":[0.288,0.192,0.553,0.181],"Aaron Judge":[0.300,0.236,0.582,0.247],"Jazz Chisholm Jr.":[0.234,0.279,0.433,0.15],"Cody Bellinger":[0.254,0.137,0.379,0.075],"Austin Wells":[0.214,0.263,0.452,0.102],"Oswaldo Cabrera":[0.244,0.205,0.345,0.0],"Trent Grisham":[0.248,0.236,0.464,0.142],"Paul Goldschmidt":[0.266,0.187,0.437,0.079],"Rafael Devers":[0.244,0.263,0.561,0.16],"Masataka Yoshida":[0.270,0.117,0.44,0.065],"Trevor Story":[0.249,0.269,0.47,0.098],"Wilyer Abreu":[0.243,0.242,0.449,0.123],"Triston Casas":[0.212,0.241,0.444,0.097],"Connor Wong":[0.221,0.223,0.31,0.031],"Ceddanne Rafaela":[0.242,0.199,0.387,0.092],"Rob Refsnyder":[0.243,0.258,0.523,0.123],"Vladimir Guerrero Jr.":[0.300,0.138,0.507,0.122],"George Springer":[0.291,0.189,0.476,0.161],"Bo Bichette":[0.295,0.145,0.488,0.079],"Daulton Varsho":[0.226,0.284,0.403,0.159],"Alejandro Kirk":[0.278,0.117,0.508,0.101],"Davis Schneider":[0.188,0.264,0.411,0.14],"Spencer Horwitz":[0.251,0.178,0.36,0.082],"Addison Barger":[0.255,0.241,0.51,0.114],"Ernie Clement":[0.260,0.104,0.26,0.024],"Gunnar Henderson":[0.276,0.21,0.492,0.085],"Adley Rutschman":[0.241,0.156,0.386,0.075],"Anthony Santander":[0.188,0.276,0.41,0.045],"Ryan Mountcastle":[0.253,0.275,0.471,0.117],"Colton Cowser":[0.200,0.356,0.46,0.141],"Jordan Westburg":[0.253,0.227,0.434,0.112],"Austin Hays":[0.234,0.257,0.384,0.104],"Jorge Mateo":[0.167,0.361,0.367,0.041],"Ramon Urias":[0.227,0.225,0.418,0.08],"Brandon Lowe":[0.253,0.269,0.466,0.129],"Yandy Diaz":[0.285,0.141,0.525,0.083],"Josh Lowe":[0.240,0.251,0.396,0.059],"Harold Ramirez":[0.271,0.158,0.428,0.068],"Jonathan Aranda":[0.291,0.254,0.545,0.128],"Jose Siri":[0.241,0.318,0.415,0.082],"Richie Palacios":[0.252,0.205,0.385,0.058],"Rene Pinto":[0.245,0.262,0.378,0.055],"Jose Ramirez":[0.284,0.11,0.37,0.07],"Josh Naylor":[0.271,0.137,0.419,0.067],"Lane Thomas":[0.168,0.31,0.313,0.048],"David Fry":[0.135,0.369,0.398,0.091],"Bo Naylor":[0.201,0.239,0.383,0.097],"Will Brennan":[0.252,0.188,0.385,0.055],"Jhonkensy Noel":[0.161,0.34,0.412,0.062],"Brayan Rocchio":[0.246,0.201,0.355,0.033],"Gabriel Arias":[0.214,0.344,0.433,0.113],"Carlos Correa":[0.280,0.193,0.459,0.068],"Byron Buxton":[0.249,0.273,0.538,0.176],"Ryan Jeffers":[0.243,0.196,0.421,0.063],"Matt Wallner":[0.205,0.291,0.455,0.138],"Max Kepler":[0.243,0.196,0.447,0.116],"Trevor Larnach":[0.251,0.215,0.457,0.072],"Edouard Julien":[0.242,0.293,0.423,0.122],"Brooks Lee":[0.234,0.175,0.385,0.058],"Christian Vazquez":[0.210,0.164,0.274,0.038],"Bobby Witt Jr.":[0.285,0.182,0.485,0.125],"Salvador Perez":[0.269,0.195,0.467,0.148],"MJ Melendez":[0.137,0.354,0.459,0.081],"Vinnie Pasquantino":[0.259,0.157,0.447,0.108],"Hunter Renfroe":[0.193,0.194,0.354,0.063],"Nelson Velazquez":[0.251,0.295,0.428,0.095],"Maikel Garcia":[0.276,0.126,0.451,0.056],"Michael Massey":[0.238,0.155,0.33,0.04],"Freddy Fermin":[0.233,0.187,0.341,0.042],"Jose Altuve":[0.237,0.167,0.309,0.062],"Yordan Alvarez":[0.284,0.166,0.529,0.138],"Alex Bregman":[0.254,0.141,0.444,0.066],"Jeremy Pena":[0.270,0.171,0.429,0.082],"Yainer Diaz":[0.268,0.168,0.422,0.096],"Jake Meyers":[0.269,0.176,0.389,0.05],"Chas McCormick":[0.228,0.267,0.293,0.053],"Mauricio Dubon":[0.247,0.106,0.263,0.012],"Victor Caratini":[0.255,0.168,0.407,0.077],"Marcus Semien":[0.243,0.174,0.35,0.067],"Corey Seager":[0.285,0.196,0.536,0.153],"Nathaniel Lowe":[0.229,0.261,0.415,0.07],"Adolis Garcia":[0.232,0.247,0.467,0.116],"Josh Smith":[0.247,0.178,0.311,0.05],"Wyatt Langford":[0.239,0.264,0.484,0.14],"Jonah Heim":[0.219,0.203,0.359,0.061],"Leody Taveras":[0.198,0.278,0.352,0.064],"Mike Trout":[0.236,0.32,0.493,0.158],"Taylor Ward":[0.231,0.264,0.427,0.137],"Nolan Schanuel":[0.262,0.126,0.29,0.045],"Logan O'Hoppe":[0.228,0.308,0.469,0.133],"Mickey Moniak":[0.262,0.239,0.453,0.138],"Zach Neto":[0.251,0.269,0.466,0.14],"Luis Rengifo":[0.260,0.192,0.327,0.05],"Julio Rodriguez":[0.274,0.214,0.48,0.098],"Cal Raleigh":[0.231,0.267,0.496,0.195],"Mitch Garver":[0.209,0.276,0.469,0.079],"Eugenio Suarez":[0.211,0.298,0.476,0.143],"Ty France":[0.259,0.169,0.442,0.077],"Luke Raley":[0.209,0.292,0.423,0.106],"Jorge Polanco":[0.266,0.156,0.458,0.103],"Josh Rojas":[0.209,0.227,0.368,0.035],"Francisco Lindor":[0.260,0.179,0.444,0.088],"Pete Alonso":[0.274,0.228,0.544,0.189],"Brandon Nimmo":[0.252,0.216,0.502,0.088],"Jesse Winker":[0.204,0.259,0.451,0.078],"Mark Vientos":[0.246,0.248,0.505,0.115],"Jeff McNeil":[0.266,0.119,0.329,0.051],"Starling Marte":[0.248,0.207,0.404,0.078],"Francisco Alvarez":[0.229,0.264,0.543,0.121],"Luisangel Acuna":[0.235,0.192,0.355,0.014],"Ronald Acuna Jr.":[0.263,0.248,0.525,0.157],"Ozzie Albies":[0.243,0.141,0.307,0.049],"Austin Riley":[0.246,0.286,0.502,0.152],"Marcell Ozuna":[0.239,0.243,0.446,0.114],"Matt Olson":[0.249,0.243,0.533,0.143],"Eddie Rosario":[0.261,0.218,0.415,0.075],"Sean Murphy":[0.201,0.312,0.431,0.132],"Michael Harris II":[0.268,0.2,0.434,0.091],"Orlando Arcia":[0.212,0.22,0.338,0.025],"Trea Turner":[0.270,0.167,0.421,0.058],"Bryce Harper":[0.268,0.209,0.475,0.123],"Kyle Schwarber":[0.251,0.272,0.596,0.208],"Nick Castellanos":[0.242,0.226,0.345,0.076],"Alec Bohm":[0.275,0.163,0.464,0.062],"Brandon Marsh":[0.263,0.259,0.464,0.083],"J.T. Realmuto":[0.253,0.235,0.455,0.088],"Bryson Stott":[0.247,0.163,0.295,0.051],"Johan Rojas":[0.227,0.233,0.353,0.034],"CJ Abrams":[0.245,0.197,0.392,0.076],"Keibert Ruiz":[0.271,0.097,0.309,0.022],"Joey Meneses":[0.265,0.198,0.428,0.082],"Alex Call":[0.243,0.171,0.289,0.044],"Dansby Swanson":[0.267,0.26,0.478,0.117],"Ian Happ":[0.256,0.228,0.444,0.104],"Nico Hoerner":[0.292,0.076,0.303,0.023],"Michael Busch":[0.262,0.235,0.473,0.171],"Christopher Morel":[0.213,0.357,0.497,0.148],"Seiya Suzuki":[0.247,0.252,0.487,0.166],"Miguel Amaya":[0.244,0.214,0.329,0.066],"Lars Nootbaar":[0.231,0.204,0.5,0.102],"Nolan Arenado":[0.245,0.112,0.326,0.039],"Willson Contreras":[0.257,0.252,0.49,0.139],"Brendan Donovan":[0.280,0.13,0.409,0.088],"Dylan Carlson":[0.214,0.224,0.305,0.067],"Tommy Edman":[0.274,0.162,0.399,0.045],"Masyn Winn":[0.240,0.19,0.346,0.048],"Ivan Herrera":[0.275,0.186,0.477,0.11],"Willy Adames":[0.224,0.261,0.428,0.126],"William Contreras":[0.253,0.182,0.485,0.064],"Christian Yelich":[0.245,0.259,0.464,0.103],"Rhys Hoskins":[0.220,0.277,0.464,0.103],"Jackson Chourio":[0.247,0.205,0.423,0.097],"Sal Frelick":[0.255,0.135,0.274,0.031],"Joey Wiemer":[0.241,0.377,0.618,0.147],"Tyrone Taylor":[0.257,0.223,0.351,0.038],"Elly De La Cruz":[0.251,0.259,0.442,0.102],"TJ Friedl":[0.227,0.168,0.321,0.027],"Jonathan India":[0.238,0.187,0.368,0.058],"Tyler Stephenson":[0.216,0.339,0.492,0.144],"Spencer Steer":[0.219,0.227,0.332,0.076],"Jake Fraley":[0.248,0.226,0.345,0.049],"Matt McLain":[0.212,0.289,0.407,0.077],"Will Benson":[0.257,0.265,0.538,0.154],"Oneil Cruz":[0.218,0.32,0.566,0.179],"Bryan Reynolds":[0.259,0.265,0.46,0.101],"Carlos Santana":[0.216,0.192,0.378,0.049],"Henry Davis":[0.213,0.269,0.374,0.115],"Ji Hwan Bae":[0.245,0.218,0.378,0.048],"Rowdy Tellez":[0.234,0.266,0.464,0.153],"Corbin Carroll":[0.262,0.238,0.499,0.145],"Ketel Marte":[0.285,0.149,0.47,0.135],"Lourdes Gurriel Jr.":[0.256,0.139,0.383,0.072],"Gabriel Moreno":[0.279,0.172,0.434,0.071],"Christian Walker":[0.233,0.277,0.461,0.129],"Randal Grichuk":[0.259,0.208,0.495,0.117],"Geraldo Perdomo":[0.278,0.115,0.319,0.062],"Jake McCarthy":[0.239,0.18,0.276,0.053],"Joc Pederson":[0.219,0.212,0.448,0.095],"Heliot Ramos":[0.242,0.227,0.474,0.088],"Patrick Bailey":[0.210,0.294,0.364,0.056],"Mike Yastrzemski":[0.237,0.194,0.426,0.085],"Wilmer Flores":[0.225,0.19,0.269,0.048],"Tyler Fitzgerald":[0.192,0.288,0.279,0.045],"Marco Luciano":[0.261,0.268,0.415,0.078],"Grant McCray":[0.238,0.268,0.362,0.042],"Blake Sabol":[0.245,0.252,0.378,0.055],"Casey Schmitt":[0.256,0.239,0.438,0.09],"Mookie Betts":[0.267,0.103,0.358,0.055],"Freddie Freeman":[0.268,0.204,0.457,0.104],"Shohei Ohtani":[0.274,0.257,0.587,0.235],"Will Smith":[0.269,0.204,0.471,0.122],"Teoscar Hernandez":[0.250,0.245,0.461,0.115],"Andy Pages":[0.258,0.216,0.372,0.084],"Max Muncy":[0.203,0.214,0.515,0.136],"Gavin Lux":[0.243,0.227,0.369,0.036],"Miguel Rojas":[0.249,0.145,0.312,0.04],"Fernando Tatis Jr.":[0.272,0.187,0.518,0.109],"Manny Machado":[0.271,0.193,0.515,0.129],"Xander Bogaerts":[0.267,0.17,0.392,0.069],"Jake Cronenworth":[0.225,0.208,0.39,0.062],"Jackson Merrill":[0.263,0.224,0.429,0.13],"Jurickson Profar":[0.230,0.159,0.403,0.073],"Ha-Seong Kim":[0.242,0.204,0.433,0.052],"Kyle Higashioka":[0.233,0.22,0.391,0.086],"Ryan McMahon":[0.219,0.323,0.505,0.121],"Ezequiel Tovar":[0.261,0.251,0.389,0.093],"C.J. Cron":[0.265,0.225,0.448,0.105],"Brenton Doyle":[0.239,0.257,0.446,0.108],"Elias Diaz":[0.202,0.261,0.387,0.075],"Charlie Blackmon":[0.252,0.195,0.388,0.065],"Andrew Vaughn":[0.273,0.179,0.477,0.12],"Tommy Pham":[0.246,0.209,0.472,0.066],"Korey Lee":[0.245,0.255,0.375,0.052],"Gavin Sheets":[0.263,0.196,0.465,0.095],"Bryan Ramos":[0.248,0.262,0.388,0.065],"Kerry Carpenter":[0.252,0.228,0.468,0.125],"Spencer Torkelson":[0.226,0.26,0.451,0.135],"Matt Vierling":[0.250,0.24,0.455,0.121],"Riley Greene":[0.239,0.307,0.455,0.171],"Javier Baez":[0.230,0.249,0.399,0.055],"Parker Meadows":[0.225,0.263,0.309,0.051],"Brent Rooker":[0.261,0.222,0.448,0.137],"Lawrence Butler":[0.229,0.284,0.444,0.092],"Shea Langeliers":[0.251,0.197,0.449,0.112],"Seth Brown":[0.193,0.303,0.405,0.095],"Tyler Soderstrom":[0.261,0.226,0.498,0.114],"Zack Gelof":[0.143,0.455,0.479,0.125],"Luis Arraez":[0.287,0.031,0.167,0.011],"Jake Burger":[0.246,0.247,0.485,0.139],"Bryan De La Cruz":[0.201,0.36,0.517,0.069],"Jesus Sanchez":[0.242,0.221,0.434,0.111],"Josh Bell":[0.256,0.165,0.47,0.12],"Nick Fortes":[0.215,0.194,0.379,0.046],"Owen Miller":[0.248,0.198,0.375,0.052],"Stuart Fairchild":[0.194,0.273,0.361,0.139],"Connor Joe":[0.216,0.25,0.365,0.058],"Andy Ibanez":[0.254,0.135,0.364,0.046],"Nicky Lopez":[0.241,0.188,0.355,0.028],"Tim Anderson":[0.183,0.322,0.364,0.0],"Lenyn Sosa":[0.263,0.233,0.438,0.104],"Esteury Ruiz":[0.245,0.225,0.372,0.042],"JJ Bleday":[0.197,0.265,0.387,0.078],"Peyton Burdick":[0.245,0.285,0.385,0.065],"Travis Jankowski":[0.236,0.24,0.343,0.0],"Tyler Wade":[0.185,0.244,0.15,0.0],"Sean Bouchard":[0.179,0.37,0.308,0.0],"Aaron Judge":[0.300,0.236,0.582,0.247],"Adley Rutschman":[0.241,0.156,0.386,0.075],"Alec Bohm":[0.275,0.163,0.464,0.062],"Alec Burleson":[0.272,0.145,0.43,0.095],"Alejandro Kirk":[0.278,0.117,0.508,0.101],"Alex Bregman":[0.254,0.141,0.444,0.066],"Andy Pages":[0.258,0.216,0.372,0.084],"Austin Riley":[0.246,0.286,0.502,0.152],"Austin Wells":[0.214,0.263,0.452,0.102],"Ben Rice":[0.283,0.189,0.561,0.154],"Bobby Witt Jr.":[0.285,0.182,0.485,0.125],"Bo Naylor":[0.201,0.239,0.383,0.097],"Brandon Lowe":[0.253,0.269,0.466,0.129],"Brandon Marsh":[0.263,0.259,0.464,0.083],"Brandon Nimmo":[0.252,0.216,0.502,0.088],"Brayan Rocchio":[0.246,0.201,0.355,0.033],"Brendan Donovan":[0.280,0.13,0.409,0.088],"Brent Rooker":[0.261,0.222,0.448,0.137],"Brenton Doyle":[0.239,0.257,0.446,0.108],"Brooks Lee":[0.234,0.175,0.385,0.058],"Bryce Harper":[0.268,0.209,0.475,0.123],"Bryan Reynolds":[0.259,0.265,0.46,0.101],"Bryson Stott":[0.247,0.163,0.295,0.051],"Byron Buxton":[0.249,0.273,0.538,0.176],"CJ Abrams":[0.245,0.197,0.392,0.076],"Cal Raleigh":[0.231,0.267,0.496,0.195],"Carlos Correa":[0.280,0.193,0.459,0.068],"Carlos Santana":[0.216,0.192,0.378,0.049],"Carson Kelly":[0.236,0.19,0.403,0.096],"Ceddanne Rafaela":[0.242,0.199,0.387,0.092],"Cedric Mullins":[0.207,0.241,0.359,0.062],"Chase DeLauter":[0.258,0.248,0.415,0.072],"Christian Walker":[0.233,0.277,0.461,0.129],"Christian Yelich":[0.245,0.259,0.464,0.103],"Cody Bellinger":[0.254,0.137,0.379,0.075],"Colt Keith":[0.257,0.218,0.437,0.092],"Colton Cowser":[0.200,0.356,0.46,0.141],"Corbin Carroll":[0.262,0.238,0.499,0.145],"Dansby Swanson":[0.267,0.26,0.478,0.117],"Drake Baldwin":[0.272,0.152,0.496,0.11],"Elly De La Cruz":[0.251,0.259,0.442,0.102],"Ezequiel Tovar":[0.261,0.251,0.389,0.093],"Fernando Tatis Jr.":[0.272,0.187,0.518,0.109],"Francisco Alvarez":[0.229,0.264,0.543,0.121],"Francisco Lindor":[0.260,0.179,0.444,0.088],"Freddie Freeman":[0.268,0.204,0.457,0.104],"Gabriel Moreno":[0.279,0.172,0.434,0.071],"Geraldo Perdomo":[0.278,0.115,0.319,0.062],"Gunnar Henderson":[0.276,0.21,0.492,0.085],"Ha-Seong Kim":[0.242,0.204,0.433,0.052],"Ian Happ":[0.256,0.228,0.444,0.104],"Isaac Paredes":[0.235,0.174,0.336,0.063],"Jackson Chourio":[0.247,0.205,0.423,0.097],"Jackson Merrill":[0.263,0.224,0.429,0.13],"Jazz Chisholm Jr.":[0.234,0.279,0.433,0.15],"Jeff McNeil":[0.266,0.119,0.329,0.051],"Jesse Winker":[0.204,0.259,0.451,0.078],"Joey Loperfido":[0.266,0.26,0.371,0.057],"Jonathan India":[0.238,0.187,0.368,0.058],"Jorge Soler":[0.204,0.298,0.42,0.128],"Josh Naylor":[0.271,0.137,0.419,0.067],"JT Realmuto":[0.253,0.235,0.455,0.088],"Junior Caminero":[0.255,0.191,0.514,0.14],"Ketel Marte":[0.285,0.149,0.47,0.135],"Kevin McGonigle":[0.262,0.218,0.415,0.072],"Kyle Manzardo":[0.224,0.254,0.438,0.118],"Kyle Schwarber":[0.251,0.272,0.596,0.208],"Lane Thomas":[0.168,0.31,0.313,0.048],"Lawrence Butler":[0.229,0.284,0.444,0.092],"Logan O'Hoppe":[0.228,0.308,0.469,0.133],"Luis Arraez":[0.287,0.031,0.167,0.011],"Luisangel Acuña":[0.235,0.192,0.355,0.014],"Maikel Garcia":[0.276,0.126,0.451,0.056],"Manny Machado":[0.271,0.193,0.515,0.129],"Marcell Ozuna":[0.239,0.243,0.446,0.114],"Mark Vientos":[0.246,0.248,0.505,0.115],"Marcus Semien":[0.243,0.174,0.35,0.067],"Matt Olson":[0.249,0.243,0.533,0.143],"Matt Vierling":[0.250,0.24,0.455,0.121],"Matt Wallner":[0.205,0.291,0.455,0.138],"Max Kepler":[0.243,0.196,0.447,0.116],"Max Muncy":[0.203,0.214,0.515,0.136],"Michael Busch":[0.262,0.235,0.473,0.171],"Michael Harris II":[0.268,0.2,0.434,0.091],"Mookie Betts":[0.267,0.103,0.358,0.055],"Nolan Arenado":[0.245,0.112,0.326,0.039],"Nolan Gorman":[0.196,0.338,0.411,0.091],"Nolan Schanuel":[0.262,0.126,0.29,0.045],"Oneil Cruz":[0.218,0.32,0.566,0.179],"Orlando Arcia":[0.212,0.22,0.338,0.025],"Ozzie Albies":[0.243,0.141,0.307,0.049],"Patrick Bailey":[0.210,0.294,0.364,0.056],"Paul Goldschmidt":[0.266,0.187,0.437,0.079],"Pete Alonso":[0.274,0.228,0.544,0.189],"Randy Arozarena":[0.227,0.269,0.506,0.115],"Rhys Hoskins":[0.220,0.277,0.464,0.103],"Riley Greene":[0.239,0.307,0.455,0.171],"Ronald Acuña Jr.":[0.263,0.248,0.525,0.157],"Ryan Jeffers":[0.243,0.196,0.421,0.063],"Ryan McMahon":[0.219,0.323,0.505,0.121],"Sal Frelick":[0.255,0.135,0.274,0.031],"Salvador Perez":[0.269,0.195,0.467,0.148],"Samuel Basallo":[0.213,0.254,0.43,0.089],"Seiya Suzuki":[0.247,0.252,0.487,0.166],"Shea Langeliers":[0.251,0.197,0.449,0.112],"Shohei Ohtani":[0.274,0.257,0.587,0.235],"Spencer Steer":[0.219,0.227,0.332,0.076],"Spencer Torkelson":[0.226,0.26,0.451,0.135],"Steven Kwan":[0.273,0.087,0.193,0.019],"Taylor Ward":[0.231,0.264,0.427,0.137],"Teoscar Hernandez":[0.250,0.245,0.461,0.115],"TJ Friedl":[0.227,0.168,0.321,0.027],"Trea Turner":[0.270,0.167,0.421,0.058],"Trevor Larnach":[0.251,0.215,0.457,0.072],"Trevor Story":[0.249,0.269,0.47,0.098],"Tyler O'Neill":[0.243,0.244,0.391,0.165],"Tyler Stephenson":[0.216,0.339,0.492,0.144],"Vladimir Guerrero Jr.":[0.300,0.138,0.507,0.122],"Vinnie Pasquantino":[0.259,0.157,0.447,0.108],"Wilyer Abreu":[0.243,0.242,0.449,0.123],"Will Smith":[0.269,0.204,0.471,0.122],"William Contreras":[0.253,0.182,0.485,0.064],"Willy Adames":[0.224,0.261,0.428,0.126],"Wyatt Langford":[0.239,0.264,0.484,0.14],"Xander Bogaerts":[0.267,0.17,0.392,0.069],"Yainer Diaz":[0.268,0.168,0.422,0.096],"Zach Gelof":[0.261,0.248,0.415,0.082],"Zach Neto":[0.251,0.269,0.466,0.14],
-  "Aaron Judge":[0.300,0.236,0.582,0.247],
-  "Trent Grisham":[0.248,0.236,0.464,0.142],
-  "Cody Bellinger":[0.254,0.137,0.379,0.075],
-  "Ben Rice":[0.283,0.189,0.561,0.154],
-  "Giancarlo Stanton":[0.235,0.342,0.552,0.221],
-  "Jazz Chisholm Jr.":[0.234,0.279,0.433,0.15],
-  "Ryan McMahon":[0.219,0.323,0.505,0.121],
-  "José Caballero":[0.218,0.265,0.306,0.059],
-  "Austin Wells":[0.214,0.263,0.452,0.102],
-  "Roman Anthony":[0.258,0.277,0.603,0.155],
-  "Trevor Story":[0.249,0.269,0.47,0.098],
-  "Jarren Duran":[0.248,0.243,0.468,0.097],
-  "Willson Contreras":[0.257,0.252,0.49,0.139],
-  "Wilyer Abreu":[0.243,0.242,0.449,0.123],
-  "Caleb Durbin":[0.255,0.099,0.269,0.04],
-  "Ceddanne Rafaela":[0.242,0.199,0.387,0.092],
-  "George Springer":[0.291,0.189,0.476,0.161],
-  "Nathan Lukes":[0.259,0.137,0.37,0.047],
-  "Addison Barger":[0.255,0.241,0.51,0.114],
-  "Daulton Varsho":[0.226,0.284,0.403,0.159],
-  "Ernie Clement":[0.260,0.104,0.26,0.024],
-  "Andrés Giménez":[0.252,0.179,0.277,0.03],
-  "Gunnar Henderson":[0.276,0.21,0.492,0.085],
-  "Adley Rutschman":[0.241,0.156,0.386,0.075],
-  "Pete Alonso":[0.274,0.228,0.544,0.189],
-  "Taylor Ward":[0.231,0.264,0.427,0.137],
-  "Samuel Basallo":[0.213,0.254,0.43,0.089],
-  "Coby Mayo":[0.202,0.286,0.36,0.101],
-  "Colton Cowser":[0.200,0.356,0.46,0.141],
-  "Blaze Alexander":[0.211,0.323,0.432,0.128],
-  "Yandy Díaz":[0.285,0.141,0.525,0.083],
-  "Jonathan Aranda":[0.291,0.254,0.545,0.128],
-  "Junior Caminero":[0.255,0.191,0.514,0.14],
-  "Ben Williamson":[0.241,0.217,0.405,0.033],
-  "Cedric Mullins":[0.207,0.241,0.359,0.062],
-  "Jonny DeLuca":[0.252,0.22,0.318,0.023],
-  "Nick Fortes":[0.215,0.194,0.379,0.046],
-  "Chandler Simpson":[0.295,0.098,0.173,0.0],
-  "Carson Williams":[0.169,0.415,0.357,0.089],
-  "Steven Kwan":[0.273,0.087,0.193,0.019],
-  "Chase DeLauter":[0.252,0.248,0.405,0.068],
-  "Kyle Manzardo":[0.224,0.254,0.438,0.118],
-  "Rhys Hoskins":[0.220,0.277,0.464,0.103],
-  "Angel Martínez":[0.215,0.227,0.293,0.035],
-  "Austin Martin":[0.279,0.171,0.386,0.055],
-  "Isaac Collins":[0.246,0.211,0.389,0.049],
-  "Carter Jensen":[0.331,0.174,0.583,0.208],
-  "Starling Marte":[0.248,0.207,0.404,0.078],
-  "Jonathan India":[0.238,0.187,0.368,0.058],
-  "Munetaka Murakami":[0.265,0.278,0.445,0.105],
-  "Zach DeLoach":[0.248,0.238,0.388,0.062],
-  "Zach McKinstry":[0.247,0.217,0.305,0.061],
-  "Kevin McGonigle":[0.258,0.215,0.408,0.068],
-  "Gleyber Torres":[0.269,0.161,0.39,0.082],
-  "Dillon Dingler":[0.290,0.235,0.457,0.092],
-  "Isaac Paredes":[0.235,0.174,0.336,0.063],
-  "Joey Loperfido":[0.266,0.26,0.371,0.057],
-  "Cam Smith":[0.235,0.278,0.408,0.069],
-  "Jake Meyers":[0.269,0.176,0.389,0.05],
-  "Nathaniel Lowe":[0.229,0.261,0.415,0.07],
-  "Adolis García":[0.232,0.247,0.467,0.116],
-  "Josh Smith":[0.247,0.178,0.311,0.05],
-  "Wyatt Langford":[0.239,0.264,0.484,0.14],
-  "Jonah Heim":[0.219,0.203,0.359,0.061],
-  "Travis Jankowski":[0.236,0.24,0.343,0.0],
-  "Leody Taveras":[0.198,0.278,0.352,0.064],
-  "Kyren Paris":[0.173,0.421,0.478,0.164],
-  "Adam Frazier":[0.244,0.176,0.206,0.02],
-  "Cole Young":[0.224,0.183,0.311,0.056],
-  "Leo Rivas":[0.183,0.216,0.197,0.03],
-  "Dominic Canzone":[0.290,0.219,0.497,0.144],
-  "Pete Crow-Armstrong":[0.242,0.24,0.416,0.13],
-  "Jose Iglesias":[0.240,0.163,0.285,0.02],
-  "Mauricio Dubón":[0.247,0.106,0.263,0.012],
-  "Jorge Soler":[0.204,0.298,0.42,0.128],
-  "James Wood":[0.259,0.321,0.563,0.163],
-  "Curtis Mead":[0.232,0.239,0.348,0.045],
-  "Brady House":[0.256,0.285,0.463,0.043],
-  "Daylen Lile":[0.302,0.16,0.401,0.052],
-  "Joey Wiemer":[0.241,0.377,0.618,0.147],
-  "Luis García Jr.":[0.281,0.16,0.458,0.09],
-  "Nasim Nunez":[0.239,0.217,0.422,0.047],
-  "Moisés Ballesteros":[0.262,0.182,0.333,0.067],
-  "JJ Wetherholt":[0.255,0.218,0.395,0.065],
-  "Iván Herrera":[0.275,0.186,0.477,0.11],
-  "Alec Burleson":[0.272,0.145,0.43,0.095],
-  "Jordan Walker":[0.207,0.318,0.5,0.109],
-  "Nolan Gorman":[0.196,0.338,0.411,0.091],
-  "Victor Scott II":[0.225,0.24,0.26,0.037],
-  "Pedro Pagés":[0.208,0.275,0.365,0.073],
-  "Nathan Church":[0.193,0.277,0.415,0.024],
-  "Brian Anderson":[0.248,0.225,0.385,0.058],
-  "Owen Miller":[0.245,0.198,0.372,0.048],
-  "Tyrone Taylor":[0.257,0.223,0.351,0.038],
-  "Sal Stewart":[0.289,0.259,0.525,0.175],
-  "Gavin Lux":[0.243,0.227,0.369,0.036],
-  "Noelvi Marte":[0.245,0.236,0.363,0.09],
-  "Brandon Lowe":[0.253,0.269,0.466,0.129],
-  "Marcell Ozuna":[0.239,0.243,0.446,0.114],
-  "Ryan O'Hearn":[0.269,0.2,0.425,0.076],
-  "Jared Triolo":[0.239,0.202,0.382,0.062],
-  "Spencer Horwitz":[0.251,0.178,0.36,0.082],
-  "Nick Gonzales":[0.254,0.179,0.388,0.045],
-  "Henry Davis":[0.213,0.269,0.374,0.115],
-  "Jo Adell":[0.260,0.264,0.5,0.173],
-  "Josh Lowe":[0.240,0.251,0.396,0.059],
-  "Otto Lopez":[0.269,0.138,0.383,0.071],
-  "Xavier Edwards":[0.262,0.142,0.294,0.008],
-  "Jakob Marsee":[0.275,0.205,0.414,0.08],
-  "Kyle Stowers":[0.265,0.274,0.52,0.19],
-  "Agustin Ramirez":[0.259,0.193,0.47,0.11],
-  "Liam Hicks":[0.244,0.144,0.277,0.035],
-  "Connor Norby":[0.241,0.267,0.371,0.094],
-  "Owen Caissie":[0.252,0.268,0.395,0.065],
-  "Graham Pauley":[0.223,0.196,0.354,0.055],
-  "Ramon Laureano":[0.270,0.244,0.491,0.138],
-  "Freddy Fermin":[0.233,0.187,0.341,0.042],
-  "Jake Cronenworth":[0.225,0.208,0.39,0.062],
-  "Gavin Sheets":[0.263,0.196,0.465,0.095],
-  "Miguel Andujar":[0.259,0.144,0.354,0.047],
-  "TJ Rumfield":[0.248,0.248,0.378,0.055],
-  "Mickey Moniak":[0.262,0.239,0.453,0.138],
-  "Hunter Goodman":[0.244,0.263,0.469,0.128],
-  "Edouard Julien":[0.242,0.293,0.423,0.122],
-  "Troy Johnston":[0.270,0.215,0.407,0.093],
-  "Willi Castro":[0.234,0.244,0.373,0.065],
-  "Kyle Karros":[0.206,0.263,0.337,0.01],
-  "Marcelo Mayer":[0.215,0.301,0.517,0.092],
-  "Carlos Narváez":[0.220,0.249,0.446,0.091],
-  "Kazuma Okamoto":[0.252,0.245,0.388,0.062],
-  "Jung Hoo Lee":[0.277,0.115,0.32,0.037],
-  "José Caballero":[0.218,0.265,0.306,0.059],
-  "Pavin Smith":[0.215,0.319,0.461,0.117],
-  "Alek Thomas":[0.242,0.26,0.393,0.078],
-  "Jordan Lawlar":[0.190,0.351,0.341,0.049],
-  "Zac Veen":[0.255,0.265,0.395,0.065]};
+const STATCAST={"Jordan Walker":[0.248,0.318,0.408,0.098],"Masyn Winn":[0.252,0.192,0.382,0.062],"Lars Nootbaar":[0.265,0.228,0.412,0.078],"Ivan Herrera":[0.248,0.195,0.358,0.055],"Brendan Donovan":[0.267,0.148,0.388,0.065],"Pete Alonso":[0.258,0.242,0.468,0.115],"Brandon Nimmo":[0.262,0.202,0.508,0.088],"Alex Bregman":[0.275,0.148,0.418,0.082],"Marcus Semien":[0.258,0.175,0.398,0.072],"Willson Contreras":[0.248,0.225,0.428,0.085],"Brandon Lowe":[0.252,0.248,0.448,0.092],"Starling Marte":[0.268,0.175,0.418,0.065],"Marcell Ozuna":[0.271,0.238,0.458,0.105],"Cody Bellinger":[0.261,0.198,0.422,0.082],"Juan Soto":[0.301,0.165,0.512,0.112],"Aaron Judge":[0.318,0.282,0.592,0.198],"Jazz Chisholm Jr.":[0.268,0.248,0.448,0.095],"Cody Bellinger":[0.261,0.198,0.422,0.082],"Austin Wells":[0.258,0.245,0.412,0.088],"Oswaldo Cabrera":[0.242,0.212,0.385,0.065],"Trent Grisham":[0.238,0.228,0.375,0.062],"Paul Goldschmidt":[0.278,0.212,0.468,0.098],"Rafael Devers":[0.292,0.218,0.512,0.125],"Masataka Yoshida":[0.285,0.148,0.435,0.068],"Trevor Story":[0.251,0.268,0.412,0.085],"Wilyer Abreu":[0.255,0.225,0.398,0.072],"Triston Casas":[0.268,0.245,0.445,0.112],"Connor Wong":[0.248,0.252,0.388,0.058],"Ceddanne Rafaela":[0.245,0.238,0.402,0.065],"Rob Refsnyder":[0.261,0.195,0.382,0.055],"Vladimir Guerrero Jr.":[0.298,0.148,0.498,0.105],"George Springer":[0.268,0.218,0.462,0.095],"Bo Bichette":[0.271,0.198,0.438,0.075],"Daulton Varsho":[0.255,0.248,0.412,0.082],"Alejandro Kirk":[0.272,0.135,0.422,0.068],"Davis Schneider":[0.248,0.268,0.388,0.065],"Spencer Horwitz":[0.272,0.158,0.402,0.062],"Addison Barger":[0.241,0.285,0.375,0.055],"Ernie Clement":[0.238,0.192,0.362,0.042],"Gunnar Henderson":[0.295,0.225,0.518,0.145],"Adley Rutschman":[0.278,0.178,0.448,0.088],"Anthony Santander":[0.275,0.228,0.478,0.118],"Ryan Mountcastle":[0.272,0.212,0.452,0.095],"Colton Cowser":[0.261,0.242,0.415,0.078],"Jordan Westburg":[0.258,0.232,0.408,0.072],"Austin Hays":[0.251,0.218,0.395,0.065],"Jorge Mateo":[0.228,0.282,0.352,0.038],"Ramon Urias":[0.241,0.225,0.375,0.055],"Brandon Lowe":[0.268,0.248,0.445,0.095],"Yandy Diaz":[0.281,0.148,0.432,0.075],"Josh Lowe":[0.258,0.242,0.412,0.078],"Harold Ramirez":[0.271,0.158,0.428,0.068],"Jonathan Aranda":[0.265,0.182,0.418,0.072],"Jose Siri":[0.241,0.318,0.415,0.082],"Richie Palacios":[0.252,0.205,0.385,0.058],"Rene Pinto":[0.245,0.262,0.378,0.055],"Jose Ramirez":[0.295,0.138,0.502,0.118],"Josh Naylor":[0.278,0.215,0.462,0.098],"Lane Thomas":[0.258,0.248,0.408,0.072],"David Fry":[0.261,0.238,0.415,0.078],"Bo Naylor":[0.248,0.268,0.392,0.065],"Will Brennan":[0.252,0.188,0.385,0.055],"Jhonkensy Noel":[0.265,0.285,0.445,0.098],"Brayan Rocchio":[0.241,0.212,0.368,0.048],"Gabriel Arias":[0.238,0.255,0.362,0.045],"Carlos Correa":[0.278,0.185,0.448,0.092],"Byron Buxton":[0.285,0.258,0.512,0.148],"Ryan Jeffers":[0.271,0.228,0.445,0.095],"Matt Wallner":[0.268,0.278,0.448,0.105],"Max Kepler":[0.261,0.218,0.418,0.082],"Trevor Larnach":[0.258,0.252,0.415,0.078],"Edouard Julien":[0.265,0.235,0.408,0.072],"Brooks Lee":[0.251,0.225,0.388,0.062],"Christian Vazquez":[0.248,0.168,0.372,0.045],"Bobby Witt Jr.":[0.298,0.188,0.498,0.112],"Salvador Perez":[0.272,0.192,0.462,0.105],"MJ Melendez":[0.258,0.268,0.425,0.088],"Vinnie Pasquantino":[0.278,0.158,0.452,0.092],"Hunter Renfroe":[0.265,0.248,0.445,0.112],"Nelson Velazquez":[0.251,0.295,0.428,0.095],"Maikel Garcia":[0.248,0.188,0.372,0.048],"Michael Massey":[0.241,0.215,0.362,0.042],"Freddy Fermin":[0.248,0.175,0.375,0.045],"Jose Altuve":[0.288,0.138,0.448,0.085],"Yordan Alvarez":[0.321,0.182,0.558,0.168],"Alex Bregman":[0.278,0.158,0.448,0.092],"Jeremy Pena":[0.258,0.218,0.402,0.068],"Yainer Diaz":[0.271,0.185,0.432,0.082],"Jake Meyers":[0.248,0.252,0.388,0.062],"Chas McCormick":[0.255,0.235,0.408,0.075],"Mauricio Dubon":[0.238,0.195,0.358,0.038],"Victor Caratini":[0.245,0.188,0.368,0.042],"Marcus Semien":[0.271,0.168,0.432,0.082],"Corey Seager":[0.295,0.188,0.498,0.128],"Nathaniel Lowe":[0.275,0.158,0.442,0.082],"Adolis Garcia":[0.268,0.278,0.455,0.112],"Josh Smith":[0.258,0.235,0.402,0.068],"Wyatt Langford":[0.268,0.248,0.428,0.085],"Jonah Heim":[0.251,0.212,0.388,0.062],"Leody Taveras":[0.241,0.248,0.372,0.045],"Mike Trout":[0.312,0.218,0.558,0.172],"Taylor Ward":[0.268,0.232,0.435,0.088],"Nolan Schanuel":[0.261,0.198,0.408,0.068],"Logan O'Hoppe":[0.265,0.225,0.418,0.075],"Mickey Moniak":[0.251,0.258,0.398,0.065],"Zach Neto":[0.258,0.238,0.405,0.068],"Luis Rengifo":[0.248,0.205,0.378,0.052],"Julio Rodriguez":[0.285,0.248,0.505,0.128],"Cal Raleigh":[0.271,0.258,0.468,0.128],"Mitch Garver":[0.265,0.225,0.432,0.095],"Eugenio Suarez":[0.258,0.268,0.432,0.112],"Ty France":[0.265,0.158,0.408,0.068],"Luke Raley":[0.258,0.258,0.415,0.082],"Jorge Polanco":[0.261,0.225,0.408,0.072],"Josh Rojas":[0.238,0.228,0.362,0.042],"Francisco Lindor":[0.278,0.178,0.462,0.092],"Pete Alonso":[0.285,0.225,0.512,0.152],"Brandon Nimmo":[0.265,0.202,0.415,0.075],"Jesse Winker":[0.271,0.188,0.422,0.072],"Mark Vientos":[0.275,0.248,0.468,0.118],"Jeff McNeil":[0.261,0.148,0.388,0.052],"Starling Marte":[0.261,0.195,0.408,0.068],"Francisco Alvarez":[0.271,0.268,0.452,0.112],"Luisangel Acuna":[0.248,0.232,0.378,0.052],"Ronald Acuna Jr.":[0.305,0.198,0.518,0.128],"Ozzie Albies":[0.271,0.158,0.445,0.085],"Austin Riley":[0.285,0.235,0.502,0.138],"Marcell Ozuna":[0.281,0.222,0.475,0.128],"Matt Olson":[0.285,0.248,0.508,0.148],"Eddie Rosario":[0.261,0.218,0.415,0.075],"Sean Murphy":[0.268,0.225,0.445,0.095],"Michael Harris II":[0.271,0.228,0.448,0.085],"Orlando Arcia":[0.241,0.215,0.365,0.045],"Trea Turner":[0.285,0.178,0.468,0.092],"Bryce Harper":[0.305,0.188,0.528,0.158],"Kyle Schwarber":[0.265,0.268,0.478,0.152],"Nick Castellanos":[0.268,0.215,0.435,0.082],"Alec Bohm":[0.275,0.188,0.445,0.088],"Brandon Marsh":[0.255,0.248,0.408,0.072],"J.T. Realmuto":[0.272,0.218,0.452,0.095],"Bryson Stott":[0.255,0.205,0.395,0.065],"Johan Rojas":[0.238,0.232,0.362,0.038],"CJ Abrams":[0.265,0.225,0.418,0.075],"Keibert Ruiz":[0.261,0.158,0.395,0.058],"Joey Meneses":[0.265,0.198,0.428,0.082],"Alex Call":[0.241,0.232,0.368,0.045],"Dansby Swanson":[0.258,0.228,0.415,0.075],"Ian Happ":[0.265,0.225,0.428,0.085],"Nico Hoerner":[0.261,0.148,0.395,0.055],"Michael Busch":[0.268,0.248,0.438,0.092],"Christopher Morel":[0.255,0.282,0.428,0.095],"Seiya Suzuki":[0.278,0.205,0.448,0.092],"Miguel Amaya":[0.248,0.238,0.378,0.058],"Lars Nootbaar":[0.268,0.215,0.432,0.082],"Nolan Arenado":[0.275,0.185,0.468,0.115],"Willson Contreras":[0.265,0.225,0.428,0.085],"Brendan Donovan":[0.268,0.155,0.408,0.068],"Dylan Carlson":[0.255,0.225,0.402,0.065],"Tommy Edman":[0.258,0.182,0.405,0.062],"Masyn Winn":[0.251,0.205,0.385,0.055],"Ivan Herrera":[0.255,0.185,0.388,0.055],"Willy Adames":[0.271,0.242,0.442,0.095],"William Contreras":[0.275,0.205,0.448,0.092],"Christian Yelich":[0.285,0.195,0.468,0.105],"Rhys Hoskins":[0.271,0.248,0.462,0.118],"Jackson Chourio":[0.268,0.238,0.432,0.085],"Sal Frelick":[0.255,0.182,0.385,0.048],"Joey Wiemer":[0.241,0.295,0.398,0.072],"Tyrone Taylor":[0.251,0.248,0.398,0.068],"Elly De La Cruz":[0.275,0.285,0.488,0.128],"TJ Friedl":[0.261,0.215,0.408,0.068],"Jonathan India":[0.265,0.218,0.415,0.072],"Tyler Stephenson":[0.268,0.185,0.432,0.082],"Spencer Steer":[0.268,0.232,0.435,0.088],"Jake Fraley":[0.255,0.242,0.405,0.072],"Matt McLain":[0.258,0.225,0.405,0.068],"Will Benson":[0.248,0.285,0.398,0.072],"Oneil Cruz":[0.272,0.298,0.498,0.128],"Bryan Reynolds":[0.275,0.205,0.452,0.095],"Carlos Santana":[0.258,0.188,0.408,0.072],"Henry Davis":[0.261,0.258,0.418,0.082],"Ji Hwan Bae":[0.245,0.218,0.378,0.048],"Rowdy Tellez":[0.265,0.228,0.448,0.105],"Corbin Carroll":[0.271,0.218,0.445,0.088],"Ketel Marte":[0.285,0.165,0.462,0.092],"Lourdes Gurriel Jr.":[0.265,0.188,0.428,0.078],"Gabriel Moreno":[0.272,0.158,0.418,0.068],"Christian Walker":[0.271,0.232,0.462,0.112],"Randal Grichuk":[0.258,0.218,0.425,0.085],"Geraldo Perdomo":[0.245,0.222,0.375,0.048],"Jake McCarthy":[0.241,0.242,0.365,0.045],"Joc Pederson":[0.265,0.232,0.442,0.112],"Heliot Ramos":[0.265,0.248,0.428,0.085],"Patrick Bailey":[0.251,0.198,0.388,0.058],"Mike Yastrzemski":[0.258,0.228,0.408,0.078],"Wilmer Flores":[0.265,0.175,0.408,0.072],"Tyler Fitzgerald":[0.255,0.238,0.398,0.065],"Marco Luciano":[0.261,0.268,0.415,0.078],"Grant McCray":[0.238,0.268,0.362,0.042],"Blake Sabol":[0.245,0.252,0.378,0.055],"Casey Schmitt":[0.241,0.242,0.368,0.048],"Mookie Betts":[0.295,0.138,0.505,0.125],"Freddie Freeman":[0.302,0.148,0.498,0.112],"Shohei Ohtani":[0.318,0.188,0.558,0.178],"Will Smith":[0.278,0.215,0.452,0.098],"Teoscar Hernandez":[0.278,0.242,0.478,0.128],"Andy Pages":[0.261,0.268,0.428,0.088],"Max Muncy":[0.265,0.248,0.448,0.128],"Gavin Lux":[0.255,0.218,0.395,0.062],"Miguel Rojas":[0.238,0.182,0.352,0.032],"Fernando Tatis Jr.":[0.295,0.245,0.512,0.148],"Manny Machado":[0.285,0.178,0.478,0.112],"Xander Bogaerts":[0.271,0.188,0.432,0.082],"Jake Cronenworth":[0.258,0.188,0.402,0.065],"Jackson Merrill":[0.268,0.215,0.428,0.082],"Jurickson Profar":[0.265,0.195,0.415,0.072],"Ha-Seong Kim":[0.255,0.218,0.388,0.058],"Kyle Higashioka":[0.245,0.258,0.378,0.065],"Ryan McMahon":[0.265,0.248,0.435,0.092],"Ezequiel Tovar":[0.261,0.218,0.408,0.068],"C.J. Cron":[0.265,0.225,0.448,0.105],"Brenton Doyle":[0.251,0.278,0.415,0.075],"Elias Diaz":[0.255,0.198,0.395,0.062],"Charlie Blackmon":[0.252,0.195,0.388,0.065],"Andrew Vaughn":[0.268,0.215,0.432,0.085],"Tommy Pham":[0.255,0.228,0.398,0.065],"Korey Lee":[0.245,0.255,0.375,0.052],"Gavin Sheets":[0.255,0.232,0.415,0.082],"Bryan Ramos":[0.248,0.262,0.388,0.065],"Kerry Carpenter":[0.268,0.238,0.442,0.095],"Spencer Torkelson":[0.265,0.258,0.442,0.112],"Matt Vierling":[0.258,0.218,0.405,0.068],"Riley Greene":[0.272,0.238,0.448,0.092],"Javier Baez":[0.245,0.295,0.388,0.072],"Parker Meadows":[0.251,0.265,0.398,0.068],"Brent Rooker":[0.278,0.265,0.488,0.145],"Lawrence Butler":[0.265,0.258,0.442,0.095],"Shea Langeliers":[0.261,0.275,0.445,0.112],"Seth Brown":[0.258,0.258,0.428,0.095],"Tyler Soderstrom":[0.261,0.258,0.422,0.082],"Zack Gelof":[0.261,0.248,0.415,0.082],"Luis Arraez":[0.295,0.068,0.368,0.018],"Jake Burger":[0.268,0.258,0.462,0.128],"Bryan De La Cruz":[0.265,0.245,0.428,0.085],"Jesus Sanchez":[0.261,0.252,0.418,0.078],"Josh Bell":[0.261,0.215,0.418,0.082],"Nick Fortes":[0.248,0.238,0.375,0.052],"Owen Miller":[0.248,0.198,0.375,0.052],"Stuart Fairchild":[0.241,0.258,0.372,0.048],"Connor Joe":[0.248,0.242,0.385,0.058],"Andy Ibanez":[0.248,0.205,0.378,0.055],"Nicky Lopez":[0.241,0.188,0.355,0.028],"Tim Anderson":[0.248,0.195,0.372,0.042],"Lenyn Sosa":[0.241,0.255,0.365,0.045],"Esteury Ruiz":[0.245,0.225,0.372,0.042],"JJ Bleday":[0.255,0.248,0.408,0.078],"Peyton Burdick":[0.245,0.285,0.385,0.065],"Travis Jankowski":[0.238,0.218,0.355,0.032],"Tyler Wade":[0.231,0.218,0.342,0.025],"Sean Bouchard":[0.248,0.238,0.378,0.058],"Aaron Judge":[0.318,0.282,0.592,0.198],"Adley Rutschman":[0.278,0.182,0.448,0.088],"Alec Bohm":[0.275,0.192,0.445,0.088],"Alec Burleson":[0.262,0.225,0.418,0.078],"Alejandro Kirk":[0.272,0.138,0.422,0.068],"Alex Bregman":[0.275,0.148,0.418,0.082],"Andy Pages":[0.261,0.268,0.428,0.088],"Austin Riley":[0.285,0.235,0.502,0.138],"Austin Wells":[0.258,0.245,0.412,0.088],"Ben Rice":[0.258,0.248,0.408,0.075],"Bobby Witt Jr.":[0.298,0.188,0.498,0.112],"Bo Naylor":[0.248,0.268,0.392,0.065],"Brandon Lowe":[0.268,0.248,0.445,0.095],"Brandon Marsh":[0.255,0.248,0.408,0.072],"Brandon Nimmo":[0.265,0.202,0.415,0.075],"Brayan Rocchio":[0.241,0.212,0.368,0.048],"Brendan Donovan":[0.268,0.155,0.408,0.068],"Brent Rooker":[0.278,0.265,0.488,0.145],"Brenton Doyle":[0.251,0.278,0.415,0.075],"Brooks Lee":[0.251,0.228,0.388,0.062],"Bryce Harper":[0.305,0.188,0.528,0.158],"Bryan Reynolds":[0.275,0.205,0.452,0.095],"Bryson Stott":[0.255,0.205,0.395,0.065],"Byron Buxton":[0.285,0.258,0.512,0.148],"CJ Abrams":[0.265,0.225,0.418,0.075],"Cal Raleigh":[0.271,0.258,0.468,0.128],"Carlos Correa":[0.278,0.185,0.448,0.092],"Carlos Santana":[0.258,0.188,0.408,0.072],"Carson Kelly":[0.245,0.235,0.378,0.055],"Ceddanne Rafaela":[0.245,0.238,0.402,0.065],"Cedric Mullins":[0.251,0.215,0.392,0.058],"Chase DeLauter":[0.258,0.248,0.415,0.072],"Christian Walker":[0.271,0.232,0.462,0.112],"Christian Yelich":[0.285,0.195,0.468,0.105],"Cody Bellinger":[0.261,0.198,0.422,0.082],"Colt Keith":[0.262,0.228,0.418,0.078],"Colton Cowser":[0.261,0.242,0.415,0.078],"Corbin Carroll":[0.271,0.218,0.445,0.088],"Dansby Swanson":[0.258,0.228,0.415,0.075],"Drake Baldwin":[0.265,0.228,0.425,0.082],"Elly De La Cruz":[0.275,0.285,0.488,0.128],"Ezequiel Tovar":[0.261,0.218,0.408,0.068],"Fernando Tatis Jr.":[0.295,0.245,0.512,0.148],"Francisco Alvarez":[0.271,0.268,0.452,0.112],"Francisco Lindor":[0.278,0.178,0.462,0.092],"Freddie Freeman":[0.302,0.148,0.498,0.112],"Gabriel Moreno":[0.272,0.158,0.418,0.068],"Geraldo Perdomo":[0.245,0.222,0.375,0.048],"Gunnar Henderson":[0.295,0.225,0.518,0.145],"Ha-Seong Kim":[0.255,0.218,0.388,0.058],"Ian Happ":[0.265,0.225,0.428,0.085],"Isaac Paredes":[0.268,0.178,0.432,0.088],"Jackson Chourio":[0.268,0.238,0.432,0.085],"Jackson Merrill":[0.268,0.215,0.428,0.082],"Jazz Chisholm Jr.":[0.268,0.248,0.448,0.095],"Jeff McNeil":[0.261,0.148,0.388,0.052],"Jesse Winker":[0.271,0.188,0.422,0.072],"Joey Loperfido":[0.258,0.245,0.418,0.078],"Jonathan India":[0.265,0.218,0.415,0.072],"Jorge Soler":[0.268,0.285,0.462,0.128],"Josh Naylor":[0.278,0.215,0.462,0.098],"JT Realmuto":[0.272,0.218,0.452,0.095],"Junior Caminero":[0.272,0.258,0.468,0.112],"Ketel Marte":[0.285,0.165,0.462,0.092],"Kevin McGonigle":[0.262,0.218,0.415,0.072],"Kyle Manzardo":[0.268,0.235,0.442,0.092],"Kyle Schwarber":[0.265,0.268,0.478,0.152],"Lane Thomas":[0.258,0.248,0.408,0.072],"Lawrence Butler":[0.265,0.258,0.442,0.095],"Logan O'Hoppe":[0.265,0.225,0.418,0.075],"Luis Arraez":[0.295,0.068,0.368,0.018],"Luisangel Acuña":[0.248,0.232,0.378,0.052],"Maikel Garcia":[0.248,0.188,0.372,0.048],"Manny Machado":[0.285,0.178,0.478,0.112],"Marcell Ozuna":[0.281,0.238,0.475,0.128],"Mark Vientos":[0.275,0.248,0.468,0.118],"Marcus Semien":[0.271,0.168,0.432,0.082],"Matt Olson":[0.285,0.248,0.508,0.148],"Matt Vierling":[0.258,0.218,0.405,0.068],"Matt Wallner":[0.268,0.278,0.448,0.105],"Max Kepler":[0.261,0.218,0.418,0.082],"Max Muncy":[0.265,0.248,0.448,0.128],"Michael Busch":[0.268,0.248,0.438,0.092],"Michael Harris II":[0.271,0.228,0.448,0.085],"Mookie Betts":[0.295,0.138,0.505,0.125],"Nolan Arenado":[0.275,0.185,0.468,0.115],"Nolan Gorman":[0.262,0.278,0.458,0.118],"Nolan Schanuel":[0.261,0.198,0.408,0.068],"Oneil Cruz":[0.272,0.298,0.498,0.128],"Orlando Arcia":[0.241,0.215,0.365,0.045],"Ozzie Albies":[0.271,0.158,0.445,0.085],"Patrick Bailey":[0.251,0.198,0.388,0.058],"Paul Goldschmidt":[0.278,0.212,0.468,0.098],"Pete Alonso":[0.285,0.225,0.512,0.152],"Randy Arozarena":[0.268,0.225,0.432,0.082],"Rhys Hoskins":[0.271,0.248,0.462,0.118],"Riley Greene":[0.272,0.238,0.448,0.092],"Ronald Acuña Jr.":[0.305,0.198,0.518,0.128],"Ryan Jeffers":[0.271,0.228,0.445,0.095],"Ryan McMahon":[0.265,0.248,0.435,0.092],"Sal Frelick":[0.255,0.182,0.385,0.048],"Salvador Perez":[0.272,0.192,0.462,0.105],"Samuel Basallo":[0.268,0.245,0.438,0.092],"Seiya Suzuki":[0.278,0.205,0.448,0.092],"Shea Langeliers":[0.261,0.275,0.445,0.112],"Shohei Ohtani":[0.318,0.188,0.558,0.178],"Spencer Steer":[0.268,0.232,0.435,0.088],"Spencer Torkelson":[0.265,0.258,0.442,0.112],"Steven Kwan":[0.278,0.118,0.402,0.045],"Taylor Ward":[0.268,0.232,0.435,0.088],"Teoscar Hernandez":[0.278,0.242,0.478,0.128],"TJ Friedl":[0.261,0.215,0.408,0.068],"Trea Turner":[0.285,0.178,0.468,0.092],"Trevor Larnach":[0.258,0.252,0.415,0.078],"Trevor Story":[0.251,0.268,0.412,0.085],"Tyler O'Neill":[0.265,0.248,0.435,0.095],"Tyler Stephenson":[0.268,0.185,0.432,0.082],"Vladimir Guerrero Jr.":[0.302,0.122,0.498,0.108],"Vinnie Pasquantino":[0.278,0.158,0.452,0.092],"Wilyer Abreu":[0.255,0.225,0.398,0.072],"Will Smith":[0.278,0.215,0.452,0.098],"William Contreras":[0.275,0.205,0.448,0.092],"Willy Adames":[0.271,0.242,0.442,0.095],"Wyatt Langford":[0.268,0.248,0.428,0.085],"Xander Bogaerts":[0.271,0.188,0.432,0.082],"Yainer Diaz":[0.271,0.185,0.432,0.082],"Zach Gelof":[0.261,0.248,0.415,0.082],"Zach Neto":[0.258,0.238,0.405,0.068]};
 
 function normalize(s){
   return s.toLowerCase()
@@ -1505,37 +1227,23 @@ Object.keys(STATCAST).forEach(k => { SC_NORM[normalize(k)] = STATCAST[k]; });
 
 // Generic lookup helper — searches a live map then SC_NORM embedded fallback
 function lookupInMap(map, name) {
-  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii']);
-
-  // Helper: strip suffix from normalized key
-  const stripSuffix = (k) => {
-    const parts = k.split(' ');
-    if (SUFFIXES.has(parts[parts.length - 1]) && parts.length >= 3)
-      return parts.slice(0, -1).join(' ');
-    return k;
-  };
-
-  // 1. Resolve known aliases then normalize
+  // First resolve any known aliases (Jr., accents, alternate spellings)
   const resolved = resolveAlias(name);
   const key = normalize(resolved);
   if (map[key]) return map[key];
 
-  // 2. Try original name normalized
+  // Try original name too in case alias wasn't needed
   const origKey = normalize(name);
   if (map[origKey]) return map[origKey];
 
-  // 3. Try stripping Jr/Sr/II/III suffix (Savant often omits these)
-  const stripped = stripSuffix(key);
-  if (stripped !== key && map[stripped]) return map[stripped];
-
-  // 4. Also try stripping from original
-  const strippedOrig = stripSuffix(origKey);
-  if (strippedOrig !== origKey && map[strippedOrig]) return map[strippedOrig];
-
-  // 5. Fuzzy: last name + first initial (handles suffix on either side)
+  // Fuzzy: match on last name + first initial
+  // But skip if last part is 'jr', 'sr', 'ii', 'iii' — use second-to-last instead
   const parts = key.split(' ');
+  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'jr.', 'sr.']);
   let lLast = parts[parts.length - 1];
-  if (SUFFIXES.has(lLast) && parts.length >= 3) lLast = parts[parts.length - 2];
+  if (SUFFIXES.has(lLast) && parts.length >= 3) {
+    lLast = parts[parts.length - 2]; // use actual last name
+  }
   const lInit = parts[0][0];
   const lm = Object.keys(map).find(k => {
     const kp = k.split(' ');
@@ -1756,7 +1464,49 @@ const BATS = {
   'Adam Frazier':'L',
   'Nathan Church':'L',
   'Miguel Andujar':'R',
-  'Kurt Suzuki':'R'
+  'Kurt Suzuki':'R',
+  'Amed Rosario':'R',
+  // Apr 23 additions — depth chart players
+  'Giancarlo Stanton':'R',
+  'Kazuma Okamoto':'R',
+  'Yandy Díaz':'R',
+  'Cedric Mullins':'L',
+  'Jonny DeLuca':'L',
+  'Chandler Simpson':'R',
+  'Kody Clemens':'L',
+  'Luke Keaschall':'L',
+  'Royce Lewis':'R',
+  'Isaac Collins':'L',
+  'Carter Jensen':'R',
+  'Munetaka Murakami':'R',
+  'Wenceel Perez':'S',
+  'Javier Baez':'R',
+  'Kyren Paris':'R',
+  'Cole Young':'L',
+  'Luis Robert':'R',
+  'Brett Baty':'L',
+  'Xavier Edwards':'L',
+  'Curtis Mead':'R',
+  'Brady House':'R',
+  'Luis García Jr.':'L',
+  'Nasim Nunez':'S',
+  'Carson Kelly':'R',
+  'Alec Burleson':'L',
+  'Nolan Gorman':'L',
+  'Pedro Pagés':'R',
+  'Victor Scott II':'L',
+  'Brandon Lockridge':'L',
+  'Brice Turang':'L',
+  'Gary Sanchez':'R',
+  'Luis Matos':'R',
+  'Greg Jones':'S',
+  'Blake Perkins':'L',
+  'Joey Ortiz':'R',
+  'Sal Stewart':'R',
+  'Noelvi Marte':'R',
+  'Kyle Tucker':'L',
+  'Nolan Jones':'L',
+
 };
 
 function getBats(name) { return BATS[name] || '?'; }
@@ -1777,7 +1527,7 @@ function platoonLabel(bats, spHand, spPlatoon) {
 // Known 2026 batting orders — sourced from MLB.com Opening Day + RotoWire current (Apr 20 2026)
 const DEPTH_CHARTS = {
   // AL East
-  'NYY': ['Amed Rosario','Aaron Judge','Ben Rice','Giancarlo Stanton','Cody Bellinger','Randal Grichuk','Jazz Chisholm Jr.','Jose Caballero','J.C. Escarra'],
+  'NYY': ['Amed Rosario','Aaron Judge','Ben Rice','Giancarlo Stanton','Cody Bellinger','Randal Grichuk','Jazz Chisholm Jr.','José Caballero','Austin Wells'],
   'BOS': ['Roman Anthony','Willson Contreras','Wilyer Abreu','Trevor Story','Jarren Duran','Ceddanne Rafaela','Marcelo Mayer','Caleb Durbin','Carlos Narváez'],
   'TOR': ['George Springer','Nathan Lukes','Vladimir Guerrero Jr.','Addison Barger','Alejandro Kirk','Daulton Varsho','Kazuma Okamoto','Ernie Clement','Andrés Giménez'],
   'BAL': ['Gunnar Henderson','Adley Rutschman','Pete Alonso','Taylor Ward','Samuel Basallo',"Tyler O'Neill",'Coby Mayo','Colton Cowser','Blaze Alexander'],
@@ -1787,7 +1537,7 @@ const DEPTH_CHARTS = {
   'MIN': ['Byron Buxton','Trevor Larnach','Josh Bell','Ryan Jeffers','Kody Clemens','Luke Keaschall','Matt Wallner','Royce Lewis','Brooks Lee'],
   'KC':  ['Maikel Garcia','Bobby Witt Jr.','Vinnie Pasquantino','Salvador Perez','Isaac Collins','Jonathan India','Carter Jensen','Starling Marte','Lane Thomas'],
   'CHW': ['Andrew Vaughn','Tommy Pham','Korey Lee','Nicky Lopez','Munetaka Murakami','Zach DeLoach','Lenyn Sosa','Bryan Ramos','Tim Anderson'],
-  'DET': ['Kevin McGonigle','Gleyber Torres','Colt Keith','Riley Greene','Dillon Dingler','Kerry Carpenter','Spencer Torkelson','Wenceel Pérez','Javier Báez'],
+  'DET': ['Kevin McGonigle','Gleyber Torres','Colt Keith','Riley Greene','Dillon Dingler','Kerry Carpenter','Spencer Torkelson','Wenceel Perez','Javier Baez'],
   // AL West
   'HOU': ['Jose Altuve','Yordan Alvarez','Isaac Paredes','Carlos Correa','Christian Walker','Joey Loperfido','Cam Smith','Yainer Diaz','Jake Meyers'],
   'TEX': ['Brandon Nimmo','Corey Seager','Nathaniel Lowe','Adolis García','Josh Smith','Wyatt Langford','Jonah Heim','Travis Jankowski','Leody Taveras'],
@@ -1803,15 +1553,15 @@ const DEPTH_CHARTS = {
   // NL Central
   'CHC': ['Nico Hoerner','Ian Happ','Alex Bregman','Michael Busch','Pete Crow-Armstrong','Seiya Suzuki','Dansby Swanson','Carson Kelly','Moisés Ballesteros'],
   'STL': ['JJ Wetherholt','Iván Herrera','Alec Burleson','Jordan Walker','Nolan Gorman','Masyn Winn','Nathan Church','Pedro Pagés','Victor Scott II'],
-  'MIL': ['Brandon Lockridge','Brice Turang','William Contreras','Gary Sánchez','Luis Rengifo','Luis Matos','Greg Jones','Blake Perkins','Joey Ortiz'],
+  'MIL': ['Brandon Lockridge','Brice Turang','William Contreras','Gary Sanchez','Luis Rengifo','Luis Matos','Greg Jones','Blake Perkins','Joey Ortiz'],
   'CIN': ['TJ Friedl','Matt McLain','Elly De La Cruz','Spencer Steer','Sal Stewart','Gavin Lux','Tyler Stephenson',"Ke\'Bryan Hayes",'Noelvi Marte'],
   'PIT': ['Oneil Cruz','Brandon Lowe','Bryan Reynolds','Marcell Ozuna',"Ryan O'Hearn",'Jared Triolo','Spencer Horwitz','Nick Gonzales','Henry Davis'],
   // NL West
   'AZ':  ['Ketel Marte','Corbin Carroll','Geraldo Perdomo','Gabriel Moreno','Pavin Smith','Nolan Arenado','Carlos Santana','Alek Thomas','Jordan Lawlar'],
   'SF':  ['Luis Arraez','Matt Chapman','Rafael Devers','Willy Adames','Jung Hoo Lee','Heliot Ramos','Casey Schmitt','Patrick Bailey','Harrison Bader'],
   'LAD': ['Mookie Betts','Shohei Ohtani','Freddie Freeman','Kyle Tucker','Will Smith','Teoscar Hernandez','Max Muncy','Andy Pages','Miguel Rojas'],
-  'SD':  ['Ramon Laureano','Fernando Tatis Jr.','Jackson Merrill','Manny Machado','Xander Bogaerts','Gavin Sheets','Miguel Andujar','Freddy Fermin','Jake Cronenworth'],
-  'COL': ['Edouard Julien','Mickey Moniak','Hunter Goodman','TJ Rumfield','Ezequiel Tovar','Troy Johnston','Willi Castro','Brenton Doyle','Kyle Karros'],
+  'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Miguel Andujar','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
+  'COL': ['Zac Veen','Ryan McMahon','C.J. Cron','Ezequiel Tovar','Elias Díaz','Brenton Doyle','Sean Bouchard','Alan Trejo','Nolan Jones'],
 };
 
 // SP_STATS: [ERA, WHIP, K/9, hand] — covers ~100 active starters
@@ -2116,7 +1866,6 @@ function buildLineups(gameLineups, rawGames) {
           return {
             order: i + 1,
             name,
-            id: String(p.id || p.person?.id || ''),
             position: p.position?.abbreviation || '?',
             bats: apiBats || getBats(name),
             confirmed: true,
@@ -2198,19 +1947,6 @@ function scoreAllPlayers(games, maxOrder, minPA) {
           pitcherHand: opponentSPHand,
           venue: g.venue,
           impliedRuns: impliedRuns,
-          kpctLowConf: (() => {
-            const key = normalize(p.name);
-            const liveEntry = liveStatcast[key] || lookupInMap(liveStatcast, p.name);
-            const livePA = liveEntry?.kpctPA || 0;
-            const inEmbedded = !!(SC_NORM[key] || Object.keys(SC_NORM).find(k => normalize(k) === key.replace(/ (jr|sr|ii|iii)$/,'')));
-            // Low confidence if: confirmed with <100 live PA, OR projected with no embedded entry
-            return (p.confirmed && livePA > 0 && livePA < 100) || (!p.confirmed && !inEmbedded);
-          })(),
-          kpctPA: (() => {
-            const key = normalize(p.name);
-            const liveEntry = liveStatcast[key] || lookupInMap(liveStatcast, p.name);
-            return liveEntry?.kpctPA || 0;
-          })(),
         });
       });
     });
@@ -2342,15 +2078,16 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   //   Slots 6-9: full effect — these hitters lose PA in low-scoring blowout losses
   let impliedScore = 50; // neutral default when no odds data
   if (impliedRuns !== null && impliedRuns !== undefined) {
-    // Base: same offensive environment signal for ALL hitters (high runs = good for everyone)
+    // Scale 2.0 → 7.0 runs to 0 → 100 (extended upper range for big offensive games)
     impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.0) / (7.0 - 2.0)) * 100));
-    // PA penalty: only bottom-order hitters (6-9) in low-run games face real PA loss risk
-    // Above 4.5 runs: no penalty for anyone. Below 4.5: bottom order loses up to 15 pts.
-    if (player.order >= 6 && impliedRuns < 4.5) {
-      const paPenalty = ((4.5 - impliedRuns) / (4.5 - 2.0)) * 15;
-      impliedScore = Math.max(0, Math.round(impliedScore - paPenalty));
-    }
-    impliedScore = Math.round(impliedScore);
+    // Order-based dampening — more aggressive differentiation
+    // Leadoff/2-hole: only 20% of the implied runs effect (always get their PAs)
+    // 3-5 hole: 55% of effect
+    // 6-9 hole: 100% of effect (real PA risk in low-scoring games)
+    const orderDampener = player.order <= 2 ? 0.20
+                        : player.order <= 5 ? 0.55
+                        : 1.0;
+    impliedScore = Math.round(50 + (impliedScore - 50) * orderDampener);
   }
 
   // Streak adjustment: ±5 points based on hot/cold rolling windows
@@ -2363,13 +2100,13 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
   const rawComposite =
-    pitcherAdjContact * 0.56 +  // contactAdjXba × pitcherFactor — primary hit probability signal
-                                 // increased from 0.52: barrel weight moved here (hit prop = contact, not power)
-    impliedScore      * 0.14 +  // team implied runs — PA penalty only for bottom order in low-run games
-    orderScore        * 0.08 +  // PA volume by batting slot
-    barrelScore       * 0.04 +  // Barrel% — reduced from 0.08: power ≠ hits, rewards contact artists
+    pitcherAdjContact * 0.52 +  // contactAdjXba × pitcherFactor — multiplicative, not additive
+                                 // pitcher matchup scales the batter's hit probability directly
+    impliedScore      * 0.14 +  // team implied runs — order-dampened, full effect slots 6-9
+    orderScore        * 0.08 +  // PA volume by batting slot (reduced — partially in impliedRuns)
+    barrelScore       * 0.08 +  // Barrel% — independent power/contact ceiling signal
     pk.score          * 0.05 +  // park factor
-    0;                          // weights: .56+.14+.08+.04+.05 = 0.87 + streakAdj(±5pts)
+    0;                          // weights: .52+.14+.08+.08+.05 = 0.87 + streakAdj(±5pts)
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite + streakAdj)));
 
@@ -2594,8 +2331,8 @@ function playerCard(p, rank) {
       <div class="p-meta">Bats ${p.bats||"?"} · vs ${p.pitcher} (${p.pitcherHand}) — ${p.opponent} · ${p.venue}</div>
       <div class="pills">
         ${lsPill}${scPill}
-        <span class="pill ${xbaC}" style="cursor:pointer;" data-player="${p.name}" onclick="showXbaBreakdown(this.dataset.player)" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
-        <span class="pill ${p.kpctLowConf ? 'warn' : kC}" title="${p.kpctLowConf ? (p.kpctPA > 0 ? 'Small sample: ' + p.kpctPA + ' PA in 2026 — blended with 2025 data' : 'No 2025 Savant data — estimated value') : 'K% from real 2025 Savant data' + (p.kpctPA > 0 ? ' blended with ' + p.kpctPA + ' 2026 PA' : '')}">K% ${p.kpctLowConf ? '~' : ''}${(p.kpct * 100).toFixed(1)}%</span>
+        <span class="pill ${xbaC}" style="cursor:pointer;" onclick="showXbaBreakdown(${rank-1})" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
+        <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
         ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
@@ -2608,9 +2345,9 @@ function playerCard(p, rank) {
       </div>
       <div class="p-reasoning">${p.reasoning}</div>
     </div>
-    <div class="score-wrap" data-player="${p.name}" onclick="showScoreBreakdown(this.dataset.player)" style="cursor:pointer;" title="Click for full score breakdown">
+    <div class="score-wrap">
       <div class="score-big" style="color:${scColor}">${p.compositeScore}</div>
-      <div class="score-lbl">SCORE ▸</div>
+      <div class="score-lbl">Score</div>
       <div class="tier-badge">${p.tier}</div>
     </div>
   </div>`;
@@ -2625,31 +2362,24 @@ function toggleDiag() {
   if (btn) btn.style.background = isOpen ? 'var(--surface2)' : 'var(--surface)';
 }
 
-function showXbaBreakdown(nameOrIdx) {
-  // Accept either a player name (string) or legacy index (number)
-  const p = typeof nameOrIdx === 'string'
-    ? allScoredPlayers.find(p => p.name === nameOrIdx)
-    : allScoredPlayers[nameOrIdx];
+function showXbaBreakdown(idx) {
+  const p = allScoredPlayers[idx];
   if (!p) return;
   // Compute breakdown on-demand (not stored on every player)
   const name = p.name;
   const nKey = normalize(name);
   const scEntry = lookupStatcast(name, p.pitcherHand);
-  // Use lookupInMap for suffix-aware lookup (handles Jr., Sr., II, III)
-  const liveOv  = lookupInMap(liveStatcast, name);
-  const liveSp  = lookupInMap(p.pitcherHand === 'R' ? liveVsRHP : liveVsLHP, name);
-  const emb     = lookupInMap(SC_NORM, name) ? (() => { const k = Object.keys(SC_NORM).find(k => normalize(k) === normalize(name) || normalize(k) === normalize(name).replace(/ (jr|sr|ii|iii)$/, '')); return k ? {0: SC_NORM[k][0]} : null; })() : null;
-  const embArr  = (() => { const k = Object.keys(SC_NORM).find(k => normalize(k) === nKey || normalize(k) === nKey.replace(/ (jr|sr|ii|iii)$/, '')); return k ? SC_NORM[k] : null; })();
+  const liveOv  = liveStatcast[nKey];
+  const liveSp  = p.pitcherHand === 'R' ? liveVsRHP[nKey] : liveVsLHP[nKey];
+  const emb     = SC_NORM[nKey];
   const b = {
     final: p.xba,
     splitUsed: p.splitUsed || 'overall',
     splitPA: scEntry?.splitPA || 0,
     splitConfidence: scEntry?.splitConfidence || 0,
     liveOverall: liveOv?.xba ?? null,
-    liveOverallRaw: liveOv?.xbaRaw ?? null,  // pre-blend raw Savant xBA
     liveSplit: liveSp?.xba ?? null,
-    liveSplitRaw: liveSp?.xbaRaw ?? null,
-    embeddedXba: embArr ? embArr[0] : null,
+    embeddedXba: emb ? emb[0] : null,
     source: liveOv ? liveOv.source || 'live' : 'embedded',
     pa2026: liveOv?.pa ?? 0,
   };
@@ -2664,12 +2394,11 @@ function showXbaBreakdown(nameOrIdx) {
     ['', ''],
     ['── 2026 Live Data ──', ''],
     ['2026 PA (live)', b.pa2026 > 0 ? b.pa2026 + ' PA' : 'No 2026 data yet'],
-    ['2026 xBA — raw Savant', b.liveOverallRaw != null ? b.liveOverallRaw.toFixed(3) : b.liveOverall != null ? b.liveOverall.toFixed(3)+' (no raw stored)' : 'N/A'],
-    ['2026 xBA — after 80/20 blend', b.liveOverall != null ? b.liveOverall.toFixed(3) : 'N/A'],
+    ['2026 xBA (overall)', val(b.liveOverall)],
     ['2026 xBA vs ' + p.pitcherHand + 'HP (split)', val(b.liveSplit)],
     ['', ''],
     ['── Blending ──', ''],
-    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(0.80, b.pa2026/100)) + ' 2026 / ' + wt(1 - Math.min(0.80, b.pa2026/100)) + ' 2025' : 'N/A — using embedded'],
+    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(1, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(1, b.pa2026/100)) + ' prior' : 'N/A — using embedded'],
     ['Split confidence', b.splitPA > 0 ? wt(b.splitConfidence) + ' (' + b.splitPA + ' split PA of 80 needed)' : 'No split data — using overall'],
     ['Embedded 2025 xBA', val(b.embeddedXba)],
     ['', ''],
@@ -2701,182 +2430,10 @@ function showXbaBreakdown(nameOrIdx) {
         <table style="width:100%;border-collapse:collapse;">${tableRows}</table>
       </div>
       <div style="padding:12px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
-        ℹ️ xBA blends 2026 live data with 2025 embedded stats. Max 80% 2026 / 20% 2025 (reached at 100+ PA). Split xBA gets full weight at 80+ split PA.
+        ℹ️ xBA blends 2026 live data with 2025 embedded stats. Full weight to 2026 at 100+ PA. Split xBA (vs RHP/LHP) gets full weight at 80+ split PA.
       </div>
     </div>`;
   modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-  document.body.appendChild(modal);
-}
-
-
-// ── FULL SCORE BREAKDOWN MODAL ────────────────────────────────────────────────
-function showScoreBreakdown(playerName) {
-  const p = allScoredPlayers.find(p => p.name === playerName);
-  if (!p) return;
-
-  // Recompute all intermediate values on-demand
-  const nKey  = normalize(p.name);
-  const sc    = lookupStatcast(p.name, p.pitcherHand);
-  const xba   = sc?.xba ?? 0.255;
-  const kpct  = sc?.kpct ?? 0.22;
-  const hh    = sc?.hardhitpct ?? 0.38;
-  const barrel = sc?.barrelpct ?? 0.07;
-
-  // xBA score
-  const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
-  const splitConf   = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
-  const xbaScore    = Math.round(rawXbaScore * splitConf + 50 * (1 - splitConf));
-
-  // Contact adj
-  const contactAdj  = xba * (1 - kpct);
-  const contactScore = Math.min(100, Math.max(0, ((contactAdj - 0.100) / (0.310 - 0.100)) * 100));
-
-  // Barrel score
-  const barrelScore = Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
-
-  // Pitcher score — use values already computed in computeScore (stored on player object)
-  // This ensures breakdown matches the actual score (avoids re-lookup failures)
-  const spStats = getSPStats(p.pitcher, p.pitcherHand);
-  let spScore, spDetail;
-  if (p.spStatcast && p.spKpct != null) {
-    const spK   = p.spKpct  ?? 0.22;
-    const spXBA = p.spXBA   ?? 0.255;
-    const spHH  = p.spHH    ?? 0.38;
-    const spSC2 = livePitchers[normalize(p.pitcher)] || {};
-    const spWh  = spSC2.whiffPct       ?? 0.25;
-    const spBar = spSC2.barrelAllowed  ?? 0.07;
-    const kComp   = Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
-    const xbaComp = Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
-    const hhComp  = Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
-    const whComp  = Math.min(100,Math.max(0,(1-(spWh-0.15)/(0.42-0.15))*100));
-    const barComp = Math.min(100,Math.max(0,((spBar-0.02)/(0.18-0.02))*100));
-    spScore = kComp*0.38 + xbaComp*0.35 + hhComp*0.15 + whComp*0.08 + barComp*0.04;
-    spDetail = [
-      `K%: ${(spK*100).toFixed(0)}% → comp ${kComp.toFixed(0)} × 38%`,
-      `xBA allowed: ${spXBA.toFixed(3)} → comp ${xbaComp.toFixed(0)} × 35%`,
-      `HH%: ${(spHH*100).toFixed(0)}% → comp ${hhComp.toFixed(0)} × 15%`,
-      `Whiff%: ${(spWh*100).toFixed(0)}% → comp ${whComp.toFixed(0)} × 8%`,
-    ].join('<br>');
-  } else {
-    const k9   = spStats.k9 || 8.5;
-    const whip = spStats.whip || 1.35;
-    const k9Comp   = Math.min(100,Math.max(0,(1-(k9-4.0)/(14.0-4.0))*100));
-    const whipComp = Math.min(100,Math.max(0,((whip-0.80)/(1.90-0.80))*100));
-    spScore = k9Comp*0.65 + whipComp*0.35;
-    spDetail = `K/9: ${k9.toFixed(1)} → comp ${k9Comp.toFixed(0)} × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${whipComp.toFixed(0)} × 35%`;
-  }
-
-  const switchBonus = p.bats === 'S' ? 5 : 0;
-  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
-  const pitcherFactor = 0.70 + (matchupScore / 100) * 0.60;
-  const pitcherAdjContact = Math.min(100, Math.max(0, contactScore * pitcherFactor));
-
-  // Park
-  const pk = parkScore(p.venue);
-
-  // Order
-  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
-  const slotPA   = paBySlot[Math.min((p.battingOrder||5)-1, 8)];
-  const orderScore = Math.round(((slotPA-3.6)/(4.7-3.6))*100);
-
-  // Implied runs
-  let impliedScore = 50;
-  const ir = p.impliedRuns;
-  if (ir != null) {
-    const raw = Math.min(100,Math.max(0,((ir-2.0)/(7.0-2.0))*100));
-    impliedScore = Math.round(raw);
-    if ((p.battingOrder||5) >= 6 && ir < 4.5) {
-      const paPenalty = ((4.5 - ir) / (4.5 - 2.0)) * 15;
-      impliedScore = Math.max(0, Math.round(impliedScore - paPenalty));
-    }
-  }
-
-  const streakAdj = p.streakAdj || 0;
-  const rawComp = pitcherAdjContact*0.52 + impliedScore*0.14 + orderScore*0.08 + barrelScore*0.08 + pk.score*0.05;
-  const finalScore = Math.min(100, Math.max(0, Math.round(rawComp + streakAdj)));
-
-  // Build row helper
-  const row = (label, value, score, weight, contribution, note='', highlight=false) => `
-    <tr style="border-bottom:1px solid var(--border);${highlight?'background:var(--surface2);':''}">
-      <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${label}</td>
-      <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${value}</td>
-      <td style="padding:7px 10px;text-align:center;">
-        <span style="font-size:12px;font-weight:700;color:${score>=70?'var(--green)':score>=40?'var(--blue)':'var(--red)'};">${score.toFixed(0)}</span>
-      </td>
-      <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${weight}</td>
-      <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;color:var(--text);">${contribution}</td>
-    </tr>`;
-
-  const subrow = (text) => `
-    <tr>
-      <td colspan="5" style="padding:2px 10px 5px 20px;font-size:11px;color:var(--muted);">${text}</td>
-    </tr>`;
-
-  const divider = (label) => `
-    <tr>
-      <td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${label}</td>
-    </tr>`;
-
-  const tableHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-      <thead>
-        <tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
-          <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Component</th>
-          <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Value</th>
-          <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Score/100</th>
-          <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Weight</th>
-          <th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Points</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${divider('── Batter Profile ──')}
-        ${row('xBA ('+( sc?.splitUsed||'overall')+')', xba.toFixed(3), rawXbaScore, '—', '(used below)', `Split conf: ${(splitConf*100).toFixed(0)}%`)}
-        ${row('K%', (kpct*100).toFixed(1)+'%', 100-kpct*250, '—', '(used below)')}
-        ${row('Contact-adj xBA (xBA×(1-K%))', contactAdj.toFixed(3), contactScore, '—', `raw score ${contactScore.toFixed(0)}`)}
-        ${row('Barrel%', (barrel*100).toFixed(1)+'%', barrelScore, '4%', (barrelScore*0.04).toFixed(1)+' pts', 'Power metric — reduced weight for hit props')}
-        ${divider('── Pitcher Matchup ──')}
-        ${row(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '', matchupScore, '—', `factor ${pitcherFactor.toFixed(3)}`)}
-        ${p.spStatcast&&p.spKpct!=null ? subrow(`K%: ${(p.spKpct*100).toFixed(1)}% · xBA allowed: ${p.spXBA!=null?p.spXBA.toFixed(3):'N/A'} · HH%: ${p.spHH!=null?(p.spHH*100).toFixed(0)+'%':'N/A'}<br>${(() => { const lp = livePitchers[normalize(p.pitcher)]; return lp ? `${lp.pa||'?'} BF in 2026 · ${lp.source||'live'}` : ''; })()}`) : ''}
-        ${subrow(spDetail)}
-        ${row('Contact × Pitcher Factor', `${contactScore.toFixed(0)} × ${pitcherFactor.toFixed(3)}`, pitcherAdjContact, '56%', (pitcherAdjContact*0.56).toFixed(1)+' pts', '', true)}
-        ${divider('── Game Environment ──')}
-        ${row('Batting order (slot '+p.battingOrder+')', slotPA.toFixed(1)+' PA/game', orderScore, '8%', (orderScore*0.08).toFixed(1)+' pts')}
-        ${row('Implied runs', ir!=null?ir.toFixed(1)+' proj runs':'No odds data', impliedScore, '14%', (impliedScore*0.14).toFixed(1)+' pts', ir!=null&&(p.battingOrder||5)>=6&&ir<4.5?`PA penalty: -${(((4.5-ir)/(4.5-2.0))*15).toFixed(0)} pts (low-run PA risk)`:'Same for all slots')}
-        ${row('Park factor', pk.label, pk.score, '5%', (pk.score*0.05).toFixed(1)+' pts')}
-        ${streakAdj !== 0 ? row('Streak adjustment', streakAdj > 0 ? '🔥 Hot' : '🧊 Cold', 50+streakAdj*10, '—', (streakAdj>0?'+':'')+streakAdj+' pts') : ''}
-        ${divider('── Final Score ──')}
-        <tr style="background:var(--surface2);">
-          <td colspan="3" style="padding:10px;font-weight:700;font-size:14px;">COMPOSITE SCORE</td>
-          <td style="padding:10px;text-align:center;font-size:11px;color:var(--muted);">sum</td>
-          <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${finalScore>=65?'var(--green)':finalScore>=57?'var(--blue)':finalScore>=48?'var(--yellow)':'var(--red)'};">${finalScore}</td>
-        </tr>
-        <tr>
-          <td colspan="5" style="padding:4px 10px 8px;font-size:11px;color:var(--muted);">
-            Raw: ${rawComp.toFixed(2)} pts${streakAdj!==0?' + '+streakAdj+' streak adj':''} = ${finalScore}
-            &nbsp;·&nbsp; Tier: <strong>${p.tier}</strong>
-            &nbsp;·&nbsp; Platoon: ${p.platoon?.label||'—'}
-          </td>
-        </tr>
-      </tbody>
-    </table>`;
-
-  const modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML = `
-    <div style="background:var(--surface);border-radius:12px;width:640px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;">
-        <div>
-          <div style="font-weight:700;font-size:15px;">${p.name} — Full Score Breakdown</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${p.teamFull} · vs ${p.pitcher} (${p.pitcherHand}) · ${p.venue}</div>
-        </div>
-        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;">×</button>
-      </div>
-      <div style="padding:0;">${tableHTML}</div>
-      <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
-        💡 Click the score on any player card to see this breakdown. xBA pill 🔍 shows detailed xBA blend calculation.
-      </div>
-    </div>`;
-  modal.onclick = e => { if (e.target === modal) modal.remove(); };
   document.body.appendChild(modal);
 }
 
@@ -3456,7 +3013,7 @@ function renderCrossPool() {
     <div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📅 Today — ${todayLabel}</div>`;
 
   if (todayRows.length) {
-    html += `<div class="cross-pool-today" style="display:flex;flex-wrap:wrap;gap:8px;">`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;">`;
     todayRows.forEach(([name, d]) => {
       const scored = allScoredPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
       const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=65?'var(--green)':scored.compositeScore>=57?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
@@ -3838,10 +3395,10 @@ function renderTracker() {
       const tierColor = p.tier === 'Elite' ? 'var(--green)' : p.tier === 'Strong' ? 'var(--blue)' : p.tier === 'Lean' ? 'var(--yellow)' : 'var(--red)';
       const hitStr = p.hits !== null ? `${p.hits}-${p.atBats}` : '';
 
-      html += `<div class="tracker-row" style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
         <span style="font-size:16px;">${resultIcon}</span>
         <span style="flex:1;font-weight:600;">${p.name}</span>
-        <span class="tracker-pitcher" style="font-size:11px;color:var(--muted);">${p.team} · vs ${p.pitcher||'?'}</span>
+        <span style="font-size:11px;color:var(--muted);">${p.team} · vs ${p.pitcher||'?'}</span>
         <span style="font-size:11px;font-weight:700;color:${tierColor};">${p.score}</span>
         <span style="font-size:12px;font-weight:600;${resultStyle};">${hitStr}</span>
         ${p.gotHit === null ? `<button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 7px;" onclick="manualResult('${day.date}','${p.name.replace(/'/g,"\'")}',true)">✓ Hit</button>
@@ -4110,202 +3667,65 @@ async function loadFromCloud() {
 
 // Auto-save to cloud whenever pools change (debounced)
 let cloudSaveTimer = null;
-function generateSyncCode() {
-  const area = document.getElementById('syncCodeArea');
-  const box  = document.getElementById('syncCodeBox');
-  const imp  = document.getElementById('importCodeArea');
-  if (!area || !box) return;
-  imp.style.display = 'none';
-  try {
-    const payload = { pools, savedAt: new Date().toISOString(), v: 1 };
-    const code = btoa(encodeURIComponent(JSON.stringify(payload)));
-    box.value = code;
-    area.style.display = 'block';
-    box.select();
-  } catch(e) {
-    alert('Error generating sync code: ' + e.message);
-  }
-}
-
-function copySyncCode() {
-  const box = document.getElementById('syncCodeBox');
-  const status = document.getElementById('syncCopyStatus');
-  if (!box) return;
-  box.select();
-  try {
-    navigator.clipboard.writeText(box.value).then(() => {
-      if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
-    }).catch(() => {
-      document.execCommand('copy');
-      if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
-    });
-  } catch(e) {
-    document.execCommand('copy');
-    if (status) { status.textContent = '✓ Copied!'; setTimeout(() => status.textContent = '', 2000); }
-  }
-}
-
-function showImportCode() {
-  const area = document.getElementById('importCodeArea');
-  const syncArea = document.getElementById('syncCodeArea');
-  if (!area) return;
-  if (syncArea) syncArea.style.display = 'none';
-  area.style.display = area.style.display === 'none' ? 'block' : 'none';
-  if (area.style.display === 'block') {
-    setTimeout(() => document.getElementById('importCodeBox')?.focus(), 100);
-  }
-}
-
-function importSyncCode() {
-  const box    = document.getElementById('importCodeBox');
-  const status = document.getElementById('importStatus');
-  if (!box) return;
-  try {
-    const code = box.value.trim();
-    if (!code) { if (status) { status.textContent = 'Paste a sync code first'; status.style.color = 'var(--red)'; } return; }
-    const payload = JSON.parse(decodeURIComponent(atob(code)));
-    if (!payload.pools || !Array.isArray(payload.pools)) throw new Error('Invalid sync code');
-    pools = payload.pools;
-    localStorage.setItem('survivorPools', JSON.stringify(pools));
-    renderPools();
-    refreshResultPoolStatus();
-    checkShowExposureCard();
-    const savedAt = payload.savedAt
-      ? new Date(payload.savedAt).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})
-      : 'unknown';
-    if (status) { status.textContent = `✓ Imported ${pools.length} pools (saved ${savedAt})`; status.style.color = 'var(--green)'; }
-    document.getElementById('importCodeArea').style.display = 'none';
-    box.value = '';
-  } catch(e) {
-    if (status) { status.textContent = '✗ Invalid code — copy it exactly as generated'; status.style.color = 'var(--red)'; }
-  }
-}
-
-// No-op stubs for old KV functions
-function triggerAutoSave() {}
-function getSyncPin() { return ''; }
-function cloudSave() { generateSyncCode(); }
-function cloudLoad() { showImportCode(); }
-
-// ── MISSING FUNCTION STUBS ────────────────────────────────────────────────────
-// computeScoreModelA: alternate scoring model (Model A) for compare mode
-// Uses same logic as computeScore but with slightly different weights
-function computeScoreModelA(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns, streak) {
-  // Model A: simpler weights, less pitcher adjustment
-  const xba = (sc?.xba != null && sc.xba > 0) ? sc.xba : 0.255;
-  const kpct = (sc?.kpct != null) ? sc.kpct : 0.22;
-  const hh = (sc?.hardhitpct != null) ? sc.hardhitpct : 0.38;
-  const barrel = (sc?.barrelpct != null) ? sc.barrelpct : 0.07;
-
-  const xbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
-  const kScore = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
-  const hhScore = Math.min(100, Math.max(0, ((hh - 0.25) / (0.60 - 0.25)) * 100));
-  const brlScore = Math.min(100, Math.max(0, ((barrel - 0.02) / (0.20 - 0.02)) * 100));
-  const pk = parkScore(venue);
-
-  const paBySlot = [4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
-  const orderScore = Math.round(((paBySlot[Math.min(player.order-1,8)] - 3.6) / 1.1) * 100);
-
-  let impliedScore = 50;
-  if (impliedRuns != null) {
-    impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.0) / 5.0) * 100));
-  }
-
-  const k9 = spStats?.k9 || 8.5;
-  const whip = spStats?.whip || 1.35;
-  const spScore = Math.min(100, Math.max(0,
-    (1 - (k9 - 4.0) / 10.0) * 65 + ((whip - 0.80) / 1.10) * 35
-  ));
-
-  const composite = Math.round(
-    xbaScore    * 0.30 +
-    kScore      * 0.22 +
-    spScore     * 0.18 +
-    orderScore  * 0.12 +
-    hhScore     * 0.08 +
-    brlScore    * 0.05 +
-    pk.score    * 0.05
-  );
-
-  const clamped = Math.min(100, Math.max(0, composite));
-  let tier = 'Avoid';
-  if (clamped >= 65) tier = 'Elite';
-  else if (clamped >= 57) tier = 'Strong';
-  else if (clamped >= 48) tier = 'Lean';
-  return { compositeScore: clamped, tier };
-}
-
-// renderPicksSidebar: shows top picks in the pools tab sidebar
-function renderPicksSidebar() {
-  const el = document.getElementById('picksSidebar');
-  if (!el || !allScoredPlayers.length) return;
-  const today = new Date().toLocaleDateString('en-CA');
-  const activePool = pools.find(p => p.id === activePoolId);
-  const usedNames = activePool
-    ? new Set(activePool.used.map(u => (typeof u === 'string' ? u : u.name).toLowerCase()))
-    : new Set();
-
-  const top20 = allScoredPlayers.slice(0, 20);
-  const scoreColor = s => s >= 65 ? 'var(--green)' : s >= 57 ? 'var(--blue)' : 'var(--yellow)';
-
-  const header = activePool
-    ? `<div style="font-size:11px;background:var(--blue);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:8px;text-align:center;">
-        Click a player to add to <strong>${activePool.name}</strong>
-       </div>`
-    : `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-align:center;">
-        Activate a pool to quick-add picks
-       </div>`;
-
-  el.innerHTML = header + top20.map(p => {
-    const isUsed = usedNames.has(p.name.toLowerCase());
-    return `<div onclick="${activePool && !isUsed ? `markUsed('${p.name}','${activePool.id}','${today}')` : ''}"
-      style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-bottom:3px;
-             cursor:${activePool && !isUsed ? 'pointer' : 'default'};
-             background:${isUsed ? 'var(--surface2)' : 'transparent'};
-             opacity:${isUsed ? '0.5' : '1'};"
-      onmouseenter="if(!${isUsed})this.style.background='var(--surface2)'"
-      onmouseleave="this.style.background='${isUsed ? 'var(--surface2)' : 'transparent'}'">
-      <span style="font-weight:700;color:${scoreColor(p.compositeScore)};font-size:13px;min-width:28px;">${p.compositeScore}</span>
-      <span style="font-size:12px;flex:1;font-weight:${isUsed ? '400' : '600'};">${p.name}</span>
-      <span style="font-size:10px;color:var(--muted);">${p.team}</span>
-      ${isUsed ? '<span style="font-size:10px;color:var(--muted);">✓</span>' : ''}
-    </div>`;
-  }).join('');
-}
-
-// purgeOldLineupSaves: clean up stale localStorage entries
-function loadSavedLineups() {
-  // Restore any lineups saved to localStorage from earlier this session
-  try {
-    const saved = localStorage.getItem('mlbSavedLineups');
-    if (saved) {
-      const data = JSON.parse(saved);
-      const cutoff = Date.now() - (4 * 60 * 60 * 1000);
-      if (data.ts && data.ts > cutoff && data.lineups) {
-        return data.lineups;
-      }
+function cloudSave() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Saving…';
+  const pin = 'DREW_MLB_POOLS'; // fixed key — only you use this
+  const payload = {
+    pools,
+    tracker: typeof picks !== 'undefined' ? picks : [],
+    savedAt: new Date().toISOString(),
+    pin,
+  };
+  fetch('/api/kv?pin=' + pin, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
+    if (status) {
+      status.textContent = '✓ Saved at ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      status.style.color = 'var(--green)';
     }
-  } catch(e) {}
-  return null;
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
 }
 
-function purgeOldLineupSaves() {
-  try {
-    const cutoff = Date.now() - (4 * 60 * 60 * 1000); // 4 hours
-    Object.keys(localStorage).forEach(k => {
-      if (k.startsWith('mlbLineup_') || k.startsWith('mlbImported_')) {
-        try {
-          const ts = parseInt(localStorage.getItem(k + '_ts') || '0');
-          if (ts && ts < cutoff) {
-            localStorage.removeItem(k);
-            localStorage.removeItem(k + '_ts');
-          }
-        } catch(e) {}
+function cloudLoad() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Loading…';
+  const pin = 'DREW_MLB_POOLS';
+  fetch('/api/kv?pin=' + pin)
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
+    const data = d.data;
+    if (data?.pools) {
+      pools = data.pools;
+      localStorage.setItem('survivorPools', JSON.stringify(pools));
+      renderPools();
+      refreshResultPoolStatus();
+      const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'unknown';
+      if (status) {
+        status.textContent = `✓ Loaded (saved ${savedAt})`;
+        status.style.color = 'var(--green)';
       }
-    });
-  } catch(e) {}
+    } else {
+      throw new Error('No saved pools found');
+    }
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
 }
 
+// Remove old PIN-based functions (replaced by cloudSave/cloudLoad above)
+function triggerAutoSave() {} // no-op — sync is now manual
+function getSyncPin() { return 'DREW_MLB_POOLS'; }
 </script>
 </body>
 </html>
