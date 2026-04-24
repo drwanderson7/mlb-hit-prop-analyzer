@@ -760,7 +760,7 @@ function showScoreBreakdown(playerName) {
   const orderScore=p.orderScoreValue??Math.round(((slotPA-3.6)/(4.7-3.6))*100);
   const impliedScore=p.impliedScoreValue??50;
   const platoonAdj=p.platoonAdj??0, streakAdj=p.streakAdj||0, ir=p.impliedRuns;
-  const rawComp=p.rawComposite??(pitcherAdjContact*0.56+impliedScore*0.14+orderScore*0.08+barrelScore*0.04+pkSc*0.05+platoonAdj);
+  const rawComp=p.rawComposite; // always use stored value — recalculating gives different result due to weight changes
   const R=(lbl,val,sc,wt,pts,hi=false)=>`<tr style="border-bottom:1px solid var(--border);${hi?'background:var(--surface2);':''}">
     <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${lbl}</td>
     <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${val}</td>
@@ -2194,7 +2194,8 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // Switch hitters get a small bonus since they always have the favorable side.
   const spPlatoon = spStats?.platoon || 'normal';
   const platoon = platoonLabel(bats, spHand, spPlatoon);
-  const switchBonus = (bats === 'S') ? 5 : 0;
+  const switchBonus = 0; // switch bonus removed — handled via platoonAdj
+  const platoonAdj = platoon.adv === true && bats !== 'S' ? 3 : 0; // +3 for favorable platoon
   const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
 
   // ── Pitcher as multiplier on contactAdjXba ─────────────────────────────────
@@ -2252,13 +2253,12 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
   const rawComposite =
-    pitcherAdjContact * 0.52 +  // contactAdjXba × pitcherFactor — multiplicative, not additive
-                                 // pitcher matchup scales the batter's hit probability directly
-    impliedScore      * 0.14 +  // team implied runs — order-dampened, full effect slots 6-9
-    orderScore        * 0.08 +  // PA volume by batting slot (reduced — partially in impliedRuns)
-    barrelScore       * 0.08 +  // Barrel% — independent power/contact ceiling signal
+    pitcherAdjContact * 0.56 +  // contact-adj xBA scaled by pitcher factor — primary signal
+    impliedScore      * 0.14 +  // team implied runs — PA penalty only bottom order in low-run games
+    orderScore        * 0.08 +  // PA volume by batting slot
+    barrelScore       * 0.04 +  // Barrel% — reduced: power ≠ hits
     pk.score          * 0.05 +  // park factor
-    0;                          // weights: .52+.14+.08+.08+.05 = 0.87 + streakAdj(±5pts)
+    platoonAdj;                 // +3 flat for favorable platoon5 = 0.87 + streakAdj(±5pts)
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite + streakAdj)));
 
@@ -2356,6 +2356,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     impliedRuns,
     bats: bats || '?',
     platoon,
+    platoonAdj,
     reasoning,
   };
 }
