@@ -1219,7 +1219,7 @@ async function fetchStatcast() {
     const iWh   = col('whiff_percent');
     const iBA   = col('ba','batting_average');
     const iPA   = col('pa');
-    if (iName < 0 || iXBA < 0) return {};
+    if (iName < 0) return {};  // xBA optional — statcast leaderboard has K%/HH%/Barrel% without xBA
     const result = {};
     lines.slice(1).forEach(line => {
       if (!line.trim()) return;
@@ -1274,25 +1274,43 @@ async function fetchStatcast() {
     return out;
   };
 
-  // Fetch in parallel - proxy handles one URL at a time (simpler, more reliable)
-  const [tCur, tPri, tRHP, tLHP, tPit, tR7] = await Promise.all([
-    fetchCsv('batter', year, ''),
-    fetchCsv('batter', prev, ''),
-    fetchCsv('batter', year, 'R'),
-    fetchCsv('batter', year, 'L'),
-    fetchCsv('pitcher', year, ''),
-    fetchCsv('batter', year, ''),  // rolling not supported in simple proxy - use overall
+  // Fetch in parallel
+  const [tCur, tPri, tRHP, tLHP, tPit, tStatcast] = await Promise.all([
+    fetchCsv('batter', year, ''),        // expected_statistics 2026 (xBA)
+    fetchCsv('batter', prev, ''),        // expected_statistics 2025 (xBA prior year)
+    fetchCsv('batter', year, 'R'),       // xBA vs RHP splits
+    fetchCsv('batter', year, 'L'),       // xBA vs LHP splits
+    fetchCsv('pitcher', year, ''),       // pitcher stats
+    fetchCsv('statcast', year, ''),      // statcast leaderboard: K%, HH%, Barrel% for ALL players incl rookies
   ]);
 
-  const batterCur  = parseSavantCsv(tCur);
-  const batterPri  = parseSavantCsv(tPri);
-  const vsRHPCur   = parseSavantCsv(tRHP);
-  const vsLHPCur   = parseSavantCsv(tLHP);
-  const pitcherMap = parseSavantCsv(tPit, 'pitcher');
+  const batterCur    = parseSavantCsv(tCur);
+  const batterPri    = parseSavantCsv(tPri);
+  const vsRHPCur     = parseSavantCsv(tRHP);
+  const vsLHPCur     = parseSavantCsv(tLHP);
+  const pitcherMap   = parseSavantCsv(tPit, 'pitcher');
+  const statcastMap  = parseSavantCsv(tStatcast);  // K%, HH%, Barrel% leaderboard
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
   liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
   liveVsLHP    = blendMaps(vsLHPCur, batterPri, 60);
+
+  // Enrich liveStatcast with K%/HH%/Barrel% from statcast leaderboard
+  // This covers rookies and players not in expected_statistics (too few PA for xBA)
+  Object.keys(statcastMap).forEach(key => {
+    const s = statcastMap[key];
+    if (!s) return;
+    if (!liveStatcast[key]) {
+      // Player not in expected_statistics — add them with statcast data only
+      liveStatcast[key] = { name: s.name, pa: s.pa, xba: null,
+        kpct: s.kpct, hardhitpct: s.hardhitpct, barrelpct: s.barrelpct };
+    } else {
+      // Player already in liveStatcast — fill in missing K%/HH%/Barrel% if null
+      if (liveStatcast[key].kpct       == null) liveStatcast[key].kpct       = s.kpct;
+      if (liveStatcast[key].hardhitpct == null) liveStatcast[key].hardhitpct = s.hardhitpct;
+      if (liveStatcast[key].barrelpct  == null) liveStatcast[key].barrelpct  = s.barrelpct;
+    }
+  });
 
   livePitchers = {};
   Object.keys(pitcherMap).forEach(key => {
