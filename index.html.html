@@ -2739,16 +2739,22 @@ function showXbaBreakdown(idx) {
   const liveOv  = lookupInMap(liveStatcast, name);  // use lookupInMap — handles Jr./accents
   const liveSp  = null; // splits disabled
   const emb     = lookupInMap(SC_NORM, name);
+  // Check STATCAST_2026 embedded for players not in live Savant (e.g. José Ramírez)
+  const nKey2 = normalize(name);
+  const sc2026 = Object.entries(STATCAST_2026).find(([k]) => normalize(k) === nKey2)?.[1] || null;
+  const livePA = liveOv?.pa ?? 0;
+  const has2026Embedded = sc2026 !== null;
   const b = {
     final: p.xba,
     splitUsed: p.splitUsed || 'overall',
     splitPA: scEntry?.splitPA || 0,
     splitConfidence: scEntry?.splitConfidence || 0,
-    liveOverall: liveOv?.xba ?? null,
+    liveOverall: liveOv?.xba ?? (sc2026 ? sc2026[0] : null),
     liveSplit: null, // splits disabled
     embeddedXba: emb ? emb[0] : null,
-    source: liveOv ? liveOv.source || 'live' : 'embedded',
-    pa2026: liveOv?.pa ?? 0,
+    source: livePA > 0 ? 'live' : has2026Embedded ? '2026 embedded' : 'embedded',
+    pa2026: livePA,
+    pa2026label: livePA > 0 ? livePA + ' PA (live)' : has2026Embedded ? sc2026[0].toFixed(3) + ' (2026 embedded)' : 'No 2026 data yet',
   };
 
   const pct = (v) => v != null ? (v * 100).toFixed(1) + '%' : 'N/A';
@@ -2760,12 +2766,12 @@ function showXbaBreakdown(idx) {
     ['Team', p.team + ' vs ' + p.pitcher + ' (' + p.pitcherHand + ')'],
     ['', ''],
     ['── 2026 Live Data ──', ''],
-    ['2026 PA (live)', b.pa2026 > 0 ? b.pa2026 + ' PA' : 'No 2026 data yet'],
+    ['2026 PA (live)', b.pa2026 > 0 ? b.pa2026 + ' PA (live Savant)' : b.source === '2026 embedded' ? 'Embedded 2026 snapshot' : 'No 2026 data yet'],
     ['2026 xBA (overall)', val(b.liveOverall)],
     ['2026 xBA vs ' + p.pitcherHand + 'HP (split)', val(b.liveSplit)],
     ['', ''],
     ['── Blending ──', ''],
-    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(1, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(1, b.pa2026/100)) + ' prior' : 'N/A — using embedded'],
+    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(1, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(1, b.pa2026/100)) + ' prior' : b.source === '2026 embedded' ? '100% 2026 embedded snapshot' : 'N/A — using 2025 embedded'],
     ['Split confidence', b.splitPA > 0 ? wt(b.splitConfidence) + ' (' + b.splitPA + ' split PA of 80 needed)' : 'No split data — using overall'],
     ['Embedded 2025 xBA', val(b.embeddedXba)],
     ['', ''],
