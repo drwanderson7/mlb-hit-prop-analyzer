@@ -734,7 +734,7 @@ function showScoreBreakdown(playerName) {
   const barrelScore=p.barrelScoreValue??Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
   const spStats=getSPStats(p.pitcher,p.pitcherHand);
   let spScore,spDetail;
-  if (p.spStatcast&&p.spKpct!=null) {
+  if (p.spStatcast&&p.spXBA!=null) {
     const spK=p.spKpct??0.22,spXBA=p.spXBA??0.255,spHH=p.spHH??0.38;
     const spSC2=livePitchers[normalize(p.pitcher)]||{};
     const xC=Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
@@ -2249,7 +2249,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // Priority: live Statcast pitcher metrics > hardcoded SP_STATS fallback
   // Key metrics: K% (strikeout pitcher = harder to get hits), xBA allowed, HH% allowed, whiff%
   let spScore;
-  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
+  if (spSC && spSC.fromStatcast && spSC.xbaAllowed !== null) {
     // Live Statcast pitcher scoring — higher K% = harder for batters, lower xBA allowed = harder
     const spK    = spSC.kpct           ?? 0.22;  // pitcher K% — higher = worse for batter
     const spXBA  = spSC.xbaAllowed     ?? 0.255; // lower = harder for batter
