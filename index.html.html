@@ -3321,6 +3321,17 @@ function setActivePool(id) {
   refreshResultPoolStatus();
 }
 
+
+function markPoolHit(name, result, date) {
+  const key = `hitResult_${date}_${name.replace(/[^a-zA-Z]/g,'_')}`;
+  if (result === 'clear') {
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key, result);
+  }
+  renderCrossPool(); // re-render to reflect updated state
+}
+
 function renderCrossPool() {
   const content = document.getElementById('crossPoolContent');
   const crossCard = document.getElementById('crossPoolCard');
@@ -3372,16 +3383,51 @@ function renderCrossPool() {
       const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=65?'var(--green)':scored.compositeScore>=57?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
       const pickCount = d.todayPools.length;
       const pickLabel = `${pickCount}/${totalPools} pool${totalPools !== 1 ? 's' : ''}`;
-      const pickColor = pickCount === totalPools ? 'var(--blue)' : 'var(--muted)';
-      html += `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-weight:600;">${name}</span>${scoreStr}
+      const hitKey = `hitResult_${today}_${name.replace(/[^a-zA-Z]/g,'_')}`;
+      const hitResult = localStorage.getItem(hitKey); // 'hit', 'nohit', or null
+      const borderColor = hitResult === 'hit' ? 'var(--green)' : hitResult === 'nohit' ? 'var(--red)' : 'var(--border)';
+      const resultBadge = hitResult === 'hit' ? `<span style="font-size:13px;">✅</span>` : hitResult === 'nohit' ? `<span style="font-size:13px;">❌</span>` : '';
+      html += `<div style="background:var(--surface2);border:2px solid ${borderColor};border-radius:8px;padding:8px 12px;font-size:13px;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-weight:600;">${name}</span>${scoreStr}${resultBadge}
           <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--blue);color:#fff;">${pickLabel}</span>
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">${d.todayPools.join(' · ')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:6px;">${d.todayPools.join(' · ')}</div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="markPoolHit('${name.replace(/'/g,"\\'")}','hit','${today}')"
+            style="flex:1;padding:4px 0;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;
+            background:${hitResult==='hit'?'var(--green)':'var(--surface2)'};
+            color:${hitResult==='hit'?'#fff':'var(--muted)'};
+            border:1px solid ${hitResult==='hit'?'var(--green)':'var(--border)'};
+            transition:all .15s;">✅ Hit</button>
+          <button onclick="markPoolHit('${name.replace(/'/g,"\\'")}','nohit','${today}')"
+            style="flex:1;padding:4px 0;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;
+            background:${hitResult==='nohit'?'var(--red)':'var(--surface2)'};
+            color:${hitResult==='nohit'?'#fff':'var(--muted)'};
+            border:1px solid ${hitResult==='nohit'?'var(--red)':'var(--border)'};
+            transition:all .15s;">❌ No Hit</button>
+          ${hitResult ? `<button onclick="markPoolHit('${name.replace(/'/g,"\\'")}','clear','${today}')"
+            style="padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;background:var(--surface2);color:var(--muted);">↩</button>` : ''}
+        </div>
       </div>`;
     });
-    html += `</div>`;
+    // Summary bar
+    const marked = todayRows.filter(([name]) => {
+      const k = `hitResult_${today}_${name.replace(/[^a-zA-Z]/g,'_')}`;
+      return localStorage.getItem(k) !== null;
+    }).length;
+    const hits = todayRows.filter(([name]) => {
+      const k = `hitResult_${today}_${name.replace(/[^a-zA-Z]/g,'_')}`;
+      return localStorage.getItem(k) === 'hit';
+    }).length;
+    if (marked > 0) {
+      html += `</div><div style="margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:13px;font-weight:600;">
+        📊 Today: <span style="color:var(--green);">${hits} hit${hits!==1?'s':''}</span> / <span style="color:var(--red);">${marked-hits} no hit${(marked-hits)!==1?'s':''}</span>
+        <span style="color:var(--muted);font-weight:400;"> · ${todayRows.length - marked} pending</span>
+      </div>`;
+    } else {
+      html += `</div>`;
+    }
   } else {
     html += `<div style="font-size:13px;color:var(--muted);font-style:italic;">No picks logged for today yet.</div>`;
   }
