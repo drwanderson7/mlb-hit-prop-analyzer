@@ -1,5 +1,7 @@
 <!DOCTYPE html>
+
 <!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -132,121 +134,122 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   .panel{padding:10px 12px;}
   body{font-size:14px;}
 
-  /* Nav tabs - scrollable on mobile */
-  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
-  .tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
+/* Nav tabs - scrollable on mobile */
+.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
+.tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
 
-  /* Header */
-  .header{padding:10px 14px;}
-  .header h1{font-size:15px;}
-  .header .subtitle{font-size:11px;}
-  .header-right{font-size:11px;}
+/* Header */
+.header{padding:10px 14px;}
+.header h1{font-size:15px;}
+.header .subtitle{font-size:11px;}
+.header-right{font-size:11px;}
 
-  /* KPI strip - 2x2 grid */
-  .kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
-  .kpi{padding:10px;}
-  .kpi-val{font-size:22px;}
-  .kpi-lbl{font-size:10px;}
+/* KPI strip - 2x2 grid */
+.kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
+.kpi{padding:10px;}
+.kpi-val{font-size:22px;}
+.kpi-lbl{font-size:10px;}
 
-  /* Filter bar - stack vertically */
-  .filter-bar{flex-wrap:wrap;gap:6px;}
-  .filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
-  .filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
-  .result-count{font-size:11px;width:100%;text-align:right;}
+/* Filter bar - stack vertically */
+.filter-bar{flex-wrap:wrap;gap:6px;}
+.filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
+.filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
+.result-count{font-size:11px;width:100%;text-align:right;}
 
-  /* Player cards - tighter on mobile */
-  .player-card{
-    grid-template-columns:20px 1fr auto;
-    gap:6px;
-    padding:10px 10px;
-  }
-  .p-rank{font-size:12px;}
-  .p-name{font-size:13px;}
-  .p-meta{font-size:11px;line-height:1.4;}
-  .p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
+/* Player cards - tighter on mobile */
+.player-card{
+grid-template-columns:20px 1fr auto;
+gap:6px;
+padding:10px 10px;
+}
+.p-rank{font-size:12px;}
+.p-name{font-size:13px;}
+.p-meta{font-size:11px;line-height:1.4;}
+.p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
 
-  /* Pills - smaller on mobile */
-  .pills{gap:3px;margin:5px 0;}
-  .pill{font-size:10px;padding:2px 6px;}
+/* Pills - smaller on mobile */
+.pills{gap:3px;margin:5px 0;}
+.pill{font-size:10px;padding:2px 6px;}
 
-  /* Score */
-  .score-big{font-size:24px;}
-  .score-lbl{font-size:9px;}
-  .tier-badge{font-size:10px;padding:2px 6px;}
-  .score-wrap{min-width:48px;text-align:center;}
+/* Score */
+.score-big{font-size:24px;}
+.score-lbl{font-size:9px;}
+.tier-badge{font-size:10px;padding:2px 6px;}
+.score-wrap{min-width:48px;text-align:center;}
 
-  /* Lineups - single column */
-  .lu-grid{grid-template-columns:1fr;}
-  .lu-side{margin-bottom:12px;}
-  .lu-row{padding:5px 8px;}
-  .lu-name{font-size:12px;}
-  .lu-num{font-size:12px;width:18px;}
-  .lu-pos{font-size:11px;}
+/* Lineups - single column */
+.lu-grid{grid-template-columns:1fr;}
+.lu-side{margin-bottom:12px;}
+.lu-row{padding:5px 8px;}
+.lu-name{font-size:12px;}
+.lu-num{font-size:12px;width:18px;}
+.lu-pos{font-size:11px;}
 
-  /* Game cards in lineup tab */
-  .game-card{padding:10px 12px;}
+/* Game cards in lineup tab */
+.game-card{padding:10px 12px;}
 
-  /* Diag panel - wrap tightly */
-  #diagPanel{gap:4px;}
-  #diagPanel span{font-size:10px !important;padding:2px 6px !important;}
+/* Diag panel - wrap tightly */
+#diagPanel{gap:4px;}
+#diagPanel span{font-size:10px !important;padding:2px 6px !important;}
 
-  /* Compare models button */
-  #compareModeBtn{font-size:11px;padding:5px 10px;}
+/* Compare models button */
+#compareModeBtn{font-size:11px;padding:5px 10px;}
 
-  /* Pools table - horizontal scroll */
-  .pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+/* Pools table - horizontal scroll */
+.pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
-  /* Status pills at top */
-  .status-bar{flex-wrap:wrap;gap:4px;}
-  .status-bar span{font-size:10px !important;padding:2px 7px !important;}
+/* Status pills at top */
+.status-bar{flex-wrap:wrap;gap:4px;}
+.status-bar span{font-size:10px !important;padding:2px 7px !important;}
 
-  /* xBA breakdown modal */
-  div[style*="width:480px"]{width:95vw !important;}
+/* xBA breakdown modal */
+div[style*=“width:480px”]{width:95vw !important;}
 }
 
 /* Very small screens */
 @media(max-width:380px){
-  .tab{font-size:11px;padding:8px 10px;}
-  .pills{gap:2px;}
-  .pill{font-size:9px;padding:1px 5px;}
-  .player-card{padding:8px;}
-  .score-big{font-size:20px;}
+.tab{font-size:11px;padding:8px 10px;}
+.pills{gap:2px;}
+.pill{font-size:9px;padding:1px 5px;}
+.player-card{padding:8px;}
+.score-big{font-size:20px;}
 }
-  /* Pool styles */
-  /* Pool grid */
-  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-  .pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-bottom:1px solid var(--border);}
-  .pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;min-width:0;}
-  .pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue);color:#fff;white-space:nowrap;}
-  .pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
-  .pool-used-section{flex:1;}
-  .pool-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-  .used-list{display:flex;flex-wrap:wrap;gap:5px;}
-  .used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
-  .used-tag:hover{opacity:.75;}
-  .pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
-  .pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
-  .pool-add-input:focus{border-color:var(--blue);}
-  .pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
-  .player-card.used-pool{opacity:.45;border-left-color:var(--muted)!important;}
-  .pill.used{background:#fee2e2;color:var(--red);border-color:#fecaca;}
-  @media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
-  /* Schedule view */
-  .sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-  .sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
-  .sched-row:last-child{border-bottom:none;}
-  .sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
-  .sched-day.great{background:#dcfce7;color:#15803d;}
-  .sched-day.good{background:#d1fae5;color:#065f46;}
-  .sched-day.ok{background:var(--surface2);color:var(--muted);}
-  .sched-day.tough{background:#fef9c3;color:#854d0e;}
-  .sched-day.brutal{background:#fee2e2;color:#b91c1c;}
-  .sched-day.off{background:var(--surface2);color:var(--muted);font-size:10px;}
-  .future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
-  .future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
-  .future-badge.good{background:#dbeafe;color:var(--blue);border:1px solid #bfdbfe;}
-  .future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
+/* Pool styles */
+/* Pool grid */
+.pool-card{background:var(–surface);border:1px solid var(–border);border-radius:8px;overflow:hidden;}
+.pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(–surface2);border-bottom:1px solid var(–border);}
+.pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(–text);outline:none;min-width:0;}
+.pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(–blue);color:#fff;white-space:nowrap;}
+.pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
+.pool-used-section{flex:1;}
+.pool-section-label{font-size:10px;font-weight:700;color:var(–muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.used-list{display:flex;flex-wrap:wrap;gap:5px;}
+.used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(–red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
+.used-tag:hover{opacity:.75;}
+.pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(–border);flex-wrap:wrap;}
+.pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(–border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
+.pool-add-input:focus{border-color:var(–blue);}
+.pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(–border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
+.player-card.used-pool{opacity:.45;border-left-color:var(–muted)!important;}
+.pill.used{background:#fee2e2;color:var(–red);border-color:#fecaca;}
+@media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
+/* Schedule view */
+.sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(–border);font-size:11px;font-weight:700;color:var(–muted);text-transform:uppercase;letter-spacing:.4px;}
+.sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(–border);font-size:13px;}
+.sched-row:last-child{border-bottom:none;}
+.sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
+.sched-day.great{background:#dcfce7;color:#15803d;}
+.sched-day.good{background:#d1fae5;color:#065f46;}
+.sched-day.ok{background:var(–surface2);color:var(–muted);}
+.sched-day.tough{background:#fef9c3;color:#854d0e;}
+.sched-day.brutal{background:#fee2e2;color:#b91c1c;}
+.sched-day.off{background:var(–surface2);color:var(–muted);font-size:10px;}
+.future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+.future-badge.good{background:#dbeafe;color:var(–blue);border:1px solid #bfdbfe;}
+.future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
 </style>
+
 </head>
 <body>
 
@@ -269,6 +272,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- ANALYZE TAB -->
+
 <div class="panel active" id="panel-analyze">
 
   <div class="card" style="margin-top:8px;">
@@ -329,34 +333,37 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </div>
       </div>
 
-      <div class="step-list" id="stepList" style="display:none;">
-        <div class="step" id="step-schedule">
-          <div class="step-dot pending" id="dot-schedule">1</div>
-          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
-        </div>
-        <div class="step" id="step-statcast">
-          <div class="step-dot pending" id="dot-statcast">2</div>
-          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
-        </div>
-        <div class="step" id="step-lineups">
-          <div class="step-dot pending" id="dot-lineups">3</div>
-          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
-        </div>
-        <div class="step" id="step-score">
-          <div class="step-dot pending" id="dot-score">4</div>
-          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
-        </div>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
-          ⚡ Run Analysis
-        </button>
-        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
-        <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
-      </div>
-      <div id="errBox" style="display:none;margin-top:12px;"></div>
+```
+  <div class="step-list" id="stepList" style="display:none;">
+    <div class="step" id="step-schedule">
+      <div class="step-dot pending" id="dot-schedule">1</div>
+      <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
     </div>
+    <div class="step" id="step-statcast">
+      <div class="step-dot pending" id="dot-statcast">2</div>
+      <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
+    </div>
+    <div class="step" id="step-lineups">
+      <div class="step-dot pending" id="dot-lineups">3</div>
+      <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+    </div>
+    <div class="step" id="step-score">
+      <div class="step-dot pending" id="dot-score">4</div>
+      <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+      ⚡ Run Analysis
+    </button>
+    <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+    <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
+  </div>
+  <div id="errBox" style="display:none;margin-top:12px;"></div>
+</div>
+```
+
   </div>
 
   <div class="card">
@@ -370,9 +377,11 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- LINEUPS TAB -->
+
 <div class="panel" id="panel-lineups">
 
   <!-- FantasyLabs paste import -->
+
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
       📋 Import Lineups
@@ -402,6 +411,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- RESULTS TAB -->
+
 <div class="panel" id="panel-results">
   <div id="diagContainer" style="margin-bottom:4px;">
     <button onclick="toggleDiag()" id="diagToggleBtn"
@@ -418,6 +428,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- HELP TAB -->
+
 <div class="panel" id="panel-help">
   <div class="card">
     <div class="card-header">📊 Data Sources</div>
@@ -449,16 +460,19 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
         </tbody>
       </table>
 
-      <div class="divider"></div>
+```
+  <div class="divider"></div>
 
-      <strong style="font-size:13px;">Tiers</strong>
-      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
-        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
-        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
-        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
-        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
-      </ul>
-    </div>
+  <strong style="font-size:13px;">Tiers</strong>
+  <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+    <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+    <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+    <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+    <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+  </ul>
+</div>
+```
+
   </div>
 
   <div class="card">
@@ -473,11 +487,14 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- POOLS TAB -->
+
 <div class="panel" id="panel-pools">
   <div style="display:flex;gap:14px;align-items:flex-start;">
 
-    <!-- LEFT: Pool table + summary (flex 1) -->
-    <div style="flex:1;min-width:0;">
+```
+<!-- LEFT: Pool table + summary (flex 1) -->
+<div style="flex:1;min-width:0;">
+```
 
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -510,27 +527,30 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   </div>
     </div>
 
-    <!-- RIGHT: Top picks sidebar -->
-    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
-      <div class="card" style="margin-top:8px;">
-        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
-          <span>🎯 Top Picks</span>
-          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
-        </div>
-        <div class="card-body" style="padding:0;">
-          <div id="picksSidebar" style="font-size:13px;">
-            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
-              Run analysis on the Analyze tab to see recommendations here.
-            </div>
-          </div>
+```
+<!-- RIGHT: Top picks sidebar -->
+<div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+      <span>🎯 Top Picks</span>
+      <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="picksSidebar" style="font-size:13px;">
+        <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+          Run analysis on the Analyze tab to see recommendations here.
         </div>
       </div>
     </div>
+  </div>
+</div>
+```
 
   </div>
 </div>
 
 <!-- OPTIMAL EXPOSURE CALCULATOR -->
+
 <div class="card" id="exposureCalcCard" style="margin-top:16px;display:none;">
   <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleExposureCalc()">
     <span>🎯 Optimal Exposure Calculator</span>
@@ -552,6 +572,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- SCHEDULE TAB -->
+
 <div class="panel" id="panel-schedule">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -572,6 +593,7 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
 </div>
 
 <!-- TRACKER TAB -->
+
 <div class="panel" id="panel-tracker">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -623,7 +645,7 @@ function parkScore(venue) {
 }
 
 
-// ── CRITICAL FUNCTIONS — injected early, survive GitHub truncation ────────────
+// ── CRITICAL FUNCTIONS — defined early ───────────────────────────────────────
 
 function purgeOldLineupSaves() {
   try {
@@ -639,48 +661,49 @@ function purgeOldLineupSaves() {
 function loadSavedLineups() {
   try {
     const saved = localStorage.getItem('mlbSavedLineups');
-    if (saved) { const data = JSON.parse(saved); const cutoff = Date.now()-4*60*60*1000; if (data.ts && data.ts > cutoff && data.lineups) return data.lineups; }
+    if (saved) { const data = JSON.parse(saved); if (data.ts && data.ts > Date.now()-4*60*60*1000 && data.lineups) return data.lineups; }
   } catch(e) {}
   return null;
 }
 
 function generateSyncCode() {
-  const area = document.getElementById('syncCodeArea'), box = document.getElementById('syncCodeBox'), imp = document.getElementById('importCodeArea');
+  const area=document.getElementById('syncCodeArea'), box=document.getElementById('syncCodeBox'), imp=document.getElementById('importCodeArea');
   if (!area||!box) return; if (imp) imp.style.display='none';
-  try { const code = btoa(encodeURIComponent(JSON.stringify({pools, savedAt:new Date().toISOString(), v:1}))); box.value=code; area.style.display='block'; box.select(); } catch(e) { alert('Error: '+e.message); }
+  try { box.value=btoa(encodeURIComponent(JSON.stringify({pools,savedAt:new Date().toISOString(),v:1}))); area.style.display='block'; box.select(); } catch(e) { alert('Error: '+e.message); }
 }
 
 function copySyncCode() {
-  const box=document.getElementById('syncCodeBox'), status=document.getElementById('syncCopyStatus');
+  const box=document.getElementById('syncCodeBox'), st=document.getElementById('syncCopyStatus');
   if (!box) return; box.select();
   try { navigator.clipboard.writeText(box.value).catch(()=>document.execCommand('copy')); } catch(e) { document.execCommand('copy'); }
-  if (status) { status.textContent='✓ Copied!'; setTimeout(()=>status.textContent='',2000); }
+  if (st) { st.textContent='✓ Copied!'; setTimeout(()=>st.textContent='',2000); }
 }
 
 function showImportCode() {
   const area=document.getElementById('importCodeArea'), sync=document.getElementById('syncCodeArea');
   if (!area) return; if (sync) sync.style.display='none';
-  area.style.display = area.style.display==='none' ? 'block' : 'none';
+  area.style.display=area.style.display==='none'?'block':'none';
   if (area.style.display==='block') setTimeout(()=>document.getElementById('importCodeBox')?.focus(),100);
 }
 
 function importSyncCode() {
-  const box=document.getElementById('importCodeBox'), status=document.getElementById('importStatus');
+  const box=document.getElementById('importCodeBox'), st=document.getElementById('importStatus');
   if (!box) return;
   try {
-    const code=box.value.trim(); if (!code) { if (status){status.textContent='Paste a sync code first';status.style.color='var(--red)';} return; }
-    const payload=JSON.parse(decodeURIComponent(atob(code))); if (!payload.pools||!Array.isArray(payload.pools)) throw new Error('Invalid');
+    const code=box.value.trim(); if (!code){if(st){st.textContent='Paste code first';st.style.color='var(--red)';}return;}
+    const payload=JSON.parse(decodeURIComponent(atob(code)));
+    if (!payload.pools||!Array.isArray(payload.pools)) throw new Error('Invalid');
     pools=payload.pools; localStorage.setItem('survivorPools',JSON.stringify(pools));
     renderPools(); refreshResultPoolStatus(); checkShowExposureCard();
-    const savedAt=payload.savedAt?new Date(payload.savedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'unknown';
-    if (status){status.textContent=`✓ Imported ${pools.length} pools (saved ${savedAt})`;status.style.color='var(--green)';}
+    const at=payload.savedAt?new Date(payload.savedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'unknown';
+    if(st){st.textContent=`✓ Imported ${pools.length} pools (${at})`;st.style.color='var(--green)';}
     document.getElementById('importCodeArea').style.display='none'; box.value='';
-  } catch(e) { if (status){status.textContent='✗ Invalid code';status.style.color='var(--red)';} }
+  } catch(e){if(st){st.textContent='✗ Invalid code';st.style.color='var(--red)';}}
 }
 
-function triggerAutoSave() {}
-function cloudSave() { generateSyncCode(); }
-function cloudLoad() { showImportCode(); }
+function triggerAutoSave(){}
+function cloudSave(){generateSyncCode();}
+function cloudLoad(){showImportCode();}
 
 function renderPicksSidebar() {
   const el=document.getElementById('picksSidebar');
@@ -688,17 +711,14 @@ function renderPicksSidebar() {
   const today=new Date().toLocaleDateString('en-CA');
   const activePool=pools.find(p=>p.id===activePoolId);
   const usedNames=activePool?new Set(activePool.used.map(u=>(typeof u==='string'?u:u.name).toLowerCase())):new Set();
-  const top20=allScoredPlayers.slice(0,20);
   const sc=s=>s>=65?'var(--green)':s>=57?'var(--blue)':'var(--yellow)';
   const header=activePool
-    ?`<div style="font-size:11px;background:var(--blue);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:8px;text-align:center;">Click a player to add to <strong>${activePool.name}</strong></div>`
+    ?`<div style="font-size:11px;background:var(--blue);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:8px;text-align:center;">Click to add to <strong>${activePool.name}</strong></div>`
     :`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-align:center;">Activate a pool to quick-add picks</div>`;
-  el.innerHTML=header+top20.map(p=>{
+  el.innerHTML=header+allScoredPlayers.slice(0,20).map(p=>{
     const isUsed=usedNames.has(p.name.toLowerCase());
     return `<div onclick="${activePool&&!isUsed?`markUsed('${p.name}','${activePool.id}','${today}')`:''}"
-      style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-bottom:3px;cursor:${activePool&&!isUsed?'pointer':'default'};background:${isUsed?'var(--surface2)':'transparent'};opacity:${isUsed?'0.5':'1'};"
-      onmouseenter="if(!${isUsed})this.style.background='var(--surface2)'"
-      onmouseleave="this.style.background='${isUsed?'var(--surface2)':'transparent'}'">
+      style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-bottom:3px;cursor:${activePool&&!isUsed?'pointer':'default'};background:${isUsed?'var(--surface2)':'transparent'};opacity:${isUsed?'0.5':'1'};">
       <span style="font-weight:700;color:${sc(p.compositeScore)};font-size:13px;min-width:28px;">${p.compositeScore}</span>
       <span style="font-size:12px;flex:1;font-weight:${isUsed?'400':'600'};">${p.name}</span>
       <span style="font-size:10px;color:var(--muted);">${p.team}</span>
@@ -707,7 +727,7 @@ function renderPicksSidebar() {
   }).join('');
 }
 
-function computeScoreModelA(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns, streak) {
+function computeScoreModelA(player,sc,spStats,spHand,venue,bats,spSC,impliedRuns,streak) {
   const xba=(sc?.xba!=null&&sc.xba>0)?sc.xba:0.255, kpct=sc?.kpct!=null?sc.kpct:0.22;
   const hh=sc?.hardhitpct!=null?sc.hardhitpct:0.38, barrel=sc?.barrelpct!=null?sc.barrelpct:0.07;
   const xbaScore=Math.min(100,Math.max(0,((xba-0.180)/(0.360-0.180))*100));
@@ -715,20 +735,19 @@ function computeScoreModelA(player, sc, spStats, spHand, venue, bats, spSC, impl
   const hhScore=Math.min(100,Math.max(0,((hh-0.25)/(0.60-0.25))*100));
   const brlScore=Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
   const pk=parkScore(venue);
-  const paBySlot=[4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6];
-  const orderScore=Math.round(((paBySlot[Math.min(player.order-1,8)]-3.6)/1.1)*100);
-  let impliedScore=50; if (impliedRuns!=null) impliedScore=Math.min(100,Math.max(0,((impliedRuns-2.0)/5.0)*100));
+  const orderScore=Math.round((([4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6][Math.min(player.order-1,8)]-3.6)/1.1)*100);
+  let impliedScore=50; if(impliedRuns!=null) impliedScore=Math.min(100,Math.max(0,((impliedRuns-2.0)/5.0)*100));
   const k9=spStats?.k9||8.5, whip=spStats?.whip||1.35;
   const spScore=Math.min(100,Math.max(0,(1-(k9-4.0)/10.0)*65+((whip-0.80)/1.10)*35));
   const composite=Math.round(xbaScore*0.30+kScore*0.22+spScore*0.18+orderScore*0.12+hhScore*0.08+brlScore*0.05+pk.score*0.05);
   const clamped=Math.min(100,Math.max(0,composite));
-  let tier='Avoid'; if (clamped>=65) tier='Elite'; else if (clamped>=57) tier='Strong'; else if (clamped>=48) tier='Lean';
-  return {compositeScore:clamped, tier};
+  let tier='Avoid'; if(clamped>=65)tier='Elite'; else if(clamped>=57)tier='Strong'; else if(clamped>=48)tier='Lean';
+  return {compositeScore:clamped,tier};
 }
 
 function showScoreBreakdown(playerName) {
   const p=allScoredPlayers.find(p=>p.name===playerName);
-  if (!p) { console.warn('showScoreBreakdown: player not found', playerName); return; }
+  if (!p) return;
   const sc=lookupStatcast(p.name,p.pitcherHand);
   const xba=p.xba??sc?.xba??0.255, kpct=p.kpct??sc?.kpct??0.22, barrel=p.barrelpct??sc?.barrelpct??0.07;
   const rawXba=Math.min(100,Math.max(0,((xba-0.180)/(0.360-0.180))*100));
@@ -740,12 +759,11 @@ function showScoreBreakdown(playerName) {
   if (p.spStatcast&&p.spKpct!=null) {
     const spK=p.spKpct??0.22,spXBA=p.spXBA??0.255,spHH=p.spHH??0.38;
     const spSC2=livePitchers[normalize(p.pitcher)]||{};
-    const spWh=spSC2.whiffPct??0.25,spBar=spSC2.barrelAllowed??0.07;
     const kC=Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
     const xC=Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
     const hC=Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
-    const wC=Math.min(100,Math.max(0,(1-(spWh-0.15)/(0.42-0.15))*100));
-    const bC=Math.min(100,Math.max(0,((spBar-0.02)/(0.18-0.02))*100));
+    const wC=Math.min(100,Math.max(0,(1-(( spSC2.whiffPct??0.25)-0.15)/(0.42-0.15))*100));
+    const bC=Math.min(100,Math.max(0,(((spSC2.barrelAllowed??0.07)-0.02)/(0.18-0.02))*100));
     spScore=kC*0.38+xC*0.35+hC*0.15+wC*0.08+bC*0.04;
     spDetail=`K%: ${(spK*100).toFixed(0)}% → comp ${kC.toFixed(0)} × 38%<br>xBA allowed: ${spXBA.toFixed(3)} → comp ${xC.toFixed(0)} × 35%<br>HH%: ${(spHH*100).toFixed(0)}% → comp ${hC.toFixed(0)} × 15%`;
   } else {
@@ -765,15 +783,14 @@ function showScoreBreakdown(playerName) {
   const impliedScore=p.impliedScoreValue??50;
   const platoonAdj=p.platoonAdj??0, streakAdj=p.streakAdj||0, ir=p.impliedRuns;
   const rawComp=p.rawComposite??(pitcherAdjContact*0.56+impliedScore*0.14+orderScore*0.08+barrelScore*0.04+pkSc*0.05+platoonAdj);
-  const finalScore=p.compositeScore;
   const R=(lbl,val,sc,wt,pts,hi=false)=>`<tr style="border-bottom:1px solid var(--border);${hi?'background:var(--surface2);':''}">
     <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${lbl}</td>
     <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${val}</td>
     <td style="padding:7px 10px;text-align:center;"><span style="font-size:12px;font-weight:700;color:${sc>=70?'var(--green)':sc>=40?'var(--blue)':'var(--red)'};">${sc.toFixed(0)}</span></td>
     <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${wt}</td>
     <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;">${pts}</td></tr>`;
-  const S=(t)=>`<tr><td colspan="5" style="padding:2px 10px 5px 20px;font-size:11px;color:var(--muted);">${t}</td></tr>`;
-  const D=(l)=>`<tr><td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${l}</td></tr>`;
+  const S=t=>`<tr><td colspan="5" style="padding:2px 10px 6px 20px;font-size:11px;color:var(--muted);">${t}</td></tr>`;
+  const D=l=>`<tr><td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${l}</td></tr>`;
   const tbl=`<table style="width:100%;border-collapse:collapse;">
     <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
       <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Component</th>
@@ -801,10 +818,10 @@ function showScoreBreakdown(playerName) {
     <tr style="background:var(--surface2);">
       <td colspan="3" style="padding:10px;font-weight:700;font-size:14px;">COMPOSITE SCORE</td>
       <td style="padding:10px;text-align:center;font-size:11px;color:var(--muted);">sum</td>
-      <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${finalScore>=65?'var(--green)':finalScore>=57?'var(--blue)':finalScore>=48?'var(--yellow)':'var(--red)'};">${finalScore}</td>
+      <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${p.compositeScore>=65?'var(--green)':p.compositeScore>=57?'var(--blue)':p.compositeScore>=48?'var(--yellow)':'var(--red)'};">${p.compositeScore}</td>
     </tr>
     <tr><td colspan="5" style="padding:4px 10px 8px;font-size:11px;color:var(--muted);">
-      Raw: ${rawComp.toFixed(2)} pts = ${finalScore} · Tier: <strong>${p.tier}</strong> · Platoon: ${p.platoon?.label||'—'}
+      Raw: ${rawComp.toFixed(2)} pts = ${p.compositeScore} · Tier: <strong>${p.tier}</strong> · Platoon: ${p.platoon?.label||'—'}
     </td></tr></tbody></table>`;
   const modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -1046,7 +1063,13 @@ async function runAnalysis() {
   scoredPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
   scoredPlayers.forEach((p, i) => p.rank = i + 1);
   // Store full pool for search, but only render topN by default
+  const prevScores = {};
+  allScoredPlayers.forEach(p => { prevScores[p.name] = p.compositeScore; });
   allScoredPlayers = [...scoredPlayers];
+  allScoredPlayers.forEach(p => {
+    const prev = prevScores[p.name];
+    p.scoreDelta = (prev != null && prev !== p.compositeScore) ? p.compositeScore - prev : null;
+  });
   const top = scoredPlayers.slice(0, topN);
   renderResults(top);
   renderPicksSidebar();
@@ -2496,9 +2519,10 @@ function playerCard(p, rank) {
       </div>
       <div class="p-reasoning">${p.reasoning}</div>
     </div>
-    <div class="score-wrap">
+    <div class="score-wrap" onclick="showScoreBreakdown('${p.name.replace(/'/g, String.fromCharCode(39))}')" style="cursor:pointer;" title="Click for full score breakdown">
       <div class="score-big" style="color:${scColor}">${p.compositeScore}</div>
-      <div class="score-lbl">Score</div>
+      ${p.scoreDelta!=null?`<div style="font-size:10px;font-weight:700;color:${p.scoreDelta>0?'var(--green)':'var(--red)'};">${p.scoreDelta>0?'▲':'▼'}${Math.abs(p.scoreDelta)}</div>`:''}
+      <div class="score-lbl">SCORE ▸</div>
       <div class="tier-badge">${p.tier}</div>
     </div>
   </div>`;
@@ -3878,5 +3902,6 @@ function cloudLoad() {
 function triggerAutoSave() {} // no-op — sync is now manual
 function getSyncPin() { return 'DREW_MLB_POOLS'; }
 </script>
+
 </body>
 </html>
