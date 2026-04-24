@@ -755,12 +755,12 @@ function showScoreBreakdown(playerName) {
   const pitcherFactor=p.pitcherFactor??(0.70+(matchupScore/100)*0.60);
   const pitcherAdjContact=p.pitcherAdjContact??Math.min(100,Math.max(0,contactScore*pitcherFactor));
   const pk=parkScore(p.venue);
-  const pkSc=p.parkScoreValue??pk.score, pkLbl=p.parkScoreLabel??pk.label;
-  const slotPA=p.slotPA??[4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6][Math.min((p.battingOrder||5)-1,8)];
-  const orderScore=p.orderScoreValue??Math.round(((slotPA-3.6)/(4.7-3.6))*100);
+  const pkSc=p.parkScoreValue??pk.score??50, pkLbl=p.parkScoreLabel??pk.label??'Neutral';
+  const slotPA=p.slotPA??[4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6][Math.min((p.battingOrder||5)-1,8)]??4.3;
+  const orderScore=p.orderScoreValue??Math.round(((slotPA-3.6)/(4.7-3.6))*100)??50;
   const impliedScore=p.impliedScoreValue??50;
   const platoonAdj=p.platoonAdj??0, streakAdj=p.streakAdj||0, ir=p.impliedRuns;
-  const rawComp=p.rawComposite; // always use stored value — recalculating gives different result due to weight changes
+  const rawComp = (p.rawComposite != null) ? p.rawComposite : p.compositeScore;
   const R=(lbl,val,sc,wt,pts,hi=false)=>`<tr style="border-bottom:1px solid var(--border);${hi?'background:var(--surface2);':''}">
     <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${lbl}</td>
     <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${val}</td>
@@ -2333,6 +2333,18 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
 
   return {
     compositeScore: composite,
+    rawComposite,
+    contactScore: contactAdjScore,
+    pitcherAdjContact,
+    pitcherFactor,
+    matchupScore,
+    barrelScoreValue: barrelScore,
+    orderScoreValue: orderScore,
+    impliedScoreValue: impliedScore,
+    parkScoreValue: pk.score,
+    parkScoreLabel: pk.label,
+    slotPA,
+    platoonAdj,
     tier,
     xba,
     kpct,
