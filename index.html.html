@@ -1241,13 +1241,18 @@ async function fetchStatcast() {
       if (!name) return;
       const safe = (i, div=1) => { if (i<0||i>=cols.length) return null; const v=parseFloat(cols[i]); return isFinite(v)?v/div:null; };
       const xba = safe(iXBA);
-      if (xba === null || xba < 0 || xba > 0.5) return;
+      // Don't skip players missing xBA — they may still have K%, HH%, Barrel% from statcast leaderboard merge
+      if (xba !== null && (xba < 0 || xba > 0.5)) return;
       const pa = parseInt(cols[iPA])||0;
+      const kpct = safe(iK,100); const hardhitpct = safe(iHH,100);
+      const barrelpct = safe(iBrl,100);
+      // Skip row only if ALL stats are null (truly empty row)
+      if (xba === null && kpct === null && hardhitpct === null && barrelpct === null) return;
       const key = name.toLowerCase();
       if (type === 'batter') {
-        result[key] = { name, pa, xba, kpct: safe(iK,100), hardhitpct: safe(iHH,100), barrelpct: safe(iBrl,100), ba: safe(iBA) };
+        result[key] = { name, pa, xba, kpct, hardhitpct, barrelpct, ba: safe(iBA) };
       } else {
-        result[key] = { name, pa, xbaAllowed: xba, kpct: safe(iK,100), hardHitAllowed: safe(iHH,100), barrelAllowed: safe(iBrl,100), whiffPct: safe(iWh,100) };
+        result[key] = { name, pa, xbaAllowed: xba, kpct, hardHitAllowed: hardhitpct, barrelAllowed: barrelpct, whiffPct: safe(iWh,100) };
       }
     });
     return result;
