@@ -123,12 +123,15 @@ export default async function handler(req) {
       return merged;
     });
 
-    // Also add any players in csv2 NOT in csv1 (rookies with xBA but extra stats)
+    // Also add any players in csv2 NOT in csv1 (rookies missing from expected_statistics)
     const csv1PlayerIds = new Set(rows1.map(r => r['player_id'] || r['batter'] || r['pitcher'] || ''));
     rows2.forEach(row => {
       const pid = row['player_id'] || row['batter'] || row['pitcher'] || '';
       if (pid && !csv1PlayerIds.has(pid)) {
-        mergedRows.push(row);
+        // Ensure xba/est_ba column exists (empty) so frontend parser doesn't skip the row
+        // Frontend now accepts null xBA as long as k%/hh%/barrel% are present
+        const enriched = { ...row, est_ba: row['est_ba'] || '', xba: row['xba'] || '' };
+        mergedRows.push(enriched);
       }
     });
 
