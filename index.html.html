@@ -1275,13 +1275,12 @@ async function fetchStatcast() {
   };
 
   // Fetch in parallel
-  const [tCur, tPri, tRHP, tLHP, tPit, tStatcast] = await Promise.all([
+  const [tCur, tPri, tRHP, tLHP, tPit] = await Promise.all([
     fetchCsv('batter', year, ''),        // expected_statistics 2026 (xBA)
     fetchCsv('batter', prev, ''),        // expected_statistics 2025 (xBA prior year)
     fetchCsv('batter', year, 'R'),       // xBA vs RHP splits
     fetchCsv('batter', year, 'L'),       // xBA vs LHP splits
     fetchCsv('pitcher', year, ''),       // pitcher stats
-    fetchCsv('statcast', year, ''),      // statcast leaderboard: K%, HH%, Barrel% for ALL players incl rookies
   ]);
 
   const batterCur    = parseSavantCsv(tCur);
@@ -1289,27 +1288,21 @@ async function fetchStatcast() {
   const vsRHPCur     = parseSavantCsv(tRHP);
   const vsLHPCur     = parseSavantCsv(tLHP);
   const pitcherMap   = parseSavantCsv(tPit, 'pitcher');
-  const statcastMap  = parseSavantCsv(tStatcast);  // K%, HH%, Barrel% leaderboard
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
   liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
   liveVsLHP    = blendMaps(vsLHPCur, batterPri, 60);
 
-  // Enrich liveStatcast with K%/HH%/Barrel% from statcast leaderboard
-  // This covers rookies and players not in expected_statistics (too few PA for xBA)
-  Object.keys(statcastMap).forEach(key => {
-    const s = statcastMap[key];
-    if (!s) return;
-    if (!liveStatcast[key]) {
-      // Player not in expected_statistics — add them with statcast data only
-      liveStatcast[key] = { name: s.name, pa: s.pa, xba: null,
-        kpct: s.kpct, hardhitpct: s.hardhitpct, barrelpct: s.barrelpct };
-    } else {
-      // Player already in liveStatcast — fill in missing K%/HH%/Barrel% if null
-      if (liveStatcast[key].kpct       == null) liveStatcast[key].kpct       = s.kpct;
-      if (liveStatcast[key].hardhitpct == null) liveStatcast[key].hardhitpct = s.hardhitpct;
-      if (liveStatcast[key].barrelpct  == null) liveStatcast[key].barrelpct  = s.barrelpct;
-    }
+  // Enrich liveStatcast K%/HH%/Barrel% from embedded 2025 data for any player missing those fields
+  // (expected_statistics only returns xBA — K%/HH%/Barrel% come from embedded CSV data)
+  Object.keys(liveStatcast).forEach(key => {
+    const live = liveStatcast[key];
+    if (!live) return;
+    const emb = SC_NORM[key];
+    if (!emb) return;
+    if (live.kpct       == null) live.kpct       = emb[1];
+    if (live.hardhitpct == null) live.hardhitpct = emb[2];
+    if (live.barrelpct  == null) live.barrelpct  = emb[3];
   });
 
   livePitchers = {};
@@ -1962,23 +1955,36 @@ function getSPStats(name, apiHand) {
 }
 
 // Merge live 2026 pitcher stats from MLB Stats API into SP stats object
-// Call this after fetchPitcherStats() has populated livePitcherStats
+// Blends live stats with SP_STATS based on innings pitched — early season data unreliable
 function mergeLivePitcherStats(spStats) {
   if (!spStats?.id) return spStats;
   const live = livePitcherStats[spStats.id];
   if (!live) return spStats;
+
+  // Blend weight based on IP: 0 IP = 0% live, 40+ IP = 100% live
+  // Pitchers need ~40 IP (~6-7 starts) before live stats are reliable
+  const ip = live.ip ?? 0;
+  const wLive = Math.min(1, ip / 40);
+  const wPrior = 1 - wLive;
+
+  const blend = (liveVal, priorVal) => {
+    if (liveVal == null) return priorVal;
+    if (priorVal == null) return liveVal;
+    return parseFloat((liveVal * wLive + priorVal * wPrior).toFixed(2));
+  };
+
   return {
     ...spStats,
-    // Use live 2026 stats where available, fall back to SP_STATS
-    era:   live.era   ?? spStats.era,
-    whip:  live.whip  ?? spStats.whip,
-    k9:    live.k9    ?? spStats.k9,
+    era:   blend(live.era,  spStats.era),
+    whip:  blend(live.whip, spStats.whip),
+    k9:    blend(live.k9,   spStats.k9),
     // Always use API hand — most reliable source
     hand:  live.hand  || spStats.hand,
-    // Store live K% for use in pitcher matchup scoring
     liveKpct: live.kpct ?? null,
     livePa:   live.pa   ?? 0,
-    source: 'live-mlb-api',
+    liveIp:   ip,
+    blendWeight: parseFloat(wLive.toFixed(2)),
+    source: ip >= 40 ? 'live-mlb-api' : ip > 0 ? `blend(${ip}IP)` : 'SP_STATS',
   };
 }
 
