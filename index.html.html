@@ -1748,6 +1748,7 @@ function platoonLabel(bats, spHand, spPlatoon) {
 }
 
 // Known 2026 batting orders — sourced from MLB.com Opening Day + RotoWire current (Apr 20 2026)
+const SP_STATCAST={"Aaron Ashby":[0.281,0.219,0.4,0.27,0.03],"Aaron Bummer":[0.216,0.267,0.391,0.229,0.032],"Aaron Civale":[0.202,0.233,0.391,0.218,0.098],"Aaron Nola":[0.24,0.246,0.433,0.252,0.091],"Abner Uribe":[0.302,0.203,0.349,0.32,0.029],"Adrian Houser":[0.178,0.255,0.476,0.181,0.061],"Adrian Morejon":[0.245,0.222,0.307,0.238,0.04],"Alex Vesia":[0.338,0.185,0.377,0.307,0.108],"Andre Pallante":[0.155,0.259,0.399,0.223,0.065],"Andrew Abbott":[0.218,0.233,0.337,0.24,0.08],"Andrew Heaney":[0.16,0.284,0.436,0.199,0.102],"Andrew Kittredge":[0.308,0.21,0.444,0.298,0.068],"Andrés Muñoz":[0.327,0.194,0.399,0.365,0.065],"Angel Chivilli":[0.156,0.271,0.429,0.297,0.099],"Angel Zerpa":[0.211,0.246,0.43,0.164,0.083],"Anthony Banda":[0.227,0.207,0.386,0.272,0.088],"Anthony Bender":[0.206,0.215,0.446,0.206,0.072],"Antonio Senzatela":[0.118,0.319,0.46,0.181,0.092],"Aroldis Chapman":[0.373,0.175,0.367,0.358,0.055],"Austin Gomber":[0.125,0.279,0.395,0.159,0.145],"Bailey Falter":[0.156,0.263,0.451,0.181,0.095],"Bailey Ober":[0.192,0.248,0.391,0.241,0.109],"Ben Brown":[0.256,0.254,0.473,0.283,0.114],"Ben Casparius":[0.213,0.24,0.319,0.276,0.071],"Bennett Sousa":[0.296,0.199,0.368,0.368,0.08],"Blake Snell":[0.283,0.224,0.34,0.356,0.058],"Bowden Francis":[0.188,0.281,0.522,0.233,0.124],"Brad Keller":[0.272,0.197,0.306,0.269,0.058],"Brad Lord":[0.198,0.27,0.418,0.213,0.071],"Bradley Blalock":[0.098,0.322,0.459,0.159,0.122],"Brady Singer":[0.228,0.243,0.407,0.24,0.094],"Brandon Eisert":[0.242,0.238,0.371,0.32,0.094],"Brandon Pfaadt":[0.192,0.284,0.458,0.221,0.109],"Brandon Walter":[0.245,0.237,0.386,0.246,0.072],"Brandon Woodruff":[0.323,0.171,0.359,0.279,0.071],"Brandon Young":[0.184,0.242,0.422,0.216,0.102],"Brant Hurter":[0.245,0.227,0.368,0.26,0.035],"Braxton Ashcraft":[0.243,0.235,0.385,0.262,0.046],"Brayan Bello":[0.177,0.258,0.393,0.201,0.071],"Braydon Fisher":[0.307,0.206,0.364,0.299,0.076],"Brenan Hanifee":[0.154,0.271,0.446,0.161,0.069],"Brendon Little":[0.308,0.194,0.471,0.435,0.064],"Brennan Bernardino":[0.191,0.21,0.358,0.193,0.073],"Brent Suter":[0.182,0.25,0.329,0.214,0.078],"Brock Burke":[0.202,0.249,0.408,0.234,0.071],"Bryan Abreu":[0.355,0.211,0.455,0.412,0.083],"Bryan Baker":[0.303,0.233,0.483,0.291,0.126],"Bryan King":[0.251,0.223,0.361,0.244,0.058],"Bryan Woo":[0.271,0.215,0.418,0.262,0.091],"Bryce Elder":[0.193,0.266,0.438,0.225,0.077],"Bryce Miller":[0.189,0.274,0.486,0.242,0.093],"Cade Gibson":[0.187,0.244,0.375,0.223,0.056],"Cade Horton":[0.204,0.236,0.413,0.258,0.1],"Cade Povich":[0.242,0.269,0.469,0.242,0.113],"Cade Smith":[0.347,0.201,0.37,0.343,0.04],"Cal Quantrill":[0.166,0.281,0.443,0.202,0.124],"Caleb Ferguson":[0.189,0.237,0.277,0.214,0.031],"Caleb Thielbar":[0.255,0.2,0.318,0.269,0.066],"Calvin Faucher":[0.231,0.263,0.343,0.237,0.047],"Cam Schlittler":[0.276,0.23,0.402,0.261,0.082],"Camilo Doval":[0.259,0.22,0.405,0.284,0.06],"Carlos Estévez":[0.201,0.228,0.381,0.19,0.106],"Carlos Rodón":[0.257,0.206,0.389,0.303,0.075],"Carlos Vargas":[0.163,0.247,0.352,0.189,0.049],"Carmen Mlodzinski":[0.212,0.261,0.401,0.23,0.06],"Casey Mize":[0.222,0.236,0.425,0.241,0.091],"Chad Patrick":[0.252,0.24,0.422,0.235,0.081],"Charlie Morton":[0.228,0.246,0.436,0.279,0.086],"Chase Dollander":[0.186,0.249,0.405,0.229,0.115],"Chris Bassitt":[0.226,0.252,0.366,0.233,0.085],"Chris Paddack":[0.167,0.274,0.456,0.207,0.102],"Chris Sale":[0.324,0.205,0.354,0.301,0.063],"Clarke Schmidt":[0.231,0.198,0.354,0.266,0.066],"Clay Holmes":[0.182,0.245,0.423,0.221,0.068],"Clayton Kershaw":[0.181,0.25,0.421,0.243,0.041],"Cole Henry":[0.216,0.212,0.37,0.256,0.075],"Cole Ragans":[0.381,0.187,0.394,0.348,0.095],"Cole Sands":[0.214,0.235,0.415,0.222,0.099],"Colin Rea":[0.192,0.261,0.41,0.22,0.103],"Colton Gordon":[0.19,0.266,0.406,0.18,0.115],"Corbin Burnes":[0.238,0.227,0.416,0.257,0.081],"Cristopher Sánchez":[0.263,0.225,0.398,0.304,0.057],"Daniel Lynch IV":[0.156,0.252,0.425,0.223,0.08],"Daniel Palencia":[0.284,0.225,0.485,0.275,0.044],"David Bednar":[0.343,0.204,0.421,0.311,0.09],"David Festa":[0.231,0.243,0.405,0.274,0.118],"David Peterson":[0.207,0.27,0.46,0.24,0.064],"Davis Martin":[0.173,0.273,0.446,0.216,0.097],"Dean Kremer":[0.201,0.238,0.358,0.229,0.085],"Dennis Santana":[0.222,0.217,0.374,0.273,0.105],"Devin Williams":[0.347,0.192,0.357,0.377,0.093],"Drew Rasmussen":[0.217,0.236,0.433,0.222,0.063],"Dustin May":[0.211,0.261,0.445,0.2,0.092],"Dylan Cease":[0.298,0.214,0.375,0.334,0.086],"Dylan Lee":[0.286,0.202,0.335,0.336,0.102],"Eduard Bazardo":[0.262,0.206,0.371,0.194,0.094],"Eduardo Rodriguez":[0.206,0.259,0.352,0.23,0.082],"Edward Cabrera":[0.258,0.238,0.464,0.294,0.086],"Edwin Díaz":[0.38,0.17,0.397,0.415,0.046],"Edwin Uceta":[0.321,0.219,0.366,0.356,0.093],"Emerson Hancock":[0.166,0.291,0.425,0.203,0.077],"Emilio Pagán":[0.3,0.181,0.37,0.292,0.091],"Emmet Sheehan":[0.306,0.203,0.416,0.329,0.101],"Enyel De Los Santos":[0.221,0.246,0.401,0.3,0.089],"Eric Lauer":[0.239,0.24,0.419,0.237,0.081],"Erick Fedde":[0.133,0.275,0.426,0.18,0.079],"Eury Pérez":[0.273,0.203,0.465,0.284,0.09],"Framber Valdez":[0.233,0.241,0.463,0.266,0.067],"Freddy Peralta":[0.282,0.206,0.345,0.301,0.093],"Gabe Speier":[0.337,0.188,0.407,0.309,0.09],"Garrett Cleavinger":[0.337,0.205,0.412,0.36,0.059],"Garrett Crochet":[0.313,0.21,0.373,0.294,0.073],"Garrett Whitlock":[0.311,0.2,0.364,0.328,0.087],"Gavin Williams":[0.246,0.231,0.443,0.277,0.09],"George Kirby":[0.261,0.249,0.439,0.267,0.085],"Germán Márquez":[0.14,0.287,0.485,0.186,0.111],"Graham Ashcraft":[0.225,0.243,0.323,0.298,0.041],"Grant Anderson":[0.247,0.243,0.381,0.309,0.052],"Grant Holmes":[0.25,0.24,0.419,0.297,0.101],"Greg Weissert":[0.205,0.22,0.386,0.224,0.076],"Gregory Soto":[0.251,0.238,0.379,0.299,0.04],"Griffin Canning":[0.214,0.252,0.457,0.255,0.094],"Griffin Jax":[0.35,0.228,0.441,0.373,0.093],"Hayden Birdsong":[0.228,0.228,0.468,0.284,0.096],"Hoby Milner":[0.198,0.235,0.368,0.155,0.09],"Hogan Harris":[0.235,0.24,0.326,0.23,0.056],"Huascar Brazobán":[0.218,0.226,0.345,0.239,0.08],"Hunter Brown":[0.283,0.217,0.322,0.278,0.059],"Hunter Dobbins":[0.176,0.242,0.417,0.219,0.068],"Hunter Gaddis":[0.266,0.227,0.391,0.322,0.095],"Hunter Greene":[0.314,0.202,0.45,0.314,0.096],"Hurston Waldrep":[0.24,0.251,0.403,0.285,0.04],"Ian Seymour":[0.264,0.237,0.378,0.27,0.071],"J.T. Ginn":[0.253,0.227,0.445,0.287,0.098],"JP Sears":[0.201,0.241,0.394,0.216,0.094],"Jack Dreyer":[0.241,0.2,0.397,0.267,0.053],"Jack Flaherty":[0.276,0.232,0.438,0.273,0.103],"Jack Kochanowicz":[0.141,0.287,0.496,0.208,0.093],"Jack Leiter":[0.229,0.235,0.439,0.243,0.108],"Jackson Rutledge":[0.196,0.255,0.491,0.253,0.098],"Jacob Latz":[0.218,0.246,0.426,0.294,0.064],"Jacob Lopez":[0.283,0.211,0.332,0.283,0.066],"Jacob Misiorowski":[0.32,0.202,0.375,0.297,0.079],"Jacob Webb":[0.217,0.217,0.346,0.276,0.059],"Jacob deGrom":[0.277,0.221,0.419,0.302,0.092],"Jake Bird":[0.266,0.235,0.429,0.281,0.084],"Jake Irvin":[0.158,0.273,0.471,0.182,0.119],"Jakob Junis":[0.201,0.256,0.386,0.227,0.061],"Jalen Beeks":[0.203,0.235,0.395,0.277,0.105],"Jameson Taillon":[0.189,0.241,0.383,0.208,0.081],"Janson Junk":[0.172,0.277,0.473,0.182,0.085],"Jared Koenig":[0.254,0.199,0.347,0.229,0.051],"Jason Adam":[0.259,0.196,0.38,0.333,0.07],"Jason Alexander":[0.193,0.27,0.459,0.246,0.083],"Jeff Hoffman":[0.293,0.199,0.395,0.316,0.128],"Jeffrey Springs":[0.194,0.249,0.373,0.26,0.081],"Jeremiah Estrada":[0.355,0.182,0.392,0.349,0.09],"Jesús Luzardo":[0.285,0.228,0.371,0.308,0.066],"Jhoan Duran":[0.279,0.21,0.416,0.308,0.043],"Jimmy Herget":[0.233,0.217,0.391,0.269,0.073],"JoJo Romero":[0.216,0.22,0.351,0.27,0.071],"Joe Boyle":[0.257,0.218,0.46,0.29,0.102],"Joe Ross":[0.171,0.286,0.435,0.224,0.119],"Joe Ryan":[0.282,0.209,0.419,0.261,0.115],"Joey Cantillo":[0.269,0.229,0.418,0.297,0.072],"Joey Wentz":[0.208,0.257,0.428,0.235,0.095],"John Schreiber":[0.234,0.245,0.383,0.234,0.093],"Jonathan Cannon":[0.185,0.271,0.454,0.214,0.107],"Jordan Hicks":[0.185,0.266,0.456,0.231,0.047],"Jordan Leasure":[0.301,0.19,0.376,0.319,0.108],"Jorge Alcala":[0.237,0.237,0.376,0.257,0.109],"Jose A. Ferrer":[0.219,0.252,0.422,0.248,0.048],"Jose Quintana":[0.16,0.269,0.417,0.184,0.097],"Josh Hader":[0.369,0.149,0.342,0.405,0.081],"José Berríos":[0.198,0.255,0.425,0.22,0.113],"José Buttó":[0.204,0.249,0.398,0.288,0.094],"José Soriano":[0.21,0.242,0.482,0.27,0.072],"José Ureña":[0.139,0.292,0.4,0.198,0.13],"Juan Mejia":[0.261,0.199,0.346,0.304,0.049],"Justin Sterner":[0.263,0.203,0.389,0.308,0.096],"Justin Topa":[0.183,0.282,0.447,0.181,0.056],"Justin Verlander":[0.207,0.252,0.37,0.248,0.081],"Justin Wrobleski":[0.271,0.244,0.478,0.246,0.038],"Keegan Akin":[0.22,0.238,0.417,0.256,0.097],"Keider Montero":[0.185,0.26,0.394,0.198,0.081],"Kenley Jansen":[0.244,0.213,0.446,0.258,0.089],"Kevin Gausman":[0.244,0.238,0.414,0.264,0.085],"Kodai Senga":[0.226,0.225,0.406,0.274,0.08],"Kolby Allard":[0.158,0.241,0.359,0.196,0.057],"Kris Bubic":[0.244,0.221,0.393,0.288,0.066],"Kumar Rocker":[0.195,0.279,0.475,0.249,0.118],"Kyle Finnegan":[0.24,0.226,0.429,0.246,0.078],"Kyle Freeland":[0.175,0.282,0.473,0.21,0.094],"Kyle Hendricks":[0.164,0.246,0.343,0.183,0.083],"Kyle Leahy":[0.22,0.264,0.441,0.231,0.098],"Lake Bachar":[0.253,0.228,0.415,0.302,0.106],"Lance McCullers Jr.":[0.223,0.242,0.5,0.251,0.114],"Landen Roupp":[0.214,0.248,0.365,0.252,0.089],"Logan Allen":[0.18,0.247,0.375,0.206,0.091],"Logan Evans":[0.169,0.272,0.426,0.194,0.105],"Logan Gilbert":[0.323,0.206,0.417,0.329,0.086],"Logan Webb":[0.262,0.246,0.402,0.247,0.083],"Louis Varland":[0.253,0.25,0.437,0.271,0.091],"Lucas Erceg":[0.193,0.248,0.374,0.247,0.073],"Lucas Giolito":[0.197,0.264,0.411,0.229,0.09],"Luis Castillo":[0.217,0.245,0.464,0.246,0.104],"Luis García":[0.206,0.262,0.484,0.241,0.075],"Luis Gil":[0.168,0.255,0.426,0.215,0.083],"Luis Ortiz":[0.251,0.247,0.477,0.289,0.103],"Luis Severino":[0.176,0.266,0.419,0.183,0.06],"Luke Jackson":[0.174,0.239,0.44,0.227,0.067],"Luke Weaver":[0.275,0.193,0.399,0.31,0.083],"MacKenzie Gore":[0.272,0.241,0.441,0.297,0.106],"Martín Pérez":[0.193,0.249,0.394,0.209,0.15],"Mason Fluharty":[0.26,0.205,0.331,0.319,0.075],"Mason Miller":[0.444,0.157,0.376,0.452,0.099],"Matt Festa":[0.248,0.232,0.34,0.273,0.06],"Matt Strahm":[0.273,0.197,0.384,0.238,0.043],"Matt Svanson":[0.291,0.201,0.359,0.231,0.085],"Matthew Boyd":[0.214,0.24,0.38,0.231,0.09],"Matthew Liberatore":[0.188,0.272,0.411,0.202,0.106],"Max Fried":[0.236,0.233,0.372,0.266,0.069],"Max Meyer":[0.239,0.263,0.482,0.274,0.092],"Max Scherzer":[0.229,0.245,0.382,0.236,0.124],"Merrill Kelly":[0.223,0.25,0.435,0.241,0.092],"Michael King":[0.247,0.233,0.381,0.258,0.114],"Michael Lorenzen":[0.21,0.261,0.392,0.234,0.088],"Michael McGreevy":[0.145,0.274,0.401,0.192,0.088],"Michael Soroka":[0.251,0.209,0.404,0.237,0.067],"Michael Wacha":[0.176,0.257,0.346,0.213,0.074],"Mike Burrows":[0.241,0.247,0.42,0.27,0.108],"Mike Vasil":[0.194,0.227,0.382,0.24,0.071],"Miles Mikolas":[0.149,0.271,0.418,0.165,0.127],"Mitch Keller":[0.2,0.259,0.438,0.206,0.078],"Mitch Spence":[0.176,0.284,0.428,0.257,0.119],"Mitchell Parker":[0.142,0.297,0.5,0.196,0.096],"Nathan Eovaldi":[0.26,0.219,0.385,0.277,0.074],"Nick Lodolo":[0.243,0.227,0.405,0.275,0.081],"Nick Martinez":[0.17,0.257,0.345,0.199,0.069],"Nick Mears":[0.207,0.259,0.429,0.25,0.106],"Nick Pivetta":[0.264,0.228,0.45,0.246,0.109],"Noah Cameron":[0.205,0.245,0.374,0.266,0.063],"Orion Kerkering":[0.244,0.228,0.335,0.237,0.065],"Osvaldo Bido":[0.187,0.253,0.409,0.25,0.118],"Pablo López":[0.234,0.249,0.353,0.259,0.06],"Patrick Corbin":[0.198,0.268,0.404,0.269,0.084],"Paul Skenes":[0.295,0.202,0.401,0.301,0.058],"Pete Fairbanks":[0.242,0.22,0.428,0.261,0.048],"Phil Maton":[0.325,0.195,0.307,0.362,0.036],"Pierce Johnson":[0.248,0.229,0.428,0.262,0.088],"Quinn Priester":[0.202,0.237,0.394,0.245,0.073],"Rafael Montero":[0.229,0.205,0.386,0.293,0.07],"Raisel Iglesias":[0.273,0.211,0.349,0.309,0.086],"Randy Rodríguez":[0.338,0.188,0.362,0.311,0.078],"Randy Vásquez":[0.137,0.267,0.393,0.157,0.109],"Ranger Suarez":[0.232,0.226,0.311,0.222,0.055],"Reed Garrett":[0.269,0.228,0.408,0.305,0.048],"Reese Olson":[0.228,0.244,0.447,0.297,0.074],"Reid Detmers":[0.301,0.231,0.428,0.327,0.082],"Robbie Ray":[0.246,0.219,0.447,0.278,0.096],"Robert Garcia":[0.253,0.235,0.343,0.286,0.079],"Robert Suarez":[0.279,0.237,0.426,0.24,0.091],"Ronny Henriquez":[0.323,0.182,0.425,0.36,0.109],"Ryan Bergert":[0.226,0.238,0.364,0.239,0.07],"Ryan Gusto":[0.214,0.25,0.457,0.234,0.095],"Ryan Helsley":[0.25,0.242,0.417,0.295,0.074],"Ryan Pepiot":[0.246,0.226,0.425,0.26,0.097],"Ryan Walker":[0.226,0.251,0.356,0.216,0.05],"Ryan Yarbrough":[0.208,0.256,0.34,0.266,0.069],"Ryan Zeferjahn":[0.285,0.217,0.372,0.303,0.103],"Ryne Nelson":[0.213,0.245,0.455,0.216,0.075],"Ryne Stanek":[0.227,0.236,0.436,0.278,0.109],"Sandy Alcantara":[0.191,0.262,0.45,0.209,0.086],"Scott Barlow":[0.248,0.227,0.305,0.308,0.073],"Sean Burke":[0.223,0.246,0.427,0.251,0.104],"Sean Manaea":[0.285,0.24,0.426,0.268,0.089],"Sean Newcomb":[0.233,0.25,0.418,0.214,0.057],"Seranthony Domínguez":[0.303,0.198,0.368,0.333,0.069],"Seth Lugo":[0.205,0.256,0.452,0.206,0.111],"Shane Baz":[0.248,0.23,0.394,0.258,0.095],"Shane Smith":[0.235,0.229,0.454,0.277,0.067],"Shawn Armstrong":[0.261,0.202,0.342,0.244,0.071],"Shota Imanaga":[0.206,0.233,0.435,0.246,0.116],"Simeon Woods Richardson":[0.227,0.214,0.416,0.241,0.114],"Slade Cecconi":[0.2,0.267,0.491,0.225,0.122],"Sonny Gray":[0.267,0.25,0.407,0.275,0.098],"Spencer Bivens":[0.178,0.247,0.373,0.17,0.071],"Spencer Schwellenbach":[0.249,0.252,0.415,0.283,0.075],"Spencer Strider":[0.243,0.253,0.427,0.306,0.106],"Stephen Kolek":[0.167,0.261,0.48,0.177,0.061],"Steven Matz":[0.191,0.233,0.405,0.188,0.063],"Steven Okert":[0.304,0.185,0.327,0.328,0.07],"Steven Wilson":[0.212,0.236,0.364,0.248,0.055],"Taijuan Walker":[0.16,0.259,0.414,0.185,0.074],"Taj Bradley":[0.21,0.237,0.399,0.236,0.072],"Tanner Banks":[0.228,0.252,0.368,0.219,0.078],"Tanner Bibee":[0.213,0.227,0.366,0.238,0.08],"Tanner Gordon":[0.184,0.294,0.412,0.18,0.114],"Tanner Scott":[0.253,0.247,0.423,0.295,0.09],"Tarik Skubal":[0.322,0.206,0.33,0.325,0.081],"Taylor Clarke":[0.214,0.239,0.408,0.233,0.079],"Taylor Rogers":[0.24,0.231,0.444,0.232,0.099],"Tim Hill":[0.138,0.241,0.451,0.164,0.079],"Tobias Myers":[0.173,0.263,0.448,0.214,0.067],"Tommy Kahnle":[0.187,0.244,0.373,0.254,0.092],"Tomoyuki Sugano":[0.157,0.289,0.398,0.185,0.118],"Tony Santillan":[0.249,0.244,0.455,0.27,0.084],"Trevor Rogers":[0.243,0.225,0.484,0.256,0.076],"Trevor Williams":[0.174,0.277,0.407,0.198,0.084],"Tristan Beck":[0.177,0.261,0.382,0.229,0.087],"Tyler Alexander":[0.194,0.28,0.396,0.215,0.058],"Tyler Anderson":[0.174,0.254,0.366,0.25,0.11],"Tyler Ferguson":[0.22,0.209,0.318,0.26,0.065],"Tyler Gilbert":[0.228,0.22,0.407,0.262,0.1],"Tyler Glasnow":[0.29,0.203,0.374,0.282,0.079],"Tyler Holton":[0.205,0.25,0.377,0.246,0.082],"Tyler Kinley":[0.237,0.219,0.296,0.312,0.07],"Tyler Mahle":[0.191,0.253,0.371,0.232,0.08],"Tyler Phillips":[0.166,0.24,0.434,0.273,0.051],"Tyler Rogers":[0.161,0.246,0.331,0.159,0.021],"Tylor Megill":[0.292,0.22,0.438,0.307,0.063],"Valente Bellozo":[0.155,0.26,0.414,0.202,0.117],"Victor Vodnik":[0.228,0.233,0.486,0.265,0.086],"Walker Buehler":[0.163,0.268,0.378,0.192,0.095],"Wandy Peralta":[0.201,0.253,0.362,0.29,0.069],"Will Vest":[0.264,0.217,0.414,0.267,0.043],"Will Warren":[0.241,0.252,0.453,0.246,0.109],"Yariel Rodríguez":[0.221,0.227,0.359,0.275,0.094],"Yennier Cano":[0.211,0.234,0.353,0.235,0.047],"Yoendrys Gómez":[0.209,0.249,0.374,0.239,0.123],"Yoshinobu Yamamoto":[0.294,0.199,0.397,0.289,0.057],"Yu Darvish":[0.23,0.218,0.33,0.23,0.089],"Yuki Matsui":[0.224,0.228,0.373,0.303,0.09],"Yusei Kikuchi":[0.225,0.25,0.422,0.236,0.094],"Zac Gallen":[0.215,0.242,0.43,0.237,0.097],"Zach Eflin":[0.162,0.265,0.406,0.205,0.094],"Zack Littell":[0.171,0.255,0.409,0.204,0.099],"Zack Wheeler":[0.333,0.189,0.341,0.315,0.072],"Zebby Matthews":[0.249,0.265,0.388,0.275,0.099]};
 const SP_STATS = {
   // AL East
   'Gerrit Cole':[3.12,1.05,11.4,'R'],'Carlos Rodon':[3.85,1.22,10.8,'L'],
@@ -1850,7 +1851,7 @@ const SP_STATS = {
   'Steven Matz':[4.45,1.35,8.2,'L'],
   'Shane McClanahan':[3.55,1.16,10.4,'L'],
   'Cole Ragans':[3.65,1.18,11.0,'L'],
-  'Andrew Abbott':[4.00,1.24,10.2,'L'],
+  'Andrew Abbott':[5.50,1.55,7.5,'L'],
   'Brayan Bello':[4.10,1.28,9.0,'R'],
   'Kris Bubic':[4.35,1.33,8.4,'L'],
   'Nathan Eovaldi':[3.90,1.24,8.6,'R'],
@@ -1904,7 +1905,7 @@ const SP_STATS = {
   'Max Fried':[3.50,1.15,9.8,'L'],
   'Cole Ragans':[3.65,1.18,11.0,'L'],
   'Shane McClanahan':[3.55,1.16,10.4,'L'],
-  'Andrew Abbott':[4.00,1.24,10.2,'L'],
+  'Andrew Abbott':[5.50,1.55,7.5,'L'],
   'Matthew Liberatore':[4.55,1.38,8.2,'L'],
   'Clayton Kershaw':[3.95,1.22,8.8,'L'],
   'Ryan Yarbrough':[4.40,1.34,7.6,'L'],
@@ -1992,7 +1993,17 @@ function getSPStats(name, apiHand) {
   if (importedHand) apiHand = importedHand;
   const key = normalize(name);
   const platoon = REVERSE_SPLIT_PITCHERS.has(key) ? 'reverse' : 'normal';
-  const toObj = (s, hand) => ({ era: s[0], whip: s[1], k9: s[2], hand: hand || s[3], platoon });
+  const toObj = (s, hand) => {
+    const key2 = normalize(name);
+    const sc = SP_STATCAST[name] || Object.entries(SP_STATCAST).find(([k]) => normalize(k) === key2)?.[1] || null;
+    return { era: s[0], whip: s[1], k9: s[2], hand: hand || s[3], platoon,
+      spKpct:     sc ? sc[0] : null,
+      spXbaAllow: sc ? sc[1] : null,
+      spHH:       sc ? sc[2] : null,
+      spWhiff:    sc ? sc[3] : null,
+      spBrl:      sc ? sc[4] : null,
+    };
+  };
   const s = SP_NORM[key];
   // If we have API hand, use it — SP_NORM hand could be stale for switch-pitchers etc
   if (s) return toObj(s, apiHand || s[3]);
@@ -2259,24 +2270,43 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     // Barrel% allowed: least relevant for hit props (power ≠ singles)
     const barComp = Math.min(100, Math.max(0, ((spBar - 0.02)  / (0.18 - 0.02))   * 100));
 
-    // Weights: K% and xBA dominate since they most directly predict hit suppression
-    spScore = kComp   * 0.38 +   // K% — most direct no-hit predictor
-              xbaComp * 0.35 +   // xBA allowed — best contact quality metric
-              hhComp  * 0.15 +   // HH% allowed — contact quality signal
-              whComp  * 0.08 +   // Whiff% — balls-in-play suppression
-              barComp * 0.04;    // Barrel% — least relevant for hit props
+    // xBA allowed most direct hit predictor, K% second, HH% context, Whiff% minor
+    spScore = xbaComp * 0.50 +   // xBA allowed — best direct hit predictor
+              kComp   * 0.35 +   // K% — strikeout = no hit
+              hhComp  * 0.10 +   // HH% allowed — contact quality context
+              whComp  * 0.05;    // Whiff% — balls-in-play suppression
   } else {
-    // Fallback: SP_STATS has ERA/WHIP/K9 — use K/9 and WHIP only, skip ERA
-    // K/9 → approx K%: 9 K/9 ≈ 24%, 12 K/9 ≈ 32%, 6 K/9 ≈ 16%
-    const k9   = spSC?.k9   || spStats.k9   || 8.5;
-    const whip = spSC?.whip || spStats.whip  || 1.35;
-    // K/9 range 5.0-13.0 (realistic MLB bounds) — higher = harder for batter
-    // Each full K/9 unit = 12.5 pts, so Skubal vs Freeland is ~50pt gap
-    const k9Comp   = Math.min(100, Math.max(0, (1 - (k9   - 5.0) / (13.0 - 5.0)) * 100));
-    // WHIP range 0.90-1.70 — higher = softer pitcher, better for batter
-    const whipComp = Math.min(100, Math.max(0, ((whip - 0.90) / (1.70 - 0.90)) * 100));
-    // K/9 gets 65% — most reliable hit-prop signal. WHIP adds context on control.
-    spScore = k9Comp * 0.65 + whipComp * 0.35;
+    // Fallback: use K/9 + xBA allowed (better hit predictor than WHIP)
+    const k9      = spSC?.k9  || spStats.k9  || 8.5;
+    const xbaAll  = spSC?.xbaAllowed ?? spStats?.spXbaAllow ?? null;  // live first, then SP_STATCAST
+    const spKpct  = spStats?.spKpct  ?? null;
+    const spWhiff = spStats?.spWhiff ?? null;
+    const spHH    = spStats?.spHH    ?? null;
+
+    // K/9 range 5.0-13.0 — higher = harder for batter (lower score)
+    const k9Comp = Math.min(100, Math.max(0, (1 - (k9 - 5.0) / (13.0 - 5.0)) * 100));
+
+    if (xbaAll !== null) {
+      // xBA allowed: best direct hit predictor — high xBA = hittable pitcher
+      const xbaComp  = Math.min(100, Math.max(0, ((xbaAll - 0.150) / (0.330 - 0.150)) * 100));
+      // Whiff% if available from SP_STATCAST
+      const whiffComp = spWhiff !== null
+        ? Math.min(100, Math.max(0, (1 - (spWhiff - 0.15) / (0.42 - 0.15)) * 100))
+        : 50;
+      // xBA allowed 50% — most direct hit predictor, K% 35%, Whiff% 15%
+      spScore = xbaComp * 0.50 + k9Comp * 0.35 + whiffComp * 0.15;
+    } else if (spKpct !== null) {
+      // SP_STATCAST has K%/HH%/Whiff% — use those
+      const kComp    = Math.min(100, Math.max(0, (1 - (spKpct - 0.10) / (0.35 - 0.10)) * 100));
+      const whiffComp = spWhiff !== null
+        ? Math.min(100, Math.max(0, (1 - (spWhiff - 0.15) / (0.42 - 0.15)) * 100)) : 50;
+      const hhComp    = spHH !== null
+        ? Math.min(100, Math.max(0, ((spHH - 0.25) / (0.55 - 0.25)) * 100)) : 50;
+      spScore = kComp * 0.50 + whiffComp * 0.30 + hhComp * 0.20;
+    } else {
+      // Last resort: K/9 only — no WHIP
+      spScore = k9Comp;
+    }
   }
 
   // No flat platoon bonus — split xBA already encodes platoon advantage.
@@ -2389,13 +2419,15 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     // Whiff%
     if (spSC.whiffPct !== null && spSC.whiffPct >= 0.32) reasons.push('high whiff% (' + (spSC.whiffPct*100).toFixed(0) + '%) — fewer balls in play');
   } else {
-    // Fallback: K/9 + WHIP, no ERA
-    const k9   = spSC?.k9   || spStats.k9   || 8.5;
-    const whip = spSC?.whip || spStats.whip  || 1.35;
+    // Fallback: K/9 + xBA allowed (no WHIP)
+    const k9     = spSC?.k9         || spStats.k9   || 8.5;
+    const xbaAll = spSC?.xbaAllowed ?? spStats?.spXbaAllow ?? null;
     if (k9 >= 10.5) reasons.push('high K/9 SP (' + k9.toFixed(1) + ') — tough');
     else if (k9 <= 7.0) reasons.push('low K/9 SP (' + k9.toFixed(1) + ') — favorable');
-    if (whip >= 1.45) reasons.push('high WHIP (' + whip.toFixed(2) + ') — favorable');
-    else if (whip <= 1.10) reasons.push('low WHIP (' + whip.toFixed(2) + ') — tough');
+    if (xbaAll !== null) {
+      if (xbaAll >= 0.275) reasons.push('high xBA allowed (' + xbaAll.toFixed(3) + ') — favorable');
+      else if (xbaAll <= 0.215) reasons.push('low xBA allowed (' + xbaAll.toFixed(3) + ') — tough');
+    }
   }
   // Park
   if (pk.score >= 75) reasons.push('hitter park (' + venue + ')');
