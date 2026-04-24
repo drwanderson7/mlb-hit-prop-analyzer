@@ -1327,9 +1327,10 @@ async function fetchStatcast() {
   Object.keys(liveStatcast).forEach(key => {
     const live = liveStatcast[key];
     if (!live) return;
-    const s26 = sc2026norm[key];  // 2026 full stats [xba, kpct, hh, brl]
-    const emb = SC_NORM[key];     // 2025 embedded
-    const brl26 = brl2026norm[key]; // 2026 barrel only
+    const nkey = normalize(key);  // normalize to strip accents for lookup
+    const s26 = sc2026norm[nkey];  // 2026 full stats [xba, kpct, hh, brl]
+    const emb = SC_NORM[nkey];     // 2025 embedded
+    const brl26 = brl2026norm[nkey]; // 2026 barrel only
 
     if (s26) {
       // 2026 real data — highest priority for all fields
