@@ -2023,9 +2023,17 @@ function getSPStats(name, apiHand) {
     });
     if (match) return toObj(SP_NORM[match], apiHand || SP_NORM[match][3]);
   }
-  // Unknown pitcher — use API hand if available, otherwise default R
-  // NOTE: Default was 'R' which was wrong for lefties — API hand fixes this
-  return { era: 4.20, whip: 1.28, k9: 8.8, hand: apiHand || 'R', platoon };
+  // Unknown pitcher — check SP_STATCAST even if not in SP_STATS
+  const scEntry = SP_STATCAST[name] || 
+    Object.entries(SP_STATCAST).find(([k]) => normalize(k) === key)?.[1] || null;
+  return { 
+    era: 4.20, whip: 1.28, k9: 8.8, hand: apiHand || 'R', platoon,
+    spKpct:     scEntry ? scEntry[0] : null,
+    spXbaAllow: scEntry ? scEntry[1] : null,
+    spHH:       scEntry ? scEntry[2] : null,
+    spWhiff:    scEntry ? scEntry[3] : null,
+    spBrl:      scEntry ? scEntry[4] : null,
+  };
 }
 
 // Merge live 2026 pitcher stats from MLB Stats API into SP stats object
@@ -2407,7 +2415,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   if (platoon.adv === true && bats !== 'S') reasons.push('favorable platoon (' + platoon.label + ')');
   if (platoon.adv === false) reasons.push('same-side platoon (' + platoon.label + ')');
   // Pitcher reasoning — ERA intentionally excluded
-  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
+  if (spSC && spSC.fromStatcast && spSC.xbaAllowed !== null) {
     const spK = spSC.kpct;
     // K% first — most direct hit suppression metric
     if (spK >= 0.30) reasons.push('elite K% SP (' + (spK*100).toFixed(0) + '%) — tough');
@@ -2475,7 +2483,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     era: spStats.era,
     statcastFound: !!sc,
     splitUsed: sc?.splitUsed || 'overall',
-    spStatcast: !!(spSC?.fromStatcast && spSC.kpct !== null),
+    spStatcast: !!(spSC?.fromStatcast && spSC.xbaAllowed !== null),
     spKpct:     spSC?.kpct           ?? null,
     spXBA:      spSC?.xbaAllowed     ?? spStats?.spXbaAllow ?? null,
     spHH:       spSC?.hardHitAllowed ?? null,
