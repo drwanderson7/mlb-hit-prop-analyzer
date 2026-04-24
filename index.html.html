@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-
 <!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -134,122 +132,121 @@ select{font-family:inherit;font-size:13px;color:var(--text);background:var(--sur
   .panel{padding:10px 12px;}
   body{font-size:14px;}
 
-/* Nav tabs - scrollable on mobile */
-.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
-.tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
+  /* Nav tabs - scrollable on mobile */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
+  .tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
 
-/* Header */
-.header{padding:10px 14px;}
-.header h1{font-size:15px;}
-.header .subtitle{font-size:11px;}
-.header-right{font-size:11px;}
+  /* Header */
+  .header{padding:10px 14px;}
+  .header h1{font-size:15px;}
+  .header .subtitle{font-size:11px;}
+  .header-right{font-size:11px;}
 
-/* KPI strip - 2x2 grid */
-.kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
-.kpi{padding:10px;}
-.kpi-val{font-size:22px;}
-.kpi-lbl{font-size:10px;}
+  /* KPI strip - 2x2 grid */
+  .kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .kpi{padding:10px;}
+  .kpi-val{font-size:22px;}
+  .kpi-lbl{font-size:10px;}
 
-/* Filter bar - stack vertically */
-.filter-bar{flex-wrap:wrap;gap:6px;}
-.filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
-.filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
-.result-count{font-size:11px;width:100%;text-align:right;}
+  /* Filter bar - stack vertically */
+  .filter-bar{flex-wrap:wrap;gap:6px;}
+  .filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
+  .filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
+  .result-count{font-size:11px;width:100%;text-align:right;}
 
-/* Player cards - tighter on mobile */
-.player-card{
-grid-template-columns:20px 1fr auto;
-gap:6px;
-padding:10px 10px;
-}
-.p-rank{font-size:12px;}
-.p-name{font-size:13px;}
-.p-meta{font-size:11px;line-height:1.4;}
-.p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
+  /* Player cards - tighter on mobile */
+  .player-card{
+    grid-template-columns:20px 1fr auto;
+    gap:6px;
+    padding:10px 10px;
+  }
+  .p-rank{font-size:12px;}
+  .p-name{font-size:13px;}
+  .p-meta{font-size:11px;line-height:1.4;}
+  .p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
 
-/* Pills - smaller on mobile */
-.pills{gap:3px;margin:5px 0;}
-.pill{font-size:10px;padding:2px 6px;}
+  /* Pills - smaller on mobile */
+  .pills{gap:3px;margin:5px 0;}
+  .pill{font-size:10px;padding:2px 6px;}
 
-/* Score */
-.score-big{font-size:24px;}
-.score-lbl{font-size:9px;}
-.tier-badge{font-size:10px;padding:2px 6px;}
-.score-wrap{min-width:48px;text-align:center;}
+  /* Score */
+  .score-big{font-size:24px;}
+  .score-lbl{font-size:9px;}
+  .tier-badge{font-size:10px;padding:2px 6px;}
+  .score-wrap{min-width:48px;text-align:center;}
 
-/* Lineups - single column */
-.lu-grid{grid-template-columns:1fr;}
-.lu-side{margin-bottom:12px;}
-.lu-row{padding:5px 8px;}
-.lu-name{font-size:12px;}
-.lu-num{font-size:12px;width:18px;}
-.lu-pos{font-size:11px;}
+  /* Lineups - single column */
+  .lu-grid{grid-template-columns:1fr;}
+  .lu-side{margin-bottom:12px;}
+  .lu-row{padding:5px 8px;}
+  .lu-name{font-size:12px;}
+  .lu-num{font-size:12px;width:18px;}
+  .lu-pos{font-size:11px;}
 
-/* Game cards in lineup tab */
-.game-card{padding:10px 12px;}
+  /* Game cards in lineup tab */
+  .game-card{padding:10px 12px;}
 
-/* Diag panel - wrap tightly */
-#diagPanel{gap:4px;}
-#diagPanel span{font-size:10px !important;padding:2px 6px !important;}
+  /* Diag panel - wrap tightly */
+  #diagPanel{gap:4px;}
+  #diagPanel span{font-size:10px !important;padding:2px 6px !important;}
 
-/* Compare models button */
-#compareModeBtn{font-size:11px;padding:5px 10px;}
+  /* Compare models button */
+  #compareModeBtn{font-size:11px;padding:5px 10px;}
 
-/* Pools table - horizontal scroll */
-.pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  /* Pools table - horizontal scroll */
+  .pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
-/* Status pills at top */
-.status-bar{flex-wrap:wrap;gap:4px;}
-.status-bar span{font-size:10px !important;padding:2px 7px !important;}
+  /* Status pills at top */
+  .status-bar{flex-wrap:wrap;gap:4px;}
+  .status-bar span{font-size:10px !important;padding:2px 7px !important;}
 
-/* xBA breakdown modal */
-div[style*=“width:480px”]{width:95vw !important;}
+  /* xBA breakdown modal */
+  div[style*="width:480px"]{width:95vw !important;}
 }
 
 /* Very small screens */
 @media(max-width:380px){
-.tab{font-size:11px;padding:8px 10px;}
-.pills{gap:2px;}
-.pill{font-size:9px;padding:1px 5px;}
-.player-card{padding:8px;}
-.score-big{font-size:20px;}
+  .tab{font-size:11px;padding:8px 10px;}
+  .pills{gap:2px;}
+  .pill{font-size:9px;padding:1px 5px;}
+  .player-card{padding:8px;}
+  .score-big{font-size:20px;}
 }
-/* Pool styles */
-/* Pool grid */
-.pool-card{background:var(–surface);border:1px solid var(–border);border-radius:8px;overflow:hidden;}
-.pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(–surface2);border-bottom:1px solid var(–border);}
-.pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(–text);outline:none;min-width:0;}
-.pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(–blue);color:#fff;white-space:nowrap;}
-.pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
-.pool-used-section{flex:1;}
-.pool-section-label{font-size:10px;font-weight:700;color:var(–muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-.used-list{display:flex;flex-wrap:wrap;gap:5px;}
-.used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(–red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
-.used-tag:hover{opacity:.75;}
-.pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(–border);flex-wrap:wrap;}
-.pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(–border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
-.pool-add-input:focus{border-color:var(–blue);}
-.pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(–border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
-.player-card.used-pool{opacity:.45;border-left-color:var(–muted)!important;}
-.pill.used{background:#fee2e2;color:var(–red);border-color:#fecaca;}
-@media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
-/* Schedule view */
-.sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(–border);font-size:11px;font-weight:700;color:var(–muted);text-transform:uppercase;letter-spacing:.4px;}
-.sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(–border);font-size:13px;}
-.sched-row:last-child{border-bottom:none;}
-.sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
-.sched-day.great{background:#dcfce7;color:#15803d;}
-.sched-day.good{background:#d1fae5;color:#065f46;}
-.sched-day.ok{background:var(–surface2);color:var(–muted);}
-.sched-day.tough{background:#fef9c3;color:#854d0e;}
-.sched-day.brutal{background:#fee2e2;color:#b91c1c;}
-.sched-day.off{background:var(–surface2);color:var(–muted);font-size:10px;}
-.future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
-.future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
-.future-badge.good{background:#dbeafe;color:var(–blue);border:1px solid #bfdbfe;}
-.future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
+  /* Pool styles */
+  /* Pool grid */
+  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;min-width:0;}
+  .pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue);color:#fff;white-space:nowrap;}
+  .pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
+  .pool-used-section{flex:1;}
+  .pool-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .used-list{display:flex;flex-wrap:wrap;gap:5px;}
+  .used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
+  .used-tag:hover{opacity:.75;}
+  .pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
+  .pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
+  .pool-add-input:focus{border-color:var(--blue);}
+  .pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
+  .player-card.used-pool{opacity:.45;border-left-color:var(--muted)!important;}
+  .pill.used{background:#fee2e2;color:var(--red);border-color:#fecaca;}
+  @media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
+  /* Schedule view */
+  .sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .sched-row:last-child{border-bottom:none;}
+  .sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
+  .sched-day.great{background:#dcfce7;color:#15803d;}
+  .sched-day.good{background:#d1fae5;color:#065f46;}
+  .sched-day.ok{background:var(--surface2);color:var(--muted);}
+  .sched-day.tough{background:#fef9c3;color:#854d0e;}
+  .sched-day.brutal{background:#fee2e2;color:#b91c1c;}
+  .sched-day.off{background:var(--surface2);color:var(--muted);font-size:10px;}
+  .future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+  .future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+  .future-badge.good{background:#dbeafe;color:var(--blue);border:1px solid #bfdbfe;}
+  .future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
 </style>
-
 </head>
 <body>
 
@@ -272,7 +269,6 @@ div[style*=“width:480px”]{width:95vw !important;}
 </div>
 
 <!-- ANALYZE TAB -->
-
 <div class="panel active" id="panel-analyze">
 
   <div class="card" style="margin-top:8px;">
@@ -333,37 +329,34 @@ div[style*=“width:480px”]{width:95vw !important;}
         </div>
       </div>
 
-```
-  <div class="step-list" id="stepList" style="display:none;">
-    <div class="step" id="step-schedule">
-      <div class="step-dot pending" id="dot-schedule">1</div>
-      <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
-    </div>
-    <div class="step" id="step-statcast">
-      <div class="step-dot pending" id="dot-statcast">2</div>
-      <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
-    </div>
-    <div class="step" id="step-lineups">
-      <div class="step-dot pending" id="dot-lineups">3</div>
-      <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
-    </div>
-    <div class="step" id="step-score">
-      <div class="step-dot pending" id="dot-score">4</div>
-      <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
-    </div>
-  </div>
+      <div class="step-list" id="stepList" style="display:none;">
+        <div class="step" id="step-schedule">
+          <div class="step-dot pending" id="dot-schedule">1</div>
+          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
+        </div>
+        <div class="step" id="step-statcast">
+          <div class="step-dot pending" id="dot-statcast">2</div>
+          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
+        </div>
+        <div class="step" id="step-lineups">
+          <div class="step-dot pending" id="dot-lineups">3</div>
+          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+        </div>
+        <div class="step" id="step-score">
+          <div class="step-dot pending" id="dot-score">4</div>
+          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+        </div>
+      </div>
 
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
-      ⚡ Run Analysis
-    </button>
-    <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
-    <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
-  </div>
-  <div id="errBox" style="display:none;margin-top:12px;"></div>
-</div>
-```
-
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+          ⚡ Run Analysis
+        </button>
+        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+        <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
+      </div>
+      <div id="errBox" style="display:none;margin-top:12px;"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -377,11 +370,9 @@ div[style*=“width:480px”]{width:95vw !important;}
 </div>
 
 <!-- LINEUPS TAB -->
-
 <div class="panel" id="panel-lineups">
 
   <!-- FantasyLabs paste import -->
-
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
       📋 Import Lineups
@@ -411,7 +402,6 @@ div[style*=“width:480px”]{width:95vw !important;}
 </div>
 
 <!-- RESULTS TAB -->
-
 <div class="panel" id="panel-results">
   <div id="diagContainer" style="margin-bottom:4px;">
     <button onclick="toggleDiag()" id="diagToggleBtn"
@@ -428,7 +418,6 @@ div[style*=“width:480px”]{width:95vw !important;}
 </div>
 
 <!-- HELP TAB -->
-
 <div class="panel" id="panel-help">
   <div class="card">
     <div class="card-header">📊 Data Sources</div>
@@ -460,19 +449,16 @@ div[style*=“width:480px”]{width:95vw !important;}
         </tbody>
       </table>
 
-```
-  <div class="divider"></div>
+      <div class="divider"></div>
 
-  <strong style="font-size:13px;">Tiers</strong>
-  <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
-    <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
-    <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
-    <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
-    <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
-  </ul>
-</div>
-```
-
+      <strong style="font-size:13px;">Tiers</strong>
+      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+      </ul>
+    </div>
   </div>
 
   <div class="card">
@@ -487,14 +473,11 @@ div[style*=“width:480px”]{width:95vw !important;}
 </div>
 
 <!-- POOLS TAB -->
-
 <div class="panel" id="panel-pools">
   <div style="display:flex;gap:14px;align-items:flex-start;">
 
-```
-<!-- LEFT: Pool table + summary (flex 1) -->
-<div style="flex:1;min-width:0;">
-```
+    <!-- LEFT: Pool table + summary (flex 1) -->
+    <div style="flex:1;min-width:0;">
 
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -527,30 +510,27 @@ div[style*=“width:480px”]{width:95vw !important;}
   </div>
     </div>
 
-```
-<!-- RIGHT: Top picks sidebar -->
-<div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
-  <div class="card" style="margin-top:8px;">
-    <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
-      <span>🎯 Top Picks</span>
-      <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
-    </div>
-    <div class="card-body" style="padding:0;">
-      <div id="picksSidebar" style="font-size:13px;">
-        <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
-          Run analysis on the Analyze tab to see recommendations here.
+    <!-- RIGHT: Top picks sidebar -->
+    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+      <div class="card" style="margin-top:8px;">
+        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+          <span>🎯 Top Picks</span>
+          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="picksSidebar" style="font-size:13px;">
+            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+              Run analysis on the Analyze tab to see recommendations here.
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-```
 
   </div>
 </div>
 
 <!-- OPTIMAL EXPOSURE CALCULATOR -->
-
 <div class="card" id="exposureCalcCard" style="margin-top:16px;display:none;">
   <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleExposureCalc()">
     <span>🎯 Optimal Exposure Calculator</span>
@@ -572,7 +552,6 @@ div[style*=“width:480px”]{width:95vw !important;}
 </div>
 
 <!-- SCHEDULE TAB -->
-
 <div class="panel" id="panel-schedule">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -593,7 +572,6 @@ div[style*=“width:480px”]{width:95vw !important;}
 </div>
 
 <!-- TRACKER TAB -->
-
 <div class="panel" id="panel-tracker">
   <div class="card" style="margin-top:8px;">
     <div class="card-header" style="justify-content:space-between;">
@@ -771,7 +749,8 @@ function showScoreBreakdown(playerName) {
     const k9C=Math.min(100,Math.max(0,(1-(k9-5.0)/(13.0-5.0))*100));
     const wC=Math.min(100,Math.max(0,((whip-0.90)/(1.70-0.90))*100));
     spScore=k9C*0.65+wC*0.35;
-    spDetail=`K/9: ${k9.toFixed(1)} → comp ${k9C.toFixed(0)} × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${wC.toFixed(0)} × 35%`;
+    const k9Label = k9C >= 70 ? 'soft' : k9C >= 55 ? 'avg-soft' : k9C >= 45 ? 'avg' : k9C >= 30 ? 'tough' : 'elite';
+    spDetail=`K/9: ${k9.toFixed(1)} → comp ${k9C.toFixed(0)} (${k9Label}) × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${wC.toFixed(0)} × 35%<br><em style="color:var(--muted);font-size:10px;">comp 100=very hittable · 50=avg · 0=elite ace</em>`;
   }
   const matchupScore=p.matchupScore??spScore;
   const pitcherFactor=p.pitcherFactor??(0.70+(matchupScore/100)*0.60);
@@ -2249,16 +2228,19 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   //   Slots 6-9: full effect — these hitters lose PA in low-scoring blowout losses
   let impliedScore = 50; // neutral default when no odds data
   if (impliedRuns !== null && impliedRuns !== undefined) {
-    // Scale 2.0 → 7.0 runs to 0 → 100 (extended upper range for big offensive games)
-    impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.0) / (7.0 - 2.0)) * 100));
-    // Order-based dampening — more aggressive differentiation
-    // Leadoff/2-hole: only 20% of the implied runs effect (always get their PAs)
-    // 3-5 hole: 55% of effect
-    // 6-9 hole: 100% of effect (real PA risk in low-scoring games)
-    const orderDampener = player.order <= 2 ? 0.20
-                        : player.order <= 5 ? 0.55
-                        : 1.0;
-    impliedScore = Math.round(50 + (impliedScore - 50) * orderDampener);
+    // Range 2.5-6.0 runs → 0-100
+    // Neutral (50) at ~4.3 runs = actual MLB team average
+    // Today's typical range: 3.2 (very low) to 5.1 (very high)
+    // 6.0+ is rare ceiling — keeps scoring spread meaningful
+    impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.5) / (6.0 - 2.5)) * 100));
+    // Small PA penalty only for bottom order (6-9) in low-run games (<4.0)
+    // These hitters risk losing plate appearances in lopsided losses
+    if (player.order >= 6 && impliedRuns < 4.0) {
+      const penalty = ((4.0 - impliedRuns) / (4.0 - 2.5)) * 12;
+      impliedScore = Math.max(0, Math.round(impliedScore - penalty));
+    } else {
+      impliedScore = Math.round(impliedScore);
+    }
   }
 
   // Weighted composite — weights sum to 1.0
@@ -2328,8 +2310,9 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   if (pk.score <= 30) reasons.push('pitcher park (' + venue + ')');
   // Implied runs
   if (impliedRuns !== null && impliedRuns !== undefined) {
-    if (impliedRuns >= 5.5) reasons.push('high run env (' + impliedRuns.toFixed(1) + ' proj)');
-    if (impliedRuns < 3.5) reasons.push('low run env (' + impliedRuns.toFixed(1) + ' proj)' + (player.order >= 6 ? ' — PA risk' : ''));
+    if (impliedRuns >= 5.0) reasons.push('high run env (' + impliedRuns.toFixed(1) + ' proj)');
+    else if (impliedRuns >= 4.7) reasons.push('above-avg run env (' + impliedRuns.toFixed(1) + ' proj)');
+    if (impliedRuns < 3.8) reasons.push('low run env (' + impliedRuns.toFixed(1) + ' proj)' + (player.order >= 6 ? ' — PA risk' : ''));
   }
 
   // Negatives
@@ -3871,6 +3854,5 @@ function cloudLoad() {
 function triggerAutoSave() {} // no-op — sync is now manual
 function getSyncPin() { return 'DREW_MLB_POOLS'; }
 </script>
-
 </body>
 </html>
