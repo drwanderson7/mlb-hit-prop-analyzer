@@ -1,179 +1,3888 @@
-export const config = { runtime: 'edge' };
+<!DOCTYPE html>
+<!-- MLB Hit Prop Analyzer v2.4 | Built Apr 14 2026 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Hit Prop Analyzer</title>
+<style>
+:root {
+  --bg:#F5F6F8; --surface:#FFFFFF; --surface2:#F0F1F3;
+  --nav:#1E2A3A; --border:#E2E4E8; --text:#1A1A2E; --muted:#6B7280;
+  --blue:#2563EB; --green:#16A34A; --yellow:#CA8A04; --orange:#EA580C; --red:#DC2626;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+.nav{background:var(--nav);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;}
+.nav-brand{font-size:16px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.nav-sub{font-size:11px;opacity:.5;font-weight:400;margin-top:1px;}
+.nav-date{font-size:12px;opacity:.6;}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:54px;z-index:99;}
+.tab{padding:12px 18px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;color:var(--muted);white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab:hover:not(.active){color:var(--text);}
+.panel{display:none;padding:20px 24px;max-width:1100px;margin:0 auto;}
+.panel.active{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-body{padding:18px;}
+.sbar{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:8px;border:1px solid var(--border);margin-bottom:16px;background:var(--surface);}
+.sbar-icon{font-size:18px;margin-top:1px;flex-shrink:0;}
+.sbar-text{flex:1;}
+.sbar-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.sbar-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+.sbar.info{border-left:4px solid var(--blue);}
+.sbar.success{border-left:4px solid var(--green);}
+.sbar.warn{border-left:4px solid var(--yellow);}
+.sbar.error{border-left:4px solid var(--red);}
+/* Status dots */
+.step-list{display:flex;flex-direction:column;gap:8px;margin:14px 0;}
+.step{display:flex;align-items:center;gap:10px;font-size:13px;}
+.step-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+.step-dot.pending{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+.step-dot.running{background:#dbeafe;border:1px solid #93c5fd;color:var(--blue);animation:spin .8s linear infinite;}
+.step-dot.done{background:#dcfce7;border:1px solid #86efac;color:var(--green);}
+.step-dot.error{background:#fee2e2;border:1px solid #fca5a5;color:var(--red);}
+@keyframes spin{to{transform:rotate(360deg)}}
+.step-label{flex:1;}
+.step-detail{font-size:11px;color:var(--muted);}
+/* Buttons */
+.btn{font-family:inherit;font-size:13px;font-weight:600;padding:9px 20px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-primary:hover{background:#1d4ed8;}
+.btn-primary:disabled{background:#93c5fd;cursor:not-allowed;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:var(--border);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+/* Games grid */
+.games-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:12px 0 16px;}
+.game-card{background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .15s;user-select:none;}
+.game-card:hover{border-color:#93c5fd;}
+.game-card.selected{border-color:var(--blue);background:#eff6ff;}
+.game-teams{font-size:13px;font-weight:700;margin-bottom:3px;}
+.game-meta{font-size:11px;color:var(--muted);margin-bottom:2px;}
+.game-sp{font-size:11px;color:var(--muted);}
+.game-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;margin-top:6px;}
+.badge-confirmed{background:#dcfce7;color:#15803d;}
+.badge-projected{background:#fef9c3;color:#854d0e;}
+.badge-none{background:var(--surface2);color:var(--muted);}
+/* Controls */
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.control-group{display:flex;flex-direction:column;gap:4px;}
+.control-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+select{font-family:inherit;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;cursor:pointer;}
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;text-align:center;}
+.kpi-val{font-size:28px;font-weight:800;}
+.kpi-lbl{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.filter-bar select{font-size:12px;padding:6px 10px;}
+.result-count{font-size:12px;color:var(--muted);margin-left:auto;}
+/* Player cards */
+.player-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;border-left:5px solid var(--border);margin-bottom:9px;transition:box-shadow .15s;}
+.player-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.player-card.tier-Elite{border-left-color:var(--green);}
+.player-card.tier-Strong{border-left-color:var(--blue);}
+.player-card.tier-Lean{border-left-color:var(--yellow);}
+.player-card.tier-Avoid{border-left-color:var(--red);}
+.p-rank{font-size:15px;font-weight:800;color:var(--muted);text-align:center;padding-top:3px;}
+.p-name{font-size:14px;font-weight:700;}
+.p-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.pill.good{background:#dcfce7;color:#15803d;border-color:#86efac;}
+.pill.warn{background:#fef9c3;color:#854d0e;border-color:#fde047;}
+.pill.bad{background:#fee2e2;color:#b91c1c;border-color:#fca5a5;}
+.pill.info{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;}
+.p-reasoning{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.55;border-top:1px solid var(--border);padding-top:8px;}
+.score-wrap{text-align:right;min-width:72px;}
+.score-big{font-size:28px;font-weight:800;}
+.score-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;}
+.tier-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;margin-top:4px;}
+.tier-Elite .tier-badge{background:#dcfce7;color:#15803d;}
+.tier-Strong .tier-badge{background:#dbeafe;color:#1d4ed8;}
+.tier-Lean .tier-badge{background:#fef9c3;color:#854d0e;}
+.tier-Avoid .tier-badge{background:#fee2e2;color:#b91c1c;}
+/* Lineup preview */
+.lu-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;}
+.lu-side{}
+.lu-team-header{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.lu-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.lu-num{font-size:10px;color:var(--muted);width:16px;text-align:right;flex-shrink:0;}
+.lu-name{flex:1;color:var(--text);}
+.lu-pos{font-size:10px;color:var(--muted);}
+.lu-conf{font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;flex-shrink:0;}
+.lu-conf.confirmed{background:#dcfce7;color:#15803d;}
+.lu-conf.projected{background:#fef9c3;color:#854d0e;}
+/* Empty state */
+.empty{text-align:center;padding:52px 24px;color:var(--muted);}
+.empty-icon{font-size:42px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+/* Help table */
+.htable{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0;}
+.htable th{background:var(--surface2);text-align:left;padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);}
+.htable td{padding:8px 12px;border:1px solid var(--border);vertical-align:top;}
+.htable tr:nth-child(even) td{background:var(--surface2);}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.disc{font-size:11px;color:var(--muted);padding:10px 14px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);margin-top:14px;line-height:1.6;}
+@media(max-width:640px){
+  /* Core layout */
+  .panel{padding:10px 12px;}
+  body{font-size:14px;}
 
-export default async function handler(req) {
-  const params = new URL(req.url).searchParams;
-  const year = params.get('year') || new Date().getFullYear();
-  const type = params.get('type') || 'batter';
-  const hand = params.get('hand') || '';
+  /* Nav tabs - scrollable on mobile */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;gap:0;padding:0 4px;}
+  .tab{font-size:12px;padding:10px 12px;white-space:nowrap;flex-shrink:0;}
 
-  const commonHeaders = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Referer': 'https://baseballsavant.mlb.com/',
+  /* Header */
+  .header{padding:10px 14px;}
+  .header h1{font-size:15px;}
+  .header .subtitle{font-size:11px;}
+  .header-right{font-size:11px;}
+
+  /* KPI strip - 2x2 grid */
+  .kpi-strip{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .kpi{padding:10px;}
+  .kpi-val{font-size:22px;}
+  .kpi-lbl{font-size:10px;}
+
+  /* Filter bar - stack vertically */
+  .filter-bar{flex-wrap:wrap;gap:6px;}
+  .filter-bar select{font-size:12px;padding:5px 8px;flex:1;min-width:120px;}
+  .filter-bar input{font-size:12px;padding:5px 8px;width:100%;}
+  .result-count{font-size:11px;width:100%;text-align:right;}
+
+  /* Player cards - tighter on mobile */
+  .player-card{
+    grid-template-columns:20px 1fr auto;
+    gap:6px;
+    padding:10px 10px;
+  }
+  .p-rank{font-size:12px;}
+  .p-name{font-size:13px;}
+  .p-meta{font-size:11px;line-height:1.4;}
+  .p-reasoning{font-size:11px;margin-top:5px;line-height:1.4;}
+
+  /* Pills - smaller on mobile */
+  .pills{gap:3px;margin:5px 0;}
+  .pill{font-size:10px;padding:2px 6px;}
+
+  /* Score */
+  .score-big{font-size:24px;}
+  .score-lbl{font-size:9px;}
+  .tier-badge{font-size:10px;padding:2px 6px;}
+  .score-wrap{min-width:48px;text-align:center;}
+
+  /* Lineups - single column */
+  .lu-grid{grid-template-columns:1fr;}
+  .lu-side{margin-bottom:12px;}
+  .lu-row{padding:5px 8px;}
+  .lu-name{font-size:12px;}
+  .lu-num{font-size:12px;width:18px;}
+  .lu-pos{font-size:11px;}
+
+  /* Game cards in lineup tab */
+  .game-card{padding:10px 12px;}
+
+  /* Diag panel - wrap tightly */
+  #diagPanel{gap:4px;}
+  #diagPanel span{font-size:10px !important;padding:2px 6px !important;}
+
+  /* Compare models button */
+  #compareModeBtn{font-size:11px;padding:5px 10px;}
+
+  /* Pools table - horizontal scroll */
+  .pools-list{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* Status pills at top */
+  .status-bar{flex-wrap:wrap;gap:4px;}
+  .status-bar span{font-size:10px !important;padding:2px 7px !important;}
+
+  /* xBA breakdown modal */
+  div[style*="width:480px"]{width:95vw !important;}
+}
+
+/* Very small screens */
+@media(max-width:380px){
+  .tab{font-size:11px;padding:8px 10px;}
+  .pills{gap:2px;}
+  .pill{font-size:9px;padding:1px 5px;}
+  .player-card{padding:8px;}
+  .score-big{font-size:20px;}
+}
+  /* Pool styles */
+  /* Pool grid */
+  .pool-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .pool-header{padding:10px 14px;display:flex;align-items:center;gap:8px;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .pool-name-el{font-size:13px;font-weight:700;flex:1;border:none;background:transparent;font-family:inherit;color:var(--text);outline:none;min-width:0;}
+  .pool-active-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--blue);color:#fff;white-space:nowrap;}
+  .pool-body{padding:12px 14px;flex:1;display:flex;flex-direction:column;gap:10px;}
+  .pool-used-section{flex:1;}
+  .pool-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .used-list{display:flex;flex-wrap:wrap;gap:5px;}
+  .used-tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fee2e2;color:var(--red);border:1px solid #fecaca;display:flex;align-items:center;gap:3px;cursor:pointer;line-height:1.6;}
+  .used-tag:hover{opacity:.75;}
+  .pool-add-row{display:flex;gap:6px;align-items:center;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
+  .pool-add-input{padding:5px 9px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;min-width:0;flex:1;}
+  .pool-add-input:focus{border-color:var(--blue);}
+  .pool-date-input{padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;outline:none;width:130px;}
+  .player-card.used-pool{opacity:.45;border-left-color:var(--muted)!important;}
+  .pill.used{background:#fee2e2;color:var(--red);border-color:#fecaca;}
+  @media(max-width:640px){.pools-grid{grid-template-columns:1fr;}}
+  /* Schedule view */
+  .sched-header{display:grid;gap:8px;padding:6px 0 8px;border-bottom:2px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .sched-row{display:grid;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .sched-row:last-child{border-bottom:none;}
+  .sched-day{border-radius:6px;padding:5px 8px;text-align:center;font-size:11px;font-weight:600;}
+  .sched-day.great{background:#dcfce7;color:#15803d;}
+  .sched-day.good{background:#d1fae5;color:#065f46;}
+  .sched-day.ok{background:var(--surface2);color:var(--muted);}
+  .sched-day.tough{background:#fef9c3;color:#854d0e;}
+  .sched-day.brutal{background:#fee2e2;color:#b91c1c;}
+  .sched-day.off{background:var(--surface2);color:var(--muted);font-size:10px;}
+  .future-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+  .future-badge.great{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
+  .future-badge.good{background:#dbeafe;color:var(--blue);border:1px solid #bfdbfe;}
+  .future-badge.tough{background:#fef9c3;color:#854d0e;border:1px solid #fde68a;}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-brand">
+    ⚾
+    <div>MLB Hit Prop Analyzer <div class="nav-sub">Live Data · No API Key Required</div></div>
+  </div>
+  <div class="nav-date" id="navDate"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('analyze')">🎯 Analyze</div>
+  <div class="tab" onclick="switchTab('lineups')">📋 Lineups</div>
+  <div class="tab" onclick="switchTab('results')">📊 Results</div>
+  <div class="tab" onclick="switchTab('pools')">🏆 Pools</div>
+  <div class="tab" onclick="switchTab('schedule')">📅 Schedule</div>
+  <div class="tab" onclick="switchTab('tracker')">📈 Tracker</div>
+  <div class="tab" onclick="switchTab('help')">❓ Help</div>
+</div>
+
+<!-- ANALYZE TAB -->
+<div class="panel active" id="panel-analyze">
+
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header">📅 Today's Games</div>
+    <div class="card-body">
+      <div id="scheduleStatus">
+        <div class="sbar info" id="scheduleStatus">
+          <div class="sbar-icon">⏳</div>
+          <div class="sbar-text">
+            <div class="sbar-title">Loading schedule...</div>
+            <div class="sbar-sub">Starting up...</div>
+          </div>
+        </div>
+      </div>
+      <div id="gamesWrap" style="display:none;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="selectAll()">Select All</button>
+          <button class="btn btn-secondary btn-sm" onclick="clearAll()">Clear</button>
+          <button class="btn btn-secondary btn-sm" id="refreshLineupsBtn" onclick="refreshLineups()"
+            style="color:var(--blue);border-color:var(--blue);">
+            🔄 Refresh Lineups
+          </button>
+          <span id="lineupRefreshStatus" style="font-size:11px;color:var(--muted);font-style:italic;"></span>
+        </div>
+        <div class="games-grid" id="gamesGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">⚙️ Settings</div>
+    <div class="card-body">
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-label">Top N Players</div>
+          <select id="topN">
+            <option value="25">Top 25</option>
+            <option value="15">Top 15</option>
+            <option value="10">Top 10</option>
+            <option value="50" selected>Top 50</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <div class="control-label">Min PA (2026)</div>
+          <select id="minPA">
+            <option value="20">20+ PA</option>
+            <option value="50">50+ PA</option>
+            <option value="1">Any PA</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <div class="control-label">Batting Order</div>
+          <select id="maxOrder">
+            <option value="9">All (1–9)</option>
+            <option value="6" selected>Top 6 only</option>
+            <option value="5">Top 5 only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="step-list" id="stepList" style="display:none;">
+        <div class="step" id="step-schedule">
+          <div class="step-dot pending" id="dot-schedule">1</div>
+          <div class="step-label"><strong>Schedule & lineups</strong> <span class="step-detail" id="detail-schedule">MLB Stats API</span></div>
+        </div>
+        <div class="step" id="step-statcast">
+          <div class="step-dot pending" id="dot-statcast">2</div>
+          <div class="step-label"><strong>Statcast data</strong> <span class="step-detail" id="detail-statcast">Live Savant blend · embedded fallback</span></div>
+        </div>
+        <div class="step" id="step-lineups">
+          <div class="step-dot pending" id="dot-lineups">3</div>
+          <div class="step-label"><strong>Project lineups</strong> <span class="step-detail" id="detail-lineups">Depth charts + platoon</span></div>
+        </div>
+        <div class="step" id="step-score">
+          <div class="step-dot pending" id="dot-score">4</div>
+          <div class="step-label"><strong>Score & rank</strong> <span class="step-detail" id="detail-score">Composite model</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btnRun" onclick="runAnalysis()" disabled>
+          ⚡ Run Analysis
+        </button>
+        <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
+        <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
+      </div>
+      <div id="errBox" style="display:none;margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">📌 Scoring Guide</div>
+    <div class="card-body" style="font-size:13px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--text);">Target:</strong> xBA &gt; .285 · K% &lt; 18% · Hard Hit% &gt; 45% · Barrel% &gt; 8% · Favorable platoon · Soft SP · Hitter park<br>
+      <strong style="color:var(--text);">Avoid:</strong> K% &gt; 28% · xBA &lt; .230 · Elite strikeout pitcher · Pitcher-friendly park · Cold form<br>
+      <strong style="color:var(--text);">Best value:</strong> Score ≥ 75 + odds -150 or better
+    </div>
+  </div>
+</div>
+
+<!-- LINEUPS TAB -->
+<div class="panel" id="panel-lineups">
+
+  <!-- FantasyLabs paste import -->
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;">
+      📋 Import Lineups
+      <span style="font-size:11px;font-weight:400;opacity:.7;">Paste from FantasyLabs — one or multiple games · auto-saved daily</span>
+    </div>
+    <div class="card-body" style="padding:14px;">
+      <textarea id="lineupPasteBox" rows="8"
+        placeholder="Paste FantasyLabs lineup text here...&#10;&#10;Example:&#10;St. Louis Cardinals (+110) @ Miami Marlins (-132)&#10;Michael McGreevy (R) $30&#10;Max Meyer (R) $32&#10;Projected Lineup&#10;* 1 - JJ Wetherholt (L) 2B $18&#10;..."
+        style="width:100%;font-size:12px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:10px;resize:vertical;outline:none;box-sizing:border-box;background:var(--surface2);"
+        onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+        <button class="btn btn-primary" onclick="parseFantasyLabsPaste()" style="padding:7px 18px;">
+          ⚡ Parse Lineups
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="clearImportedLineups()">Clear Imports</button>
+        <span id="importStatus" style="font-size:12px;color:var(--muted);font-style:italic;"></span>
+      </div>
+      <div id="importRerunPrompt" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="empty" id="luEmpty" style="margin-top:8px;">
+    <div class="empty-icon">📋</div>
+    <p>Run an analysis or import lineups above to see batting orders here.</p>
+  </div>
+  <div id="luContent"></div>
+</div>
+
+<!-- RESULTS TAB -->
+<div class="panel" id="panel-results">
+  <div id="diagContainer" style="margin-bottom:4px;">
+    <button onclick="toggleDiag()" id="diagToggleBtn"
+      style="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:20px;background:var(--surface2);color:var(--muted);cursor:pointer;font-family:inherit;display:none;">
+      🔍 Diagnostics <span id="diagStatus"></span>
+    </button>
+    <div id="diagPanel" style="display:none;gap:6px;flex-wrap:wrap;padding:6px 0;"></div>
+  </div>
+  <div class="empty" id="resEmpty">
+    <div class="empty-icon">⚾</div>
+    <p>Run an analysis to see ranked hit prop picks.</p>
+  </div>
+  <div id="resContent" style="display:none;"></div>
+</div>
+
+<!-- HELP TAB -->
+<div class="panel" id="panel-help">
+  <div class="card">
+    <div class="card-header">📊 Data Sources</div>
+    <div class="card-body">
+      <table class="htable">
+        <thead><tr><th>Source</th><th>What It Provides</th><th>Update Frequency</th></tr></thead>
+        <tbody>
+          <tr><td><strong>MLB Stats API</strong></td><td>Schedule, probable pitchers, confirmed lineups (when posted)</td><td>Real-time</td></tr>
+          <tr><td><strong>Baseball Savant</strong></td><td>xBA, K%, Hard Hit%, Barrel%, wRC+ for all 2026 hitters</td><td>Updated nightly</td></tr>
+          <tr><td><strong>Lineup projection</strong></td><td>AI-style depth chart logic built into this tool — projects batting orders when not yet confirmed</td><td>Per analysis run</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🧮 Composite Score (0–100)</div>
+    <div class="card-body">
+      <table class="htable">
+        <thead><tr><th>Component</th><th>Weight</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Split xBA</strong></td><td>28%</td><td>xBA vs RHP or vs LHP — confidence-weighted by split PA count (needs 80+ PA for full weight). Low-PA splits regress toward league average.</td></tr>
+          <tr><td><strong>Pitcher matchup</strong></td><td>22%</td><td>K% (38%) + xBA allowed (35%) + HH% allowed (15%) + whiff% (8%) + barrel% (4%). ERA excluded. Accounts for reverse-split pitchers.</td></tr>
+          <tr><td><strong>Implied team runs</strong></td><td>14%</td><td>Vegas-implied runs. Effect is order-dependent: slots 1-2 get 20% of effect (always get PAs), slots 3-5 get 55%, slots 6-9 get full effect.</td></tr>
+          <tr><td><strong>Batting order</strong></td><td>10%</td><td>PA volume by slot — leadoff ~4.7 PA/game, 9-hole ~3.6 PA/game.</td></tr>
+          <tr><td><strong>Batter K%</strong></td><td>14%</td><td>Strikeout = automatic out. Partially redundant with xBA but adds signal for extremes.</td></tr>
+          <tr><td><strong>Hard Hit% + Barrel%</strong></td><td>10%</td><td>Contact quality. Reduced — xBA already captures exit velo and launch angle.</td></tr>
+          <tr><td><strong>Park factor</strong></td><td>3%</td><td>Venue hit environment — reduced since xBA already captures exit velocity context.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="divider"></div>
+
+      <strong style="font-size:13px;">Tiers</strong>
+      <ul style="font-size:13px;color:var(--muted);line-height:1.9;padding-left:18px;margin-top:8px;">
+        <li><strong style="color:var(--green);">🟢 Elite (85–100):</strong> Multiple factors aligning — strong single play</li>
+        <li><strong style="color:var(--blue);">🔵 Strong (70–84):</strong> Most factors favorable — good play</li>
+        <li><strong style="color:var(--yellow);">🟡 Lean (55–69):</strong> Slight edge — parlay filler only</li>
+        <li><strong style="color:var(--red);">🔴 Avoid (&lt;55):</strong> Too many negatives — skip</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">❓ FAQ</div>
+    <div class="card-body" style="font-size:13px;color:var(--muted);line-height:1.8;">
+      <strong style="color:var(--text);">When do lineups confirm?</strong> Usually 3–4 hours before first pitch ET. Run the tool again after they post to get confirmed orders.<br><br>
+      <strong style="color:var(--text);">Why does a star player score low?</strong> Could be a tough SP matchup, pitcher-friendly park, or high K% vs that handedness.<br><br>
+      <strong style="color:var(--text);">Are prop odds included?</strong> The tool doesn't pull live odds (would require a paid API key). Cross-reference your book for the line.<br><br>
+      <strong style="color:var(--text);">How current is Statcast data?</strong> Baseball Savant updates nightly — always reflects the most recent full season stats.
+    </div>
+  </div>
+</div>
+
+<!-- POOLS TAB -->
+<div class="panel" id="panel-pools">
+  <div style="display:flex;gap:14px;align-items:flex-start;">
+
+    <!-- LEFT: Pool table + summary (flex 1) -->
+    <div style="flex:1;min-width:0;">
+
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      🏆 Survivor Pools
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="exportData()" title="Download all pools + tracker data as backup">⬇️ Export Backup</button>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;" title="Restore from backup file">
+          ⬆️ Import Backup
+          <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="createPool()">+ New Pool</button>
+      </div>
+    </div>
+    <div class="card-body" id="poolsContent">
+      <!-- Cloud sync bar -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:700;color:var(--muted);">☁️ CLOUD SYNC</span>
+        <span style="font-size:12px;color:var(--muted);flex:1;min-width:150px;">Save your pools to the cloud and load them on any device — no account needed.</span>
+        <button class="btn btn-secondary btn-sm" onclick="cloudSave()" style="font-size:12px;">⬆ Save to Cloud</button>
+        <button class="btn btn-secondary btn-sm" onclick="cloudLoad()" style="font-size:12px;">⬇ Load from Cloud</button>
+        <span id="syncStatus" style="font-size:11px;color:var(--muted);"></span>
+      </div>
+      <div class="empty" id="poolsEmpty"><div class="empty-icon">🏆</div><p>No pools yet. Create one to start tracking used players.</p></div>
+      <div id="poolsList"></div>
+    </div>
+  </div>
+  <div class="card" id="crossPoolCard" style="display:none;">
+    <div class="card-header">📊 Pool Summary</div>
+    <div class="card-body" id="crossPoolContent"></div>
+  </div>
+    </div>
+
+    <!-- RIGHT: Top picks sidebar -->
+    <div style="width:260px;flex-shrink:0;position:sticky;top:12px;">
+      <div class="card" style="margin-top:8px;">
+        <div class="card-header" style="justify-content:space-between;padding:10px 14px;">
+          <span>🎯 Top Picks</span>
+          <span id="sidebarAnalyzedLabel" style="font-size:11px;color:rgba(255,255,255,.6);font-weight:400;"></span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="picksSidebar" style="font-size:13px;">
+            <div style="padding:16px;color:var(--muted);font-size:12px;font-style:italic;text-align:center;">
+              Run analysis on the Analyze tab to see recommendations here.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- OPTIMAL EXPOSURE CALCULATOR -->
+<div class="card" id="exposureCalcCard" style="margin-top:16px;display:none;">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleExposureCalc()">
+    <span>🎯 Optimal Exposure Calculator</span>
+    <span id="exposureChevron" style="font-size:12px;color:var(--muted);">▼</span>
+  </div>
+  <div id="exposureCalcBody" class="card-body">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+      Given today's top picks and your active pools, calculates the optimal player assignment to maximize coverage while minimizing overlap and avoiding already-used players.
+    </div>
+    <div id="exposureOutput">
+      <div style="font-size:13px;color:var(--muted);font-style:italic;">
+        Run analysis first, then set up your pools to see recommendations.
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="runExposureCalc()" style="margin-top:12px;width:100%;">
+      Calculate Optimal Exposure
+    </button>
+  </div>
+</div>
+
+<!-- SCHEDULE TAB -->
+<div class="panel" id="panel-schedule">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;">
+      📅 3-Day Schedule &amp; Matchup Difficulty
+      <button class="btn btn-secondary btn-sm" onclick="loadScheduleView()">🔄 Refresh</button>
+    </div>
+    <div class="card-body">
+      <div class="sbar info" style="margin-bottom:14px;">
+        <div class="sbar-icon">💡</div>
+        <div class="sbar-text">
+          <div class="sbar-title">How to use this</div>
+          <div class="sbar-sub">Green = favorable matchup (soft SP + high implied runs). Red = avoid. Use this to decide whether to use a player today or save them for a better spot.</div>
+        </div>
+      </div>
+      <div id="scheduleViewContent"><div class="empty"><div class="empty-icon">📅</div><p>Click Refresh to load the 3-day schedule.</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKER TAB -->
+<div class="panel" id="panel-tracker">
+  <div class="card" style="margin-top:8px;">
+    <div class="card-header" style="justify-content:space-between;">
+      📈 Pick Results Tracker
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="checkYesterdayResults()">🔄 Auto-fetch Results</button>
+        <button class="btn btn-secondary btn-sm" onclick="saveCurrentPicks()">💾 Save Today's Top 10</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="trackerStatus" style="margin-bottom:14px;"></div>
+      <div id="trackerContent">
+        <div class="empty"><div class="empty-icon">📈</div>
+          <p>Run an analysis and click "Save Today's Top 10" to start tracking.<br>
+          Click "Check Yesterday's Results" to auto-fetch box scores.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="trackerStatsCard" style="display:none;">
+    <div class="card-header">📊 Model Performance</div>
+    <div class="card-body" id="trackerStats"></div>
+  </div>
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const PARK_FACTORS = {
+  'Coors Field': 1.35, 'Great American Ball Park': 1.15, 'Fenway Park': 1.12,
+  'Globe Life Field': 1.10, 'Yankee Stadium': 1.08, 'Citizens Bank Park': 1.07,
+  'Truist Park': 1.05, 'Wrigley Field': 1.04, 'American Family Field': 1.03,
+  'Chase Field': 1.02, 'Minute Maid Park': 1.01, 'Oracle Park': 0.92,
+  'Dodger Stadium': 0.95, 'T-Mobile Park': 0.88, 'Tropicana Field': 0.94,
+  'Oakland Coliseum': 0.91, 'Petco Park': 0.93, 'Target Field': 0.97,
+  'Kauffman Stadium': 0.99, 'Busch Stadium': 0.96, 'PNC Park': 0.97,
+  'Camden Yards': 1.01, 'loanDepot park': 0.95, 'Guaranteed Rate Field': 1.02,
+  'Nationals Park': 0.98, 'Progressive Field': 0.97, 'Rate Field': 1.02,
+  'Comerica Park': 0.94, 'Angel Stadium': 0.97, 'Sutter Health Park': 1.00,
+};
+
+function parkScore(venue) {
+  const pf = PARK_FACTORS[venue] || 1.00;
+  if (pf >= 1.10) return { label: 'Hitter-Friendly', cls: 'good', score: 100 };
+  if (pf >= 1.04) return { label: 'Slight Hitter', cls: 'good', score: 75 };
+  if (pf >= 0.97) return { label: 'Neutral', cls: '', score: 50 };
+  if (pf >= 0.93) return { label: 'Slight Pitcher', cls: 'warn', score: 30 };
+  return { label: 'Pitcher-Friendly', cls: 'bad', score: 0 };
+}
+
+
+// ── CRITICAL FUNCTIONS — defined early ───────────────────────────────────────
+
+function purgeOldLineupSaves() {
+  try {
+    const cutoff = Date.now() - 4*60*60*1000;
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('mlbLineup_') || k.startsWith('mlbImported_')) {
+        try { const ts = parseInt(localStorage.getItem(k+'_ts')||'0'); if (ts && ts < cutoff) { localStorage.removeItem(k); localStorage.removeItem(k+'_ts'); } } catch(e) {}
+      }
+    });
+  } catch(e) {}
+}
+
+function loadSavedLineups() {
+  try {
+    const saved = localStorage.getItem('mlbSavedLineups');
+    if (saved) { const data = JSON.parse(saved); if (data.ts && data.ts > Date.now()-4*60*60*1000 && data.lineups) return data.lineups; }
+  } catch(e) {}
+  return null;
+}
+
+function generateSyncCode() {
+  const area=document.getElementById('syncCodeArea'), box=document.getElementById('syncCodeBox'), imp=document.getElementById('importCodeArea');
+  if (!area||!box) return; if (imp) imp.style.display='none';
+  try { box.value=btoa(encodeURIComponent(JSON.stringify({pools,savedAt:new Date().toISOString(),v:1}))); area.style.display='block'; box.select(); } catch(e) { alert('Error: '+e.message); }
+}
+
+function copySyncCode() {
+  const box=document.getElementById('syncCodeBox'), st=document.getElementById('syncCopyStatus');
+  if (!box) return; box.select();
+  try { navigator.clipboard.writeText(box.value).catch(()=>document.execCommand('copy')); } catch(e) { document.execCommand('copy'); }
+  if (st) { st.textContent='✓ Copied!'; setTimeout(()=>st.textContent='',2000); }
+}
+
+function showImportCode() {
+  const area=document.getElementById('importCodeArea'), sync=document.getElementById('syncCodeArea');
+  if (!area) return; if (sync) sync.style.display='none';
+  area.style.display=area.style.display==='none'?'block':'none';
+  if (area.style.display==='block') setTimeout(()=>document.getElementById('importCodeBox')?.focus(),100);
+}
+
+function importSyncCode() {
+  const box=document.getElementById('importCodeBox'), st=document.getElementById('importStatus');
+  if (!box) return;
+  try {
+    const code=box.value.trim(); if (!code){if(st){st.textContent='Paste code first';st.style.color='var(--red)';}return;}
+    const payload=JSON.parse(decodeURIComponent(atob(code)));
+    if (!payload.pools||!Array.isArray(payload.pools)) throw new Error('Invalid');
+    pools=payload.pools; localStorage.setItem('survivorPools',JSON.stringify(pools));
+    renderPools(); refreshResultPoolStatus(); checkShowExposureCard();
+    const at=payload.savedAt?new Date(payload.savedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'unknown';
+    if(st){st.textContent=`✓ Imported ${pools.length} pools (${at})`;st.style.color='var(--green)';}
+    document.getElementById('importCodeArea').style.display='none'; box.value='';
+  } catch(e){if(st){st.textContent='✗ Invalid code';st.style.color='var(--red)';}}
+}
+
+function triggerAutoSave(){}
+function cloudSave(){generateSyncCode();}
+function cloudLoad(){showImportCode();}
+
+function renderPicksSidebar() {
+  const el=document.getElementById('picksSidebar');
+  if (!el||!allScoredPlayers.length) return;
+  const today=new Date().toLocaleDateString('en-CA');
+  const activePool=pools.find(p=>p.id===activePoolId);
+  const usedNames=activePool?new Set(activePool.used.map(u=>(typeof u==='string'?u:u.name).toLowerCase())):new Set();
+  const sc=s=>s>=65?'var(--green)':s>=57?'var(--blue)':'var(--yellow)';
+  const header=activePool
+    ?`<div style="font-size:11px;background:var(--blue);color:#fff;padding:6px 10px;border-radius:6px;margin-bottom:8px;text-align:center;">Click to add to <strong>${activePool.name}</strong></div>`
+    :`<div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-align:center;">Activate a pool to quick-add picks</div>`;
+  el.innerHTML=header+allScoredPlayers.slice(0,20).map(p=>{
+    const isUsed=usedNames.has(p.name.toLowerCase());
+    return `<div onclick="${activePool&&!isUsed?`markUsed('${p.name}','${activePool.id}','${today}')`:''}"
+      style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;margin-bottom:3px;cursor:${activePool&&!isUsed?'pointer':'default'};background:${isUsed?'var(--surface2)':'transparent'};opacity:${isUsed?'0.5':'1'};">
+      <span style="font-weight:700;color:${sc(p.compositeScore)};font-size:13px;min-width:28px;">${p.compositeScore}</span>
+      <span style="font-size:12px;flex:1;font-weight:${isUsed?'400':'600'};">${p.name}</span>
+      <span style="font-size:10px;color:var(--muted);">${p.team}</span>
+      ${isUsed?'<span style="font-size:10px;color:var(--muted);">✓</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function computeScoreModelA(player,sc,spStats,spHand,venue,bats,spSC,impliedRuns,streak) {
+  const xba=(sc?.xba!=null&&sc.xba>0)?sc.xba:0.255, kpct=sc?.kpct!=null?sc.kpct:0.22;
+  const hh=sc?.hardhitpct!=null?sc.hardhitpct:0.38, barrel=sc?.barrelpct!=null?sc.barrelpct:0.07;
+  const xbaScore=Math.min(100,Math.max(0,((xba-0.180)/(0.360-0.180))*100));
+  const kScore=Math.min(100,Math.max(0,(1-(kpct-0.05)/(0.40-0.05))*100));
+  const hhScore=Math.min(100,Math.max(0,((hh-0.25)/(0.60-0.25))*100));
+  const brlScore=Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
+  const pk=parkScore(venue);
+  const orderScore=Math.round((([4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6][Math.min(player.order-1,8)]-3.6)/1.1)*100);
+  let impliedScore=50; if(impliedRuns!=null) impliedScore=Math.min(100,Math.max(0,((impliedRuns-2.0)/5.0)*100));
+  const k9=spStats?.k9||8.5, whip=spStats?.whip||1.35;
+  const spScore=Math.min(100,Math.max(0,(1-(k9-4.0)/10.0)*65+((whip-0.80)/1.10)*35));
+  const composite=Math.round(xbaScore*0.30+kScore*0.22+spScore*0.18+orderScore*0.12+hhScore*0.08+brlScore*0.05+pk.score*0.05);
+  const clamped=Math.min(100,Math.max(0,composite));
+  let tier='Avoid'; if(clamped>=65)tier='Elite'; else if(clamped>=57)tier='Strong'; else if(clamped>=48)tier='Lean';
+  return {compositeScore:clamped,tier};
+}
+
+function showScoreBreakdown(playerName) {
+  const p=allScoredPlayers.find(p=>p.name===playerName);
+  if (!p) return;
+  const sc=lookupStatcast(p.name,p.pitcherHand);
+  const xba=p.xba??sc?.xba??0.255, kpct=p.kpct??sc?.kpct??0.22, barrel=p.barrelpct??sc?.barrelpct??0.07;
+  const rawXba=Math.min(100,Math.max(0,((xba-0.180)/(0.360-0.180))*100));
+  const contactAdj=xba*(1-kpct);
+  const contactScore=p.contactScore??Math.min(100,Math.max(0,((contactAdj-0.100)/(0.310-0.100))*100));
+  const barrelScore=p.barrelScoreValue??Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
+  const spStats=getSPStats(p.pitcher,p.pitcherHand);
+  let spScore,spDetail;
+  if (p.spStatcast&&p.spKpct!=null) {
+    const spK=p.spKpct??0.22,spXBA=p.spXBA??0.255,spHH=p.spHH??0.38;
+    const spSC2=livePitchers[normalize(p.pitcher)]||{};
+    const kC=Math.min(100,Math.max(0,(1-(spK-0.10)/(0.40-0.10))*100));
+    const xC=Math.min(100,Math.max(0,((spXBA-0.150)/(0.330-0.150))*100));
+    const hC=Math.min(100,Math.max(0,((spHH-0.25)/(0.60-0.25))*100));
+    const wC=Math.min(100,Math.max(0,(1-(( spSC2.whiffPct??0.25)-0.15)/(0.42-0.15))*100));
+    const bC=Math.min(100,Math.max(0,(((spSC2.barrelAllowed??0.07)-0.02)/(0.18-0.02))*100));
+    spScore=kC*0.38+xC*0.35+hC*0.15+wC*0.08+bC*0.04;
+    spDetail=`K%: ${(spK*100).toFixed(0)}% → comp ${kC.toFixed(0)} × 38%<br>xBA allowed: ${spXBA.toFixed(3)} → comp ${xC.toFixed(0)} × 35%<br>HH%: ${(spHH*100).toFixed(0)}% → comp ${hC.toFixed(0)} × 15%`;
+  } else {
+    const k9=spStats.k9||8.5,whip=spStats.whip||1.35;
+    const k9C=Math.min(100,Math.max(0,(1-(k9-5.0)/(13.0-5.0))*100));
+    const wC=Math.min(100,Math.max(0,((whip-0.90)/(1.70-0.90))*100));
+    spScore=k9C*0.65+wC*0.35;
+    const k9Label = k9C >= 70 ? 'soft' : k9C >= 55 ? 'avg-soft' : k9C >= 45 ? 'avg' : k9C >= 30 ? 'tough' : 'elite';
+    spDetail=`K/9: ${k9.toFixed(1)} → comp ${k9C.toFixed(0)} (${k9Label}) × 65%<br>WHIP: ${whip.toFixed(2)} → comp ${wC.toFixed(0)} × 35%<br><em style="color:var(--muted);font-size:10px;">comp 100=very hittable · 50=avg · 0=elite ace</em>`;
+  }
+  const matchupScore=p.matchupScore??spScore;
+  const pitcherFactor=p.pitcherFactor??(0.70+(matchupScore/100)*0.60);
+  const pitcherAdjContact=p.pitcherAdjContact??Math.min(100,Math.max(0,contactScore*pitcherFactor));
+  const pk=parkScore(p.venue);
+  const pkSc=p.parkScoreValue??pk.score??50, pkLbl=p.parkScoreLabel??pk.label??'Neutral';
+  const slotPA=p.slotPA??[4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6][Math.min((p.battingOrder||5)-1,8)]??4.3;
+  const orderScore=p.orderScoreValue??Math.round(((slotPA-3.6)/(4.7-3.6))*100)??50;
+  const impliedScore=p.impliedScoreValue??50;
+  const platoonAdj=p.platoonAdj??0, ir=p.impliedRuns;
+  const rawComp = (p.rawComposite != null) ? p.rawComposite : p.compositeScore;
+  const R=(lbl,val,sc,wt,pts,hi=false)=>`<tr style="border-bottom:1px solid var(--border);${hi?'background:var(--surface2);':''}">
+    <td style="padding:7px 10px;font-size:12px;color:var(--muted);">${lbl}</td>
+    <td style="padding:7px 10px;font-size:12px;font-family:monospace;font-weight:600;">${val}</td>
+    <td style="padding:7px 10px;text-align:center;"><span style="font-size:12px;font-weight:700;color:${sc>=70?'var(--green)':sc>=40?'var(--blue)':'var(--red)'};">${sc.toFixed(0)}</span></td>
+    <td style="padding:7px 10px;text-align:center;font-size:12px;color:var(--muted);">${wt}</td>
+    <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;">${pts}</td></tr>`;
+  const S=t=>`<tr><td colspan="5" style="padding:2px 10px 6px 20px;font-size:11px;color:var(--muted);">${t}</td></tr>`;
+  const D=l=>`<tr><td colspan="5" style="padding:8px 10px 4px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${l}</td></tr>`;
+  const tbl=`<table style="width:100%;border-collapse:collapse;">
+    <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
+      <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Component</th>
+      <th style="padding:8px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Value</th>
+      <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Score/100</th>
+      <th style="padding:8px 10px;text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Weight</th>
+      <th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;">Points</th>
+    </tr></thead><tbody>
+    ${D('── Batter Profile ──')}
+    ${R('xBA (overall)',xba.toFixed(3),rawXba,'—','(used below)')}
+    ${R('K%',(kpct*100).toFixed(1)+'%',100-kpct*250,'—','(used below)')}
+    ${R('Contact-adj xBA (xBA×(1-K%))',contactAdj.toFixed(3),contactScore,'—','raw score '+contactScore.toFixed(0))}
+    ${R('Barrel%',(barrel*100).toFixed(1)+'%',barrelScore,'4%',(barrelScore*0.04).toFixed(1)+' pts')}
+    ${D('── Pitcher Matchup ──')}
+    ${R(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '',matchupScore,'—','factor '+pitcherFactor.toFixed(3))}
+    ${S(spDetail)}
+    ${R('Contact × Pitcher Factor',contactScore.toFixed(0)+' × '+pitcherFactor.toFixed(3),pitcherAdjContact,'56%',(pitcherAdjContact*0.56).toFixed(1)+' pts','',true)}
+    ${D('── Game Environment ──')}
+    ${R('Batting order (slot '+p.battingOrder+')',slotPA.toFixed(1)+' PA/game',orderScore,'8%',(orderScore*0.08).toFixed(1)+' pts')}
+    ${R('Implied runs',ir!=null?ir.toFixed(1)+' proj runs':'No odds data',impliedScore,'14%',(impliedScore*0.14).toFixed(1)+' pts')}
+    ${R('Park factor',pkLbl,pkSc,'5%',(pkSc*0.05).toFixed(1)+' pts')}
+    ${platoonAdj!==0?R('Platoon bonus',p.platoon?.label||'Favorable',65,'flat',(platoonAdj>0?'+':'')+platoonAdj+' pts'):''}
+    ${D('── Final Score ──')}
+    <tr style="background:var(--surface2);">
+      <td colspan="3" style="padding:10px;font-weight:700;font-size:14px;">COMPOSITE SCORE</td>
+      <td style="padding:10px;text-align:center;font-size:11px;color:var(--muted);">sum</td>
+      <td style="padding:10px;text-align:right;font-size:20px;font-weight:800;color:${p.compositeScore>=65?'var(--green)':p.compositeScore>=57?'var(--blue)':p.compositeScore>=48?'var(--yellow)':'var(--red)'};">${p.compositeScore}</td>
+    </tr>
+    <tr><td colspan="5" style="padding:4px 10px 8px;font-size:11px;color:var(--muted);">
+      Raw: ${rawComp.toFixed(2)} pts = ${p.compositeScore} · Tier: <strong>${p.tier}</strong> · Platoon: ${p.platoon?.label||'—'}
+    </td></tr></tbody></table>`;
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML=`<div style="background:var(--surface);border-radius:12px;width:640px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:1;">
+      <div><div style="font-weight:700;font-size:15px;">${p.name} — Full Score Breakdown</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px;">${p.teamFull} · vs ${p.pitcher} (${p.pitcherHand}) · ${p.venue}</div></div>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;">×</button>
+    </div>
+    <div>${tbl}</div>
+    <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
+      💡 Click any player score to see this breakdown.
+    </div></div>`;
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+  document.body.appendChild(modal);
+}
+
+// ── End critical early functions ──────────────────────────────────────────────
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let todayGames = [];
+let selectedPks = new Set();
+let statcastData = {}; // name -> stats
+let lineupResults = [];
+let scoredPlayers = [];
+let allScoredPlayers = []; // full pool including beyond topN
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('navDate').textContent = new Date().toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+  });
+  loadSchedule();
+  purgeOldLineupSaves();
+  // Restore any lineups imported earlier today
+  const hadSaved = loadSavedLineups();
+});
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  const idx = ['analyze','lineups','results','pools','schedule','tracker','help'].indexOf(t);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('panel-' + t).classList.add('active');
+}
+
+// ── Schedule ──────────────────────────────────────────────────────────────────
+// Today's schedule — loaded from Claude's live sports feed on tool update
+// Format: {id, away, awayAbbr, home, homeAbbr, time, venue, awaySP, homeSP}
+// Updated: Tue Apr 7, 2026
+const TODAYS_GAMES = [
+  // Auto-updated: Apr 21, 2026
+  // Tool will try live MLB API first; this is the fallback
+  {id:'g1',away:'Houston Astros',awayAbbr:'HOU',home:'Cleveland Guardians',homeAbbr:'CLE',time:'5:10 PM ET',venue:'Progressive Field',awaySP:'Ryan Weiss',homeSP:'Parker Messick'},
+  {id:'g2',away:'Cincinnati Reds',awayAbbr:'CIN',home:'Tampa Bay Rays',homeAbbr:'TB',time:'5:40 PM ET',venue:'Tropicana Field',awaySP:'Chase Burns',homeSP:'Steven Matz'},
+  {id:'g3',away:'St. Louis Cardinals',awayAbbr:'STL',home:'Miami Marlins',homeAbbr:'MIA',time:'5:40 PM ET',venue:'loanDepot park',awaySP:'Dustin May',homeSP:'Chris Paddack'},
+  {id:'g4',away:'Milwaukee Brewers',awayAbbr:'MIL',home:'Detroit Tigers',homeAbbr:'DET',time:'5:40 PM ET',venue:'Comerica Park',awaySP:'Kyle Harrison',homeSP:'Keider Montero'},
+  {id:'g5',away:'Atlanta Braves',awayAbbr:'ATL',home:'Washington Nationals',homeAbbr:'WSH',time:'5:45 PM ET',venue:'Nationals Park',awaySP:'Reynaldo Lopez',homeSP:'Foster Griffin'},
+  {id:'g6',away:'New York Yankees',awayAbbr:'NYY',home:'Boston Red Sox',homeAbbr:'BOS',time:'5:45 PM ET',venue:'Fenway Park',awaySP:'Luis Gil',homeSP:'Connelly Early'},
+  {id:'g7',away:'Minnesota Twins',awayAbbr:'MIN',home:'New York Mets',homeAbbr:'NYM',time:'6:10 PM ET',venue:'Citi Field',awaySP:'Simeon Woods Richardson',homeSP:'Nolan McLean'},
+  {id:'g8',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Kansas City Royals',homeAbbr:'KC',time:'6:40 PM ET',venue:'Kauffman Stadium',awaySP:'Shane Baz',homeSP:'Kris Bubic'},
+  {id:'g9',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Chicago Cubs',homeAbbr:'CHC',time:'6:40 PM ET',venue:'Wrigley Field',awaySP:'Jesus Luzardo',homeSP:'Shota Imanaga'},
+  {id:'g10',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Texas Rangers',homeAbbr:'TEX',time:'7:05 PM ET',venue:'Globe Life Field',awaySP:'TBD',homeSP:'TBD'},
+  {id:'g11',away:'San Diego Padres',awayAbbr:'SD',home:'Colorado Rockies',homeAbbr:'COL',time:'7:40 PM ET',venue:'Coors Field',awaySP:'Randy Vasquez',homeSP:'TBD'},
+  {id:'g12',away:'Toronto Blue Jays',awayAbbr:'TOR',home:'Los Angeles Angels',homeAbbr:'LAA',time:'8:38 PM ET',venue:'Angel Stadium',awaySP:'Patrick Corbin',homeSP:'Jack Kochanowicz'},
+  {id:'g13',away:'Athletics',awayAbbr:'ATH',home:'Seattle Mariners',homeAbbr:'SEA',time:'8:40 PM ET',venue:'T-Mobile Park',awaySP:'Jacob Lopez',homeSP:'Luis Castillo'},
+  {id:'g14',away:'Chicago White Sox',awayAbbr:'CHW',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'8:40 PM ET',venue:'Chase Field',awaySP:'Sean Burke',homeSP:'Merrill Kelly'},
+  {id:'g15',away:'Los Angeles Dodgers',awayAbbr:'LAD',home:'San Francisco Giants',homeAbbr:'SF',time:'8:45 PM ET',venue:'Oracle Park',awaySP:'Yoshinobu Yamamoto',homeSP:'Landen Roupp'},
+];
+
+async function loadSchedule() {
+  const date = new Date().toLocaleDateString('en-CA');
+
+  // Always load hardcoded games instantly so UI never hangs
+  loadHardcodedGames();
+
+  // Then try to enrich with live data in the background (4s timeout)
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch('/api/schedule?date=' + date, { signal: controller.signal });
+    clearTimeout(tid);
+    if (!res.ok) throw new Error('status ' + res.status);
+    const data = await res.json();
+    const games = (data.dates || [])[0]?.games || [];
+    if (games.length > 0) {
+      todayGames = games;
+      const confirmed = games.filter(g => (g.lineups?.homePlayers || []).length > 0).length;
+      setScheduleStatus('success', '✅', games.length + ' games loaded (live)',
+        confirmed + ' confirmed lineups · ' + (games.length - confirmed) + ' pending (~3–4 hrs before first pitch)');
+      renderGameCards(games);
+    }
+  } catch(e) {
+    // Hardcoded already loaded — just note it in status
+    setScheduleStatus('success', '✅', TODAYS_GAMES.length + ' games loaded',
+      'Live API unavailable — using hardcoded schedule. SP from SP_STATS, lineups projected.');
+  }
+}
+
+function loadHardcodedGames() {
+  todayGames = TODAYS_GAMES.map(g => ({
+    gamePk: g.id,
+    gameDate: new Date().toISOString(),
+    teams: {
+      away: { team: { name: g.away, abbreviation: g.awayAbbr }, probablePitcher: g.awaySP ? { fullName: g.awaySP } : null },
+      home: { team: { name: g.home, abbreviation: g.homeAbbr }, probablePitcher: g.homeSP ? { fullName: g.homeSP } : null }
+    },
+    venue: { name: g.venue },
+    lineups: { homePlayers: [], awayPlayers: [] },
+    _simple: g,
+  }));
+  setScheduleStatus('success', '✅', TODAYS_GAMES.length + ' games loaded',
+    'Loading live data...');
+  renderGameCards(todayGames);
+  document.getElementById('gamesWrap').style.display = 'block';
+  document.getElementById('stepList').style.display = 'flex';
+}
+
+function setScheduleStatus(type, icon, title, sub) {
+  document.getElementById('scheduleStatus').innerHTML = `
+    <div class="sbar ${type}">
+      <div class="sbar-icon">${icon}</div>
+      <div class="sbar-text">
+        <div class="sbar-title">${title}</div>
+        <div class="sbar-sub">${sub}</div>
+      </div>
+    </div>`;
+}
+
+function renderGameCards(games) {
+  const grid = document.getElementById('gamesGrid');
+  grid.innerHTML = '';
+  games.forEach(g => {
+    const lu = g.lineups || {};
+    const tot = (lu.homePlayers || []).length + (lu.awayPlayers || []).length;
+    let bc = 'badge-none', bt = 'No lineup yet';
+    if (tot >= 16) { bc = 'badge-confirmed'; bt = '✓ Confirmed'; }
+    else if (tot > 0) { bc = 'badge-projected'; bt = `~ Partial (${tot})`; }
+    else { bc = 'badge-none'; bt = '~ Projected'; }
+
+    const time = new Date(g.gameDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+    const awayTeam = g.teams.away.team.name;
+    const homeTeam = g.teams.home.team.name;
+    const awaySP = g.teams.away.probablePitcher?.fullName || 'TBD';
+    const homeSP = g.teams.home.probablePitcher?.fullName || 'TBD';
+    const venue = g.venue?.name || '';
+
+    const div = document.createElement('div');
+    div.className = 'game-card';
+    div.dataset.pk = g.gamePk;
+    const lineupCount = (lu.homePlayers||[]).length + (lu.awayPlayers||[]).length;
+    const lineupBar = tot >= 16
+      ? `<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:3px;">✓ ${lineupCount} players confirmed</div>`
+      : tot > 0
+      ? `<div style="font-size:10px;color:var(--yellow);font-weight:600;margin-top:3px;">~ ${lineupCount} players (partial)</div>`
+      : `<div style="font-size:10px;color:var(--muted);margin-top:3px;">No lineup yet — using depth charts</div>`;
+    div.innerHTML = `
+      <div class="game-teams">${awayTeam} @ ${homeTeam}</div>
+      <div class="game-meta">${time} · ${venue}</div>
+      <div class="game-sp">SP: ${awaySP} vs ${homeSP}</div>
+      <span class="game-badge ${bc}">${bt}</span>
+      ${lineupBar}`;
+    div.onclick = () => toggleGame(g.gamePk, div);
+    grid.appendChild(div);
+  });
+}
+
+function toggleGame(pk, el) {
+  if (selectedPks.has(pk)) { selectedPks.delete(pk); el.classList.remove('selected'); }
+  else { selectedPks.add(pk); el.classList.add('selected'); }
+  updateRunBtn();
+}
+function selectAll() { todayGames.forEach(g => selectedPks.add(g.gamePk)); document.querySelectorAll('.game-card').forEach(c => c.classList.add('selected')); updateRunBtn(); }
+function clearAll() { selectedPks.clear(); document.querySelectorAll('.game-card').forEach(c => c.classList.remove('selected')); updateRunBtn(); }
+function updateRunBtn() {
+  const btn = document.getElementById('btnRun');
+  btn.disabled = selectedPks.size === 0;
+  document.getElementById('runHint').textContent = selectedPks.size > 0
+    ? `${selectedPks.size} game${selectedPks.size > 1 ? 's' : ''} selected`
+    : 'Select at least one game above';
+}
+
+// ── Step indicators ───────────────────────────────────────────────────────────
+function setStep(id, state, detail) {
+  const dot = document.getElementById('dot-' + id);
+  dot.className = 'step-dot ' + state;
+  dot.textContent = state === 'done' ? '✓' : state === 'error' ? '✗' : state === 'running' ? '↻' : dot.textContent;
+  if (detail) document.getElementById('detail-' + id).textContent = detail;
+}
+
+function showErr(msg) {
+  const box = document.getElementById('errBox');
+  box.style.display = 'block';
+  box.innerHTML = `<div class="sbar error"><div class="sbar-icon">⚠️</div><div class="sbar-text"><div class="sbar-title">Error</div><div class="sbar-sub">${msg}</div></div></div>`;
+}
+function hideErr() { document.getElementById('errBox').style.display = 'none'; }
+
+// ── Main analysis pipeline ────────────────────────────────────────────────────
+async function runAnalysis() {
+  if (!selectedPks.size) return;
+  const btn = document.getElementById('btnRun');
+  btn.disabled = true; btn.textContent = '⏳ Analyzing...';
+  hideErr();
+
+  const selectedGames = todayGames.filter(g => selectedPks.has(g.gamePk));
+
+  // Step 1: Get confirmed lineups from MLB API (already loaded, just extract)
+  setStep('schedule', 'running', 'Reading lineup data...');
+  await sleep(300);
+  const gameLineups = extractLineups(selectedGames);
+  setStep('schedule', 'done', `${selectedGames.length} games · lineups extracted`);
+
+  // Step 2: Fetch Statcast + odds in parallel
+  setStep('statcast', 'running', 'Fetching Statcast + odds data...');
+  DIAG.calls = {}; // reset on each analysis run
+  try {
+    await Promise.all([fetchStatcast().catch(() => {}), fetchOdds().catch(() => {}), fetchPitcherStats(gameLineups).catch(() => {})]);
+    const liveSrc = Object.values(liveStatcast)[0]?.source || 'live';
+    const oddsMsg = Object.keys(liveOdds).length > 0 ? ' · odds loaded' : ' · odds unavailable';
+    setStep('statcast', 'done', `${Object.keys(liveStatcast).length} players — ${liveSrc.includes('blend') ? '2026+2025 blend' : liveSrc === 'prior' ? '2025 data' : 'live 2026'}${oddsMsg}`);
+  } catch(e) {
+    setStep('statcast', 'done', `${Object.keys(STATCAST).length} players loaded (embedded fallback)`);
+  }
+
+  // Step 3: Build projected lineups
+  setStep('lineups', 'running', 'Projecting batting orders...');
+  await sleep(200);
+  lineupResults = buildLineups(gameLineups, selectedGames);
+  renderLineupsTab(lineupResults);
+  setStep('lineups', 'done', `${lineupResults.reduce((a,g) => a + g.awayLineup.length + g.homeLineup.length, 0)} hitters projected`);
+
+  // Step 4: Score
+  setStep('score', 'running', 'Scoring all hitters...');
+  await sleep(200);
+  const maxOrder = parseInt(document.getElementById('maxOrder').value);
+  const topN = parseInt(document.getElementById('topN').value);
+  const minPA = parseInt(document.getElementById('minPA').value);
+  scoredPlayers = scoreAllPlayers(lineupResults, maxOrder, minPA);
+  scoredPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
+  scoredPlayers.forEach((p, i) => p.rank = i + 1);
+  // Store full pool for search, but only render topN by default
+  const prevScores = {};
+  allScoredPlayers.forEach(p => { prevScores[p.name] = p.compositeScore; });
+  allScoredPlayers = [...scoredPlayers];
+  allScoredPlayers.forEach(p => {
+    const prev = prevScores[p.name];
+    p.scoreDelta = (prev != null && prev !== p.compositeScore) ? p.compositeScore - prev : null;
+  });
+  const top = scoredPlayers.slice(0, topN);
+  renderResults(top);
+  renderPicksSidebar();
+  setStep('score', 'done', `${top.length} players ranked`);
+
+  btn.disabled = false; btn.innerHTML = '⚡ Run Analysis';
+  switchTab('results');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Extract confirmed lineups from MLB API data ───────────────────────────────
+function extractLineups(games) {
+  return games.map(g => {
+    const lu = g.lineups || {};
+    return {
+      gamePk: g.gamePk,
+      awayTeam: g.teams.away.team.name,
+      awayAbbr: g.teams.away.team.abbreviation,
+      homeTeam: g.teams.home.team.name,
+      homeAbbr: g.teams.home.team.abbreviation,
+      venue: g.venue?.name || '',
+      awaySP: g.teams.away.probablePitcher || null,
+      awaySPHand: g.teams.away.probablePitcher?.pitchHand?.code || null,
+      awaySPId: g.teams.away.probablePitcher?.id || null,
+      homeSP: g.teams.home.probablePitcher || null,
+      homeSPHand: g.teams.home.probablePitcher?.pitchHand?.code || null,
+      homeSPId: g.teams.home.probablePitcher?.id || null,
+      awayConfirmed: lu.awayPlayers || [],
+      homeConfirmed: lu.homePlayers || [],
+    };
+  });
+}
+
+// ── Live Statcast via Vercel proxy ───────────────────────────────────────────
+let liveStatcast = {};
+let livePitcherStats = {}; // keyed by MLB player ID   // overall batter stats (K%, HH%, Barrel%)
+let liveVsRHP = {};      // batter xBA + stats vs RHP only
+let liveVsLHP = {};      // batter xBA + stats vs LHP only
+
+// ── Diagnostics ───────────────────────────────────────────────────────────────
+// Tracks every API call so issues show in UI without opening DevTools
+const DIAG = {
+  calls: {},
+  log(name, info) {
+    this.calls[name] = { ...(this.calls[name]||{}), ...info };
+    this.render();
+  },
+  render() {
+    const el = document.getElementById('diagPanel');
+    const btn = document.getElementById('diagToggleBtn');
+    const statusDot = document.getElementById('diagStatus');
+    if (!el) return;
+
+    const entries = Object.entries(this.calls);
+    if (!entries.length) return;
+
+    // Show toggle button once we have data
+    if (btn) btn.style.display = 'inline-block';
+
+    const hasError = entries.some(([,d]) => d.error && !d.detail);
+    const hasWarn  = entries.some(([,d]) => d.status === 'warn');
+
+    // Status dot on button: red if errors, yellow if warnings, green if all ok
+    if (statusDot) {
+      const dotColor = hasError ? '#dc2626' : hasWarn ? '#ca8a04' : '#16a34a';
+      const dotLabel = hasError ? ' ✗' : hasWarn ? ' ⚠' : ' ✓';
+      statusDot.textContent = dotLabel;
+      statusDot.style.color = dotColor;
+      statusDot.style.fontWeight = '700';
+    }
+    if (btn) btn.style.borderColor = hasError ? '#dc262640' : hasWarn ? '#ca8a0440' : 'var(--border)';
+
+    const html = entries.map(([name, d]) => {
+      const isOk = !d.error && (d.rows > 0 || d.bytes > 1000 || d.detail);
+      const color = d.error ? '#dc2626' : isOk ? '#16a34a' : '#ca8a04';
+      const icon  = d.error ? '✗' : isOk ? '✓' : '⚠';
+      const detail = d.error
+        ? `${d.status ?? ''} ${d.error}`.trim()
+        : d.detail
+          ? d.detail
+          : [d.status, d.rows != null ? d.rows+' rows' : d.bytes != null ? Math.round(d.bytes/1024)+'KB' : null, d.ms != null ? d.ms+'ms' : null].filter(Boolean).join(' · ');
+      return `<span title="${name}" style="padding:2px 8px;border-radius:12px;background:${color}18;border:1px solid ${color}40;color:${color};font-size:11px;font-family:monospace;white-space:nowrap;">${icon} ${name}: ${detail}</span>`;
+    }).join('');
+    el.innerHTML = html || '';
+  }
+};
+
+let livePitchers = {};   // pitcher Statcast: xBA allowed, K%, HH%, whiff%
+let liveOdds = {};       // implied team run totals keyed by team abbreviation
+const LIVE_NORM = {};
+
+
+// ── Fetch live pitcher stats from MLB Stats API ───────────────────────────────
+async function fetchPitcherStats(gameLineups) {
+  // Collect all unique pitcher IDs from selected games
+  const ids = new Set();
+  gameLineups.forEach(g => {
+    if (g.awaySPId) ids.add(String(g.awaySPId));
+    if (g.homeSPId)  ids.add(String(g.homeSPId));
+  });
+  if (!ids.size) return;
+
+  try {
+    const res = await fetch(`/api/pitchers?ids=${[...ids].join(',')}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    livePitcherStats = data.pitchers || {};
+    console.log(`Pitcher stats loaded for ${Object.keys(livePitcherStats).length} pitchers`);
+  } catch(e) {
+    console.warn('Pitcher stats fetch failed:', e.message);
+  }
+}
+
+async function fetchStatcast() {
+  const year = new Date().getFullYear();
+  const prev = year - 1;
+
+  const fetchCsv = async (type, yr, hand) => {
+    const label = `Savant/${type}${hand?'/'+hand:''}/${yr}`;
+    let url = `/api/statcast?year=${yr}&type=${type}`;
+    if (hand) url += `&hand=${hand}`;
+    const t0 = Date.now();
+    try {
+      const r = await fetch(url);
+      const text = await r.text();
+      const ms = Date.now() - t0;
+      const savantStatus = r.headers.get('X-Savant-Status');
+      if (text.trim().startsWith('{')) {
+        // JSON error response from proxy
+        let errMsg = 'empty';
+        try { errMsg = JSON.parse(text).error || 'error'; } catch(e) {}
+        DIAG.log(label, { status: savantStatus || 'err', error: errMsg, ms });
+        return '';
+      }
+      const rows = text.split('\n').length - 1;
+      DIAG.log(label, { status: savantStatus || '200', rows, bytes: text.length, ms });
+      return text;
+    } catch(e) {
+      DIAG.log(label, { error: e.message, ms: Date.now()-t0 });
+      return '';
+    }
   };
 
-  const corsHeaders = { 'Access-Control-Allow-Origin': '*' };
+  const parseSavantCsv = (csv, type = 'batter') => {
+    if (!csv || csv.trim().startsWith('{') || csv.trim().startsWith('<') || csv.length < 100) return {};
+    const lines = csv.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) return {};
+    // Use proper CSV parsing for headers to handle "last_name, first_name" quoted field
+    const parseHeaderLine = (line) => {
+      const result = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { result.push(cur.trim().toLowerCase()); cur = ''; }
+        else cur += ch;
+      }
+      result.push(cur.trim().toLowerCase());
+      return result;
+    };
+    const headers = parseHeaderLine(lines[0]);
+    const col = (...names) => { for (const n of names) { const i = headers.indexOf(n); if (i >= 0) return i; } return -1; };
+    const iName = col('last_name, first_name','player_name');
+    const iXBA  = col('xba','est_ba');
+    const iK    = col('k_percent');
+    const iHH   = col('hard_hit_percent');
+    const iBrl  = col('barrel_batted_rate','brl_percent');
+    const iWh   = col('whiff_percent');
+    const iBA   = col('ba','batting_average');
+    const iPA   = col('pa');
+    if (iName < 0 || iXBA < 0) return {};
+    const result = {};
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+      // Proper CSV parsing for data rows (handles quoted fields with commas)
+      const parseRow = (l) => {
+        const res = []; let cur = '', inQ = false;
+        for (let i = 0; i < l.length; i++) {
+          const ch = l[i];
+          if (ch === '"') { inQ = !inQ; }
+          else if (ch === ',' && !inQ) { res.push(cur.trim()); cur = ''; }
+          else cur += ch;
+        }
+        res.push(cur.trim());
+        return res;
+      };
+      const cols = parseRow(line);
+      let name = cols[iName] || '';
+      if (name.includes(',')) { const p = name.split(','); name = p[1].trim()+' '+p[0].trim(); }
+      if (!name) return;
+      const safe = (i, div=1) => { if (i<0||i>=cols.length) return null; const v=parseFloat(cols[i]); return isFinite(v)?v/div:null; };
+      const xba = safe(iXBA);
+      // Don't skip players missing xBA — they may still have K%, HH%, Barrel% from statcast leaderboard merge
+      if (xba !== null && (xba < 0 || xba > 0.5)) return;
+      const pa = parseInt(cols[iPA])||0;
+      const kpct = safe(iK,100); const hardhitpct = safe(iHH,100);
+      const barrelpct = safe(iBrl,100);
+      // Skip row only if ALL stats are null (truly empty row)
+      if (xba === null && kpct === null && hardhitpct === null && barrelpct === null) return;
+      const key = name.toLowerCase();
+      if (type === 'batter') {
+        result[key] = { name, pa, xba, kpct, hardhitpct, barrelpct, ba: safe(iBA) };
+      } else {
+        result[key] = { name, pa, xbaAllowed: xba, kpct, hardHitAllowed: hardhitpct, barrelAllowed: barrelpct, whiffPct: safe(iWh,100) };
+      }
+    });
+    return result;
+  };
 
-  // type=statcast → direct statcast leaderboard fetch (K%, HH%, Barrel% for all players)
-  // type=batter/pitcher → expected_statistics fetch (xBA)
-  if (type === 'statcast') {
-    const scUrl = `https://baseballsavant.mlb.com/leaderboard/statcast?type=batter&year=${year}&position=&team=&min=1&csv=true`;
-    try {
-      const scRes = await fetch(scUrl, { headers: commonHeaders });
-      const statusH = { 'Access-Control-Allow-Origin': '*', 'X-Savant-Status': String(scRes.status) };
-      if (!scRes.ok) return new Response(JSON.stringify({ error: `Savant ${scRes.status}` }), { status: 200, headers: { 'Content-Type': 'application/json', ...statusH } });
-      const csv = await scRes.text();
-      return new Response(csv, { status: 200, headers: { 'Content-Type': 'text/csv', 'Cache-Control': 'public, max-age=600', 'X-Savant-Rows': String(csv.split('\n').length), ...statusH } });
-    } catch(e) {
-      return new Response(JSON.stringify({ error: e.message }), { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+  const blendMaps = (cur, pri, thresh=100) => {
+    const out = {};
+    new Set([...Object.keys(cur),...Object.keys(pri)]).forEach(k => {
+      const c=cur[k], p=pri[k];
+      if (!c&&!p) return;
+      if (!p) { out[k]={...c,source:'current'}; return; }
+      if (!c||(c.pa||0)<10) { out[k]={...p,source:'prior'}; return; }
+      const wC=Math.min(1,(c.pa||0)/thresh), wP=1-wC;
+      const bv=(a,b)=>a==null&&b==null?null:a==null?b:b==null?a:parseFloat((a*wC+b*wP).toFixed(4));
+      const m={name:c.name||p.name,pa:c.pa,source:`blend(${c.pa}PA)`};
+      new Set([...Object.keys(c),...Object.keys(p)].filter(f=>!['name','pa','source'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,p[f]??null);});
+      out[k]=m;
+    });
+    return out;
+  };
+
+  // Fetch in parallel
+  const [tCur, tPri, tRHP, tLHP, tPit, tStatcast] = await Promise.all([
+    fetchCsv('batter', year, ''),        // expected_statistics 2026 (xBA)
+    fetchCsv('batter', prev, ''),        // expected_statistics 2025 (xBA prior year)
+    fetchCsv('batter', year, 'R'),       // xBA vs RHP splits
+    fetchCsv('batter', year, 'L'),       // xBA vs LHP splits
+    fetchCsv('pitcher', year, ''),       // pitcher stats
+    fetchCsv('statcast', year, ''),      // statcast leaderboard: K%, HH%, Barrel% for ALL players incl rookies
+  ]);
+
+  const batterCur    = parseSavantCsv(tCur);
+  const batterPri    = parseSavantCsv(tPri);
+  const vsRHPCur     = parseSavantCsv(tRHP);
+  const vsLHPCur     = parseSavantCsv(tLHP);
+  const pitcherMap   = parseSavantCsv(tPit, 'pitcher');
+  const statcastMap  = parseSavantCsv(tStatcast);  // K%, HH%, Barrel% leaderboard
+
+  liveStatcast = blendMaps(batterCur, batterPri, 100);
+  liveVsRHP    = blendMaps(vsRHPCur, batterPri, 80);
+  liveVsLHP    = blendMaps(vsLHPCur, batterPri, 60);
+
+  // Enrich liveStatcast with K%/HH%/Barrel% from statcast leaderboard
+  // This covers rookies and players not in expected_statistics (too few PA for xBA)
+  Object.keys(statcastMap).forEach(key => {
+    const s = statcastMap[key];
+    if (!s) return;
+    if (!liveStatcast[key]) {
+      // Player not in expected_statistics — add them with statcast data only
+      liveStatcast[key] = { name: s.name, pa: s.pa, xba: null,
+        kpct: s.kpct, hardhitpct: s.hardhitpct, barrelpct: s.barrelpct };
+    } else {
+      // Player already in liveStatcast — fill in missing K%/HH%/Barrel% if null
+      if (liveStatcast[key].kpct       == null) liveStatcast[key].kpct       = s.kpct;
+      if (liveStatcast[key].hardhitpct == null) liveStatcast[key].hardhitpct = s.hardhitpct;
+      if (liveStatcast[key].barrelpct  == null) liveStatcast[key].barrelpct  = s.barrelpct;
+    }
+  });
+
+  livePitchers = {};
+  Object.keys(pitcherMap).forEach(key => {
+    const p = pitcherMap[key];
+    if (!p) return;
+    livePitchers[normalize(key)] = {
+      xbaAllowed:     p.xbaAllowed     ?? null,
+      kpct:           p.kpct           ?? null,
+      hardHitAllowed: p.hardHitAllowed ?? null,
+      barrelAllowed:  p.barrelAllowed  ?? null,
+      whiffPct:       p.whiffPct       ?? null,
+      source: 'live',
+    };
+  });
+
+  const nBat = Object.keys(liveStatcast).length;
+  const nPit = Object.keys(livePitchers).length;
+  window._statcastFetchedAt = new Date();
+  window._statcastPlayerCount = nBat;
+  DIAG.log('Statcast/parse', { status: nBat > 0 ? '200' : 'warn',
+    rows: nBat, ms: 0,
+    ...(nBat === 0 ? { error: 'parsed 0 batters — check CSV format' } : {}) });
+  DIAG.log('Pitchers/parse', { status: nPit > 0 ? '200' : 'warn', rows: nPit });
+
+
+}
+
+
+async function fetchOdds() {
+  const t0 = Date.now();
+  try {
+    const res = await fetch('/api/odds');
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    liveOdds = json.games || {};
+    const n = Object.keys(liveOdds).length;
+    DIAG.log('Odds', { status: '200', rows: n, ms: Date.now()-t0,
+      ...(n === 0 ? { error: 'no games returned' } : {}) });
+    // Flag suspicious implied runs
+    Object.entries(liveOdds).forEach(([abbr, d]) => {
+      if (d.impliedRuns < 2.5) DIAG.log(`⚠ Odds:${abbr}`, { error: `Only ${d.impliedRuns} proj runs — verify lines`, status: 'warn' });
+      if (d.impliedRuns > 8.0) DIAG.log(`⚠ Odds:${abbr}`, { error: `${d.impliedRuns} proj runs — unusually high, verify`, status: 'warn' });
+    });
+
+    // Log each game's implied runs so mismatches are immediately visible
+    // Groups by matchup: "LAD(7.5) @ COL(4.8) total=12.3"
+    const gamesSeen = new Set();
+    Object.entries(liveOdds).forEach(([abbr, d]) => {
+      if (!d.opponent || gamesSeen.has(d.opponent + abbr)) return;
+      gamesSeen.add(abbr + d.opponent);
+      const away = liveOdds[d.opponent];
+      if (!away) return;
+      // Determine which team is home/away from the data
+      const label = `${d.opponent}(${away.impliedRuns}) @ ${abbr}(${d.impliedRuns}) total=${d.gameTotal}`;
+      DIAG.log(`Game: ${d.opponent}@${abbr}`, { status: '200', rows: null,
+        bytes: null, ms: null,
+        error: null,
+        detail: label });
+    });
+  } catch(e) {
+    DIAG.log('Odds', { error: e.message, ms: Date.now()-t0 });
+    throw e;
+  }
+}
+
+const STATCAST={"Aaron Judge":[0.3,0.236,0.582,0.247],"Abraham Toro":[0.253,0.148,0.342,0.045],"Adael Amador":[0.218,0.211,0.247,0.034],"Adam Frazier":[0.244,0.176,0.206,0.02],"Addison Barger":[0.255,0.241,0.51,0.114],"Adley Rutschman":[0.241,0.156,0.386,0.075],"Adolis García":[0.232,0.247,0.467,0.116],"Adrian Del Castillo":[0.206,0.359,0.493,0.067],"Agustín Ramírez":[0.259,0.193,0.47,0.11],"Alan Roden":[0.176,0.242,0.304,0.02],"Alec Bohm":[0.275,0.163,0.464,0.062],"Alec Burleson":[0.272,0.145,0.43,0.095],"Alejandro Kirk":[0.278,0.117,0.508,0.101],"Alejandro Osuna":[0.271,0.193,0.37,0.059],"Alek Thomas":[0.242,0.26,0.393,0.078],"Alex Bregman":[0.254,0.141,0.444,0.066],"Alex Call":[0.243,0.171,0.289,0.044],"Alex Freeland":[0.171,0.361,0.38,0.08],"Alex Jackson":[0.178,0.37,0.407,0.148],"Alex Verdugo":[0.266,0.146,0.428,0.03],"Alexander Canario":[0.219,0.342,0.438,0.124],"Amed Rosario":[0.288,0.162,0.45,0.06],"Andrew Benintendi":[0.234,0.174,0.369,0.11],"Andrew Knizner":[0.226,0.114,0.232,0.014],"Andrew McCutchen":[0.258,0.214,0.425,0.083],"Andrew Vaughn":[0.273,0.179,0.477,0.12],"Andruw Monasterio":[0.224,0.237,0.351,0.053],"Andrés Chaparro":[0.182,0.301,0.378,0.111],"Andrés Giménez":[0.252,0.179,0.277,0.03],"Andy Ibáñez":[0.254,0.135,0.364,0.046],"Andy Pages":[0.258,0.216,0.372,0.084],"Angel Martínez":[0.215,0.227,0.293,0.035],"Anthony Santander":[0.188,0.276,0.41,0.045],"Anthony Seigler":[0.24,0.219,0.375,0.021],"Anthony Volpe":[0.223,0.252,0.419,0.105],"Austin Hays":[0.234,0.257,0.384,0.104],"Austin Hedges":[0.177,0.239,0.322,0.034],"Austin Martin":[0.279,0.171,0.386,0.055],"Austin Riley":[0.246,0.286,0.502,0.152],"Austin Slater":[0.247,0.319,0.48,0.143],"Austin Wells":[0.214,0.263,0.452,0.102],"Austin Wynns":[0.233,0.291,0.466,0.096],"Ben Rice":[0.283,0.189,0.561,0.154],"Ben Rortvedt":[0.185,0.18,0.196,0.033],"Ben Williamson":[0.241,0.217,0.405,0.033],"Blaine Crim":[0.215,0.378,0.538,0.154],"Blake Dunn":[0.188,0.333,0.371,0.086],"Blake Perkins":[0.223,0.275,0.343,0.037],"Blaze Alexander":[0.211,0.323,0.432,0.128],"Bo Bichette":[0.295,0.145,0.488,0.079],"Bo Naylor":[0.201,0.239,0.383,0.097],"Bob Seymour":[0.2,0.386,0.478,0.0],"Bobby Witt Jr.":[0.285,0.182,0.485,0.125],"Brady House":[0.256,0.285,0.463,0.043],"Brandon Lockridge":[0.233,0.243,0.32,0.029],"Brandon Lowe":[0.253,0.269,0.466,0.129],"Brandon Marsh":[0.263,0.259,0.464,0.083],"Brandon Nimmo":[0.252,0.216,0.502,0.088],"Braxton Fulford":[0.198,0.3,0.387,0.053],"Brayan Rocchio":[0.246,0.201,0.355,0.033],"Brendan Donovan":[0.28,0.13,0.409,0.088],"Brendan Rodgers":[0.213,0.359,0.486,0.143],"Brent Rooker":[0.261,0.222,0.448,0.137],"Brenton Doyle":[0.239,0.257,0.446,0.108],"Brett Baty":[0.252,0.25,0.469,0.128],"Brett Harris":[0.235,0.25,0.278,0.037],"Brett Wisely":[0.2,0.222,0.31,0.071],"Brice Turang":[0.262,0.228,0.474,0.079],"Brooks Baldwin":[0.235,0.262,0.409,0.109],"Brooks Lee":[0.234,0.175,0.385,0.058],"Bryan De La Cruz":[0.201,0.36,0.517,0.069],"Bryan Reynolds":[0.259,0.265,0.46,0.101],"Bryce Harper":[0.268,0.209,0.475,0.123],"Bryce Johnson":[0.298,0.226,0.333,0.05],"Bryce Teodosio":[0.185,0.313,0.266,0.043],"Bryson Stott":[0.247,0.163,0.295,0.051],"Byron Buxton":[0.249,0.273,0.538,0.176],"CJ Abrams":[0.245,0.197,0.392,0.076],"CJ Kayfus":[0.242,0.275,0.368,0.092],"Cal Raleigh":[0.231,0.267,0.496,0.195],"Caleb Durbin":[0.255,0.099,0.269,0.04],"Cam Smith":[0.235,0.278,0.408,0.069],"Carlos Correa":[0.28,0.193,0.459,0.068],"Carlos Cortes":[0.267,0.202,0.447,0.092],"Carlos Narváez":[0.22,0.249,0.446,0.091],"Carlos Santana":[0.216,0.192,0.378,0.049],"Carson Kelly":[0.236,0.19,0.403,0.096],"Carson Williams":[0.169,0.415,0.357,0.089],"Carter Jensen":[0.331,0.174,0.583,0.208],"Casey Schmitt":[0.256,0.239,0.438,0.09],"Cavan Biggio":[0.211,0.253,0.36,0.04],"Ceddanne Rafaela":[0.242,0.199,0.387,0.092],"Cedric Mullins":[0.207,0.241,0.359,0.062],"Chandler Simpson":[0.295,0.098,0.173,0.0],"Chas McCormick":[0.228,0.267,0.293,0.053],"Chase Meidroth":[0.254,0.143,0.361,0.016],"Chris Taylor":[0.205,0.336,0.361,0.069],"Christian Encarnacion-Strand":[0.207,0.234,0.44,0.09],"Christian Koss":[0.263,0.236,0.336,0.06],"Christian Moore":[0.203,0.337,0.363,0.069],"Christian Vázquez":[0.21,0.164,0.274,0.038],"Christian Walker":[0.233,0.277,0.461,0.129],"Christian Yelich":[0.245,0.259,0.464,0.103],"Christopher Morel":[0.213,0.357,0.497,0.148],"Coby Mayo":[0.202,0.286,0.36,0.101],"Cody Bellinger":[0.254,0.137,0.379,0.075],"Cody Freeman":[0.244,0.157,0.258,0.041],"Colby Thomas":[0.206,0.371,0.493,0.133],"Cole Young":[0.224,0.183,0.311,0.056],"Colson Montgomery":[0.23,0.292,0.445,0.145],"Colt Keith":[0.257,0.218,0.437,0.092],"Colton Cowser":[0.2,0.356,0.46,0.141],"Connor Joe":[0.216,0.25,0.365,0.058],"Connor Norby":[0.241,0.267,0.371,0.094],"Connor Wong":[0.221,0.223,0.31,0.031],"Cooper Hummel":[0.196,0.295,0.379,0.121],"Corbin Carroll":[0.262,0.238,0.499,0.145],"Corey Seager":[0.285,0.196,0.536,0.153],"Curtis Mead":[0.232,0.239,0.348,0.045],"DJ LeMahieu":[0.245,0.246,0.516,0.043],"DaShawn Keirsey Jr.":[0.144,0.375,0.346,0.058],"Dalton Rushing":[0.203,0.374,0.453,0.14],"Dane Myers":[0.251,0.231,0.42,0.078],"Daniel Johnson":[0.237,0.228,0.425,0.125],"Daniel Schneemann":[0.215,0.277,0.417,0.114],"Danny Jansen":[0.199,0.255,0.39,0.088],"Dansby Swanson":[0.267,0.26,0.478,0.117],"Darell Hernaiz":[0.255,0.122,0.301,0.032],"Daulton Varsho":[0.226,0.284,0.403,0.159],"David Fry":[0.135,0.369,0.398,0.091],"David Hamilton":[0.209,0.242,0.278,0.06],"Davis Schneider":[0.188,0.264,0.411,0.14],"Daylen Lile":[0.302,0.16,0.401,0.052],"Denzel Clarke":[0.2,0.384,0.427,0.067],"Derek Hill":[0.232,0.322,0.494,0.112],"Dillon Dingler":[0.29,0.235,0.457,0.092],"Dominic Canzone":[0.29,0.219,0.497,0.144],"Dominic Smith":[0.252,0.187,0.355,0.042],"Donovan Solano":[0.223,0.223,0.375,0.039],"Drake Baldwin":[0.272,0.152,0.496,0.11],"Drew Gilbert":[0.214,0.183,0.358,0.049],"Drew Millas":[0.279,0.127,0.233,0.023],"Drew Waters":[0.232,0.274,0.288,0.041],"Dylan Beavers":[0.213,0.263,0.28,0.093],"Dylan Carlson":[0.214,0.224,0.305,0.067],"Dylan Crews":[0.235,0.236,0.387,0.097],"Dylan Moore":[0.191,0.337,0.343,0.086],"Edgar Quero":[0.236,0.176,0.463,0.037],"Edmundo Sosa":[0.245,0.215,0.38,0.063],"Edouard Julien":[0.242,0.293,0.423,0.122],"Eli White":[0.251,0.258,0.404,0.09],"Elias Díaz":[0.202,0.261,0.387,0.075],"Elly De La Cruz":[0.251,0.259,0.442,0.102],"Emmanuel Rivera":[0.246,0.189,0.323,0.01],"Endy Rodríguez":[0.192,0.246,0.447,0.026],"Enmanuel Valdez":[0.254,0.157,0.427,0.08],"Enrique Hernández":[0.221,0.266,0.376,0.094],"Eric Haase":[0.206,0.403,0.225,0.1],"Eric Wagaman":[0.259,0.195,0.465,0.068],"Ernie Clement":[0.26,0.104,0.26,0.024],"Eugenio Suárez":[0.211,0.298,0.476,0.143],"Evan Carter":[0.241,0.186,0.346,0.059],"Everson Pereira":[0.16,0.384,0.447,0.079],"Ezequiel Duran":[0.214,0.251,0.309,0.026],"Ezequiel Tovar":[0.261,0.251,0.389,0.093],"Fernando Tatis Jr.":[0.272,0.187,0.518,0.109],"Francisco Alvarez":[0.229,0.264,0.543,0.121],"Francisco Lindor":[0.26,0.179,0.444,0.088],"Freddie Freeman":[0.268,0.204,0.457,0.104],"Freddy Fermin":[0.233,0.187,0.341,0.042],"Gabriel Arias":[0.214,0.344,0.433,0.113],"Gabriel Moreno":[0.279,0.172,0.434,0.071],"Garrett Hampson":[0.15,0.319,0.196,0.02],"Garrett Mitchell":[0.229,0.321,0.422,0.067],"Gary Sánchez":[0.24,0.267,0.578,0.108],"Gavin Lux":[0.243,0.227,0.369,0.036],"Gavin Sheets":[0.263,0.196,0.465,0.095],"George Springer":[0.291,0.189,0.476,0.161],"Geraldo Perdomo":[0.278,0.115,0.319,0.062],"Giancarlo Stanton":[0.235,0.342,0.552,0.221],"Gio Urshela":[0.251,0.203,0.34,0.021],"Gleyber Torres":[0.269,0.161,0.39,0.082],"Graham Pauley":[0.223,0.196,0.354,0.055],"Griffin Conine":[0.232,0.291,0.481,0.148],"Gunnar Henderson":[0.276,0.21,0.492,0.085],"Gustavo Campero":[0.239,0.212,0.227,0.068],"Ha-Seong Kim":[0.242,0.204,0.433,0.052],"Harrison Bader":[0.22,0.271,0.403,0.102],"Hayden Senger":[0.215,0.282,0.385,0.038],"Heliot Ramos":[0.242,0.227,0.474,0.088],"Henry Davis":[0.213,0.269,0.374,0.115],"Heriberto Hernández":[0.245,0.262,0.454,0.109],"Heston Kjerstad":[0.231,0.269,0.411,0.08],"Hunter Feduccia":[0.188,0.276,0.328,0.082],"Hunter Goodman":[0.244,0.263,0.469,0.128],"Hunter Renfroe":[0.193,0.194,0.354,0.063],"Hyeseong Kim":[0.221,0.306,0.282,0.027],"Ian Happ":[0.256,0.228,0.444,0.104],"Ildemaro Vargas":[0.262,0.124,0.373,0.039],"Isaac Collins":[0.246,0.211,0.389,0.049],"Isaac Paredes":[0.235,0.174,0.336,0.063],"Isiah Kiner-Falefa":[0.245,0.168,0.275,0.014],"Iván Herrera":[0.275,0.186,0.477,0.11],"J.C. Escarra":[0.233,0.143,0.431,0.056],"J.P. Crawford":[0.266,0.187,0.347,0.048],"J.T. Realmuto":[0.253,0.235,0.455,0.088],"JJ Bleday":[0.197,0.265,0.387,0.078],"Jac Caglianone":[0.237,0.224,0.424,0.12],"Jace Jung":[0.162,0.291,0.387,0.032],"Jack Suwinski":[0.195,0.32,0.387,0.118],"Jackson Chourio":[0.247,0.205,0.423,0.097],"Jackson Holliday":[0.241,0.216,0.408,0.078],"Jackson Merrill":[0.263,0.224,0.429,0.13],"Jacob Amaya":[0.174,0.219,0.296,0.0],"Jacob Melton":[0.177,0.372,0.439,0.049],"Jacob Stallings":[0.17,0.31,0.263,0.013],"Jacob Wilson":[0.277,0.075,0.247,0.022],"Jacob Young":[0.262,0.179,0.342,0.019],"Jahmai Jones":[0.291,0.213,0.536,0.134],"Jake Bauers":[0.237,0.271,0.456,0.136],"Jake Burger":[0.246,0.247,0.485,0.139],"Jake Cronenworth":[0.225,0.208,0.39,0.062],"Jake Fraley":[0.248,0.226,0.345,0.049],"Jake Mangum":[0.251,0.15,0.334,0.026],"Jake McCarthy":[0.239,0.18,0.276,0.053],"Jake Meyers":[0.269,0.176,0.389,0.05],"Jake Rogers":[0.194,0.275,0.402,0.092],"Jakob Marsee":[0.275,0.205,0.414,0.08],"James McCann":[0.239,0.241,0.522,0.076],"James Outman":[0.158,0.426,0.394,0.169],"James Wood":[0.259,0.321,0.563,0.163],"Jared Triolo":[0.239,0.202,0.382,0.062],"Jarred Kelenic":[0.182,0.354,0.378,0.135],"Jarren Duran":[0.248,0.243,0.468,0.097],"Jason Heyward":[0.201,0.211,0.338,0.044],"Jasson Domínguez":[0.237,0.268,0.496,0.07],"Javier Báez":[0.23,0.249,0.399,0.055],"Javier Sanoja":[0.251,0.12,0.35,0.018],"Jazz Chisholm Jr.":[0.234,0.279,0.433,0.15],"Jeff McNeil":[0.266,0.119,0.329,0.051],"Jeimer Candelario":[0.126,0.319,0.283,0.075],"Jerar Encarnacion":[0.256,0.268,0.45,0.05],"Jeremiah Jackson":[0.222,0.273,0.467,0.075],"Jeremy Peña":[0.27,0.171,0.429,0.082],"Jesse Winker":[0.204,0.259,0.451,0.078],"Jesús Sánchez":[0.242,0.221,0.434,0.111],"Jhonkensy Noel":[0.161,0.34,0.412,0.062],"Jhonny Pereda":[0.194,0.269,0.449,0.041],"Jo Adell":[0.26,0.264,0.5,0.173],"Joc Pederson":[0.219,0.212,0.448,0.095],"Joey Bart":[0.222,0.28,0.432,0.104],"Joey Loperfido":[0.266,0.26,0.371,0.057],"Joey Ortiz":[0.245,0.146,0.328,0.03],"Joey Wiemer":[0.241,0.377,0.618,0.147],"Johan Rojas":[0.227,0.233,0.353,0.034],"John Rave":[0.228,0.263,0.4,0.055],"Johnathan Rodríguez":[0.225,0.286,0.551,0.061],"Jon Berti":[0.253,0.206,0.372,0.026],"Jonah Bride":[0.176,0.312,0.284,0.027],"Jonah Heim":[0.219,0.203,0.359,0.061],"Jonatan Clase":[0.217,0.25,0.356,0.068],"Jonathan Aranda":[0.291,0.254,0.545,0.128],"Jonathan India":[0.238,0.187,0.368,0.058],"Jonny DeLuca":[0.252,0.22,0.318,0.023],"Jorbit Vivas":[0.249,0.197,0.372,0.047],"Jordan Beck":[0.231,0.296,0.385,0.096],"Jordan Lawlar":[0.19,0.351,0.341,0.049],"Jordan Walker":[0.207,0.318,0.5,0.109],"Jordan Westburg":[0.253,0.227,0.434,0.112],"Jorge Barrosa":[0.165,0.286,0.308,0.0],"Jorge Mateo":[0.167,0.361,0.367,0.041],"Jorge Polanco":[0.266,0.156,0.458,0.103],"Jorge Soler":[0.204,0.298,0.42,0.128],"Jose Altuve":[0.237,0.167,0.309,0.062],"Jose Herrera":[0.169,0.23,0.226,0.008],"Jose Iglesias":[0.24,0.163,0.285,0.02],"Jose Trevino":[0.242,0.129,0.407,0.044],"Josh Bell":[0.256,0.165,0.47,0.12],"Josh Jung":[0.245,0.252,0.467,0.082],"Josh Lowe":[0.24,0.251,0.396,0.059],"Josh Naylor":[0.271,0.137,0.419,0.067],"Josh Rojas":[0.209,0.227,0.368,0.035],"Josh Smith":[0.247,0.178,0.311,0.05],"Joshua Palacios":[0.222,0.248,0.398,0.086],"José Caballero":[0.218,0.265,0.306,0.059],"José Fermín":[0.275,0.143,0.294,0.0],"José Ramírez":[0.284,0.11,0.37,0.07],"José Tena":[0.243,0.219,0.405,0.052],"Juan Soto":[0.288,0.192,0.553,0.181],"Julio Rodríguez":[0.274,0.214,0.48,0.098],"Jung Hoo Lee":[0.277,0.115,0.32,0.037],"Junior Caminero":[0.255,0.191,0.514,0.14],"Jurickson Profar":[0.23,0.159,0.403,0.073],"Justin Turner":[0.237,0.194,0.309,0.037],"Justyn-Henry Malloy":[0.201,0.252,0.311,0.041],"Kameron Misner":[0.191,0.318,0.298,0.053],"Ke'Bryan Hayes":[0.238,0.195,0.425,0.045],"Keibert Ruiz":[0.271,0.097,0.309,0.022],"Kerry Carpenter":[0.252,0.228,0.468,0.125],"Ketel Marte":[0.285,0.149,0.47,0.135],"Kevin Newman":[0.211,0.198,0.293,0.022],"Kody Clemens":[0.243,0.241,0.483,0.12],"Kristian Campbell":[0.221,0.274,0.418,0.051],"Kyle Farmer":[0.228,0.22,0.352,0.061],"Kyle Higashioka":[0.233,0.22,0.391,0.086],"Kyle Isbel":[0.22,0.181,0.361,0.016],"Kyle Karros":[0.206,0.263,0.337,0.01],"Kyle Manzardo":[0.224,0.254,0.438,0.118],"Kyle Schwarber":[0.251,0.272,0.596,0.208],"Kyle Stowers":[0.265,0.274,0.52,0.19],"Kyle Teel":[0.237,0.259,0.376,0.096],"Kyle Tucker":[0.27,0.147,0.404,0.108],"Kyren Paris":[0.173,0.421,0.478,0.164],"LaMonte Wade Jr.":[0.205,0.24,0.318,0.045],"Lane Thomas":[0.168,0.31,0.313,0.048],"Lars Nootbaar":[0.231,0.204,0.5,0.102],"Lawrence Butler":[0.229,0.284,0.444,0.092],"Lenyn Sosa":[0.263,0.233,0.438,0.104],"Leo Rivas":[0.183,0.216,0.197,0.03],"Leody Taveras":[0.198,0.278,0.352,0.064],"Liam Hicks":[0.244,0.144,0.277,0.035],"Liover Peguero":[0.177,0.284,0.327,0.091],"Logan O'Hoppe":[0.228,0.308,0.469,0.133],"Lourdes Gurriel Jr.":[0.256,0.139,0.383,0.072],"Luis Arraez":[0.287,0.031,0.167,0.011],"Luis García Jr.":[0.281,0.16,0.458,0.09],"Luis Matos":[0.219,0.147,0.377,0.075],"Luis Rengifo":[0.26,0.192,0.327,0.05],"Luis Robert Jr.":[0.246,0.26,0.416,0.102],"Luis Torrens":[0.274,0.198,0.481,0.107],"Luis Urías":[0.234,0.136,0.302,0.037],"Luis Vázquez":[0.22,0.264,0.444,0.111],"Luisangel Acuña":[0.235,0.192,0.355,0.014],"Luke Keaschall":[0.263,0.14,0.312,0.052],"Luke Maile":[0.261,0.296,0.452,0.065],"Luke Raley":[0.209,0.292,0.423,0.106],"MJ Melendez":[0.137,0.354,0.459,0.081],"Maikel Garcia":[0.276,0.126,0.451,0.056],"Manny Machado":[0.271,0.193,0.515,0.129],"Marcell Ozuna":[0.239,0.243,0.446,0.114],"Marcelo Mayer":[0.215,0.301,0.517,0.092],"Marcus Semien":[0.243,0.174,0.35,0.067],"Mark Canha":[0.214,0.192,0.33,0.022],"Mark Vientos":[0.246,0.248,0.505,0.115],"Martín Maldonado":[0.192,0.354,0.281,0.094],"Masataka Yoshida":[0.27,0.117,0.44,0.065],"Masyn Winn":[0.24,0.19,0.346,0.048],"Matt Chapman":[0.243,0.236,0.476,0.099],"Matt McLain":[0.212,0.289,0.407,0.077],"Matt Mervis":[0.145,0.373,0.38,0.085],"Matt Olson":[0.249,0.243,0.533,0.143],"Matt Shaw":[0.237,0.215,0.294,0.069],"Matt Thaiss":[0.197,0.242,0.429,0.045],"Matt Vierling":[0.25,0.24,0.455,0.121],"Matt Wallner":[0.205,0.291,0.455,0.138],"Matthew Lugo":[0.217,0.343,0.422,0.133],"Mauricio Dubón":[0.247,0.106,0.263,0.012],"Max Kepler":[0.243,0.196,0.447,0.116],"Max Muncy":[0.203,0.214,0.515,0.136],"Max Schuemann":[0.23,0.164,0.329,0.026],"Maximo Acosta":[0.248,0.279,0.568,0.135],"Michael A. Taylor":[0.186,0.338,0.429,0.105],"Michael Busch":[0.262,0.235,0.473,0.171],"Michael Conforto":[0.233,0.249,0.44,0.097],"Michael Harris II":[0.268,0.2,0.434,0.091],"Michael Helman":[0.179,0.191,0.247,0.086],"Michael Massey":[0.238,0.155,0.33,0.04],"Michael Toglia":[0.199,0.392,0.432,0.102],"Mickey Gasper":[0.167,0.182,0.312,0.013],"Mickey Moniak":[0.262,0.239,0.453,0.138],"Miguel Amaya":[0.244,0.214,0.329,0.066],"Miguel Andujar":[0.259,0.144,0.354,0.047],"Miguel Rojas":[0.249,0.145,0.312,0.04],"Miguel Vargas":[0.237,0.176,0.405,0.093],"Mike Tauchman":[0.244,0.223,0.388,0.068],"Mike Trout":[0.236,0.32,0.493,0.158],"Mike Yastrzemski":[0.237,0.194,0.426,0.085],"Miles Mastrobuoni":[0.28,0.166,0.364,0.023],"Mitch Garver":[0.209,0.276,0.469,0.079],"Moisés Ballesteros":[0.262,0.182,0.333,0.067],"Mookie Betts":[0.267,0.103,0.358,0.055],"Myles Straw":[0.252,0.167,0.271,0.039],"Nacho Alvarez Jr.":[0.228,0.236,0.268,0.014],"Nasim Nuñez":[0.239,0.217,0.422,0.047],"Nate Eaton":[0.243,0.211,0.375,0.063],"Nathan Church":[0.193,0.277,0.415,0.024],"Nathan Lukes":[0.259,0.137,0.37,0.047],"Nathaniel Lowe":[0.229,0.261,0.415,0.07],"Nick Allen":[0.22,0.238,0.216,0.0],"Nick Castellanos":[0.242,0.226,0.345,0.076],"Nick Fortes":[0.215,0.194,0.379,0.046],"Nick Gonzales":[0.254,0.179,0.388,0.045],"Nick Kurtz":[0.245,0.309,0.511,0.184],"Nick Loftin":[0.232,0.144,0.34,0.063],"Nick Martini":[0.215,0.162,0.31,0.036],"Nick Maton":[0.133,0.302,0.371,0.057],"Nick Sogard":[0.251,0.231,0.347,0.056],"Nick Yorke":[0.234,0.208,0.389,0.019],"Nico Hoerner":[0.292,0.076,0.303,0.023],"Noelvi Marte":[0.245,0.236,0.363,0.09],"Nolan Arenado":[0.245,0.112,0.326,0.039],"Nolan Gorman":[0.196,0.338,0.411,0.091],"Nolan Jones":[0.224,0.28,0.467,0.085],"Nolan Schanuel":[0.262,0.126,0.29,0.045],"Oneil Cruz":[0.218,0.32,0.566,0.179],"Orlando Arcia":[0.212,0.22,0.338,0.025],"Oscar Gonzalez":[0.266,0.213,0.457,0.065],"Oswald Peraza":[0.194,0.302,0.388,0.067],"Oswaldo Cabrera":[0.244,0.205,0.345,0.0],"Otto Kemp":[0.231,0.307,0.447,0.121],"Otto Lopez":[0.269,0.138,0.383,0.071],"Ozzie Albies":[0.243,0.141,0.307,0.049],"Parker Meadows":[0.225,0.263,0.309,0.051],"Patrick Bailey":[0.21,0.294,0.364,0.056],"Paul DeJong":[0.194,0.337,0.397,0.103],"Paul Goldschmidt":[0.266,0.187,0.437,0.079],"Pavin Smith":[0.215,0.319,0.461,0.117],"Pedro Pagés":[0.208,0.275,0.365,0.073],"Pete Alonso":[0.274,0.228,0.544,0.189],"Pete Crow-Armstrong":[0.242,0.24,0.416,0.13],"Rafael Devers":[0.244,0.263,0.561,0.16],"Rafael Marchán":[0.213,0.144,0.222,0.022],"Ramón Laureano":[0.27,0.244,0.491,0.138],"Ramón Urías":[0.227,0.225,0.418,0.08],"Randal Grichuk":[0.259,0.208,0.495,0.117],"Randy Arozarena":[0.227,0.269,0.506,0.115],"Reese McGuire":[0.208,0.193,0.367,0.092],"Rhys Hoskins":[0.22,0.277,0.464,0.103],"Riley Adams":[0.208,0.385,0.523,0.105],"Riley Greene":[0.239,0.307,0.455,0.171],"Rob Refsnyder":[0.243,0.258,0.523,0.123],"Robert Hassell III":[0.226,0.301,0.407,0.081],"Roman Anthony":[0.258,0.277,0.603,0.155],"Romy Gonzalez":[0.276,0.238,0.573,0.126],"Ronald Acuña Jr.":[0.263,0.248,0.525,0.157],"Ronny Mauricio":[0.218,0.293,0.43,0.088],"Ronny Simon":[0.24,0.17,0.369,0.062],"Rowdy Tellez":[0.234,0.266,0.464,0.153],"Royce Lewis":[0.24,0.199,0.403,0.087],"Ryan Fitzgerald":[0.224,0.151,0.342,0.132],"Ryan Jeffers":[0.243,0.196,0.421,0.063],"Ryan McMahon":[0.219,0.323,0.505,0.121],"Ryan Mountcastle":[0.253,0.275,0.471,0.117],"Ryan Noda":[0.131,0.424,0.348,0.087],"Ryan O'Hearn":[0.269,0.2,0.425,0.076],"Ryan Ritter":[0.211,0.295,0.305,0.015],"Sal Frelick":[0.255,0.135,0.274,0.031],"Sal Stewart":[0.289,0.259,0.525,0.175],"Salvador Perez":[0.269,0.195,0.467,0.148],"Sam Haggerty":[0.249,0.203,0.421,0.024],"Sam Hilliard":[0.166,0.377,0.571,0.179],"Sam Huff":[0.189,0.431,0.379,0.138],"Samuel Basallo":[0.213,0.254,0.43,0.089],"Santiago Espinal":[0.229,0.116,0.257,0.007],"Sean Bouchard":[0.179,0.37,0.308,0.0],"Sean Murphy":[0.201,0.312,0.431,0.132],"Seiya Suzuki":[0.247,0.252,0.487,0.166],"Seth Brown":[0.193,0.303,0.405,0.095],"Shea Langeliers":[0.251,0.197,0.449,0.112],"Shohei Ohtani":[0.274,0.257,0.587,0.235],"Spencer Horwitz":[0.251,0.178,0.36,0.082],"Spencer Steer":[0.219,0.227,0.332,0.076],"Spencer Torkelson":[0.226,0.26,0.451,0.135],"Starling Marte":[0.248,0.207,0.404,0.078],"Steven Kwan":[0.273,0.087,0.193,0.019],"Stuart Fairchild":[0.194,0.273,0.361,0.139],"TJ Friedl":[0.227,0.168,0.321,0.027],"Taylor Trammell":[0.187,0.304,0.403,0.078],"Taylor Walls":[0.21,0.221,0.264,0.032],"Taylor Ward":[0.231,0.264,0.427,0.137],"Teoscar Hernández":[0.25,0.245,0.461,0.115],"Thairo Estrada":[0.233,0.158,0.305,0.031],"Thomas Saggese":[0.239,0.281,0.441,0.056],"Tim Anderson":[0.183,0.322,0.364,0.0],"Tim Elko":[0.162,0.417,0.486,0.108],"Tim Tawa":[0.206,0.284,0.421,0.093],"Tommy Edman":[0.274,0.162,0.399,0.045],"Tommy Pham":[0.246,0.209,0.472,0.066],"Travis Jankowski":[0.236,0.24,0.343,0.0],"Travis d'Arnaud":[0.194,0.32,0.379,0.114],"Trea Turner":[0.27,0.167,0.421,0.058],"Trent Grisham":[0.248,0.236,0.464,0.142],"Trevor Larnach":[0.251,0.215,0.457,0.072],"Trevor Story":[0.249,0.269,0.47,0.098],"Trey Sweeney":[0.191,0.282,0.351,0.067],"Tristan Gray":[0.257,0.221,0.443,0.131],"Triston Casas":[0.212,0.241,0.444,0.097],"Troy Johnston":[0.27,0.215,0.407,0.093],"Ty France":[0.259,0.169,0.442,0.077],"Tyler Fitzgerald":[0.192,0.288,0.279,0.045],"Tyler Freeman":[0.278,0.119,0.404,0.021],"Tyler Heineman":[0.215,0.178,0.224,0.032],"Tyler Locklear":[0.172,0.371,0.417,0.067],"Tyler O'Neill":[0.243,0.244,0.391,0.165],"Tyler Soderstrom":[0.261,0.226,0.498,0.114],"Tyler Stephenson":[0.216,0.339,0.492,0.144],"Tyler Tolbert":[0.26,0.193,0.381,0.024],"Tyler Wade":[0.185,0.244,0.15,0.0],"Tyrone Taylor":[0.257,0.223,0.351,0.038],"Victor Caratini":[0.255,0.168,0.407,0.077],"Victor Robles":[0.203,0.228,0.232,0.049],"Victor Scott II":[0.225,0.24,0.26,0.037],"Vidal Bruján":[0.224,0.221,0.373,0.0],"Vinnie Pasquantino":[0.259,0.157,0.447,0.108],"Vinny Capra":[0.178,0.238,0.329,0.026],"Vladimir Guerrero Jr.":[0.3,0.138,0.507,0.122],"Warming Bernabel":[0.247,0.171,0.325,0.026],"Wenceel Pérez":[0.242,0.227,0.401,0.088],"Weston Wilson":[0.251,0.272,0.41,0.103],"Will Benson":[0.257,0.265,0.538,0.154],"Will Robertson":[0.145,0.36,0.318,0.091],"Will Smith":[0.269,0.204,0.471,0.122],"Will Wagner":[0.266,0.188,0.412,0.02],"Will Wilson":[0.154,0.374,0.367,0.02],"Willi Castro":[0.234,0.244,0.373,0.065],"William Contreras":[0.253,0.182,0.485,0.064],"Willie MacIver":[0.2,0.243,0.373,0.04],"Willson Contreras":[0.257,0.252,0.49,0.139],"Willy Adames":[0.224,0.261,0.428,0.126],"Wilmer Flores":[0.225,0.19,0.269,0.048],"Wilyer Abreu":[0.243,0.242,0.449,0.123],"Wyatt Langford":[0.239,0.264,0.484,0.14],"Xander Bogaerts":[0.267,0.17,0.392,0.069],"Xavier Edwards":[0.262,0.142,0.294,0.008],"Yainer Diaz":[0.268,0.168,0.422,0.096],"Yandy Díaz":[0.285,0.141,0.525,0.083],"Yanquiel Fernández":[0.19,0.299,0.368,0.084],"Yohel Pozo":[0.246,0.131,0.353,0.022],"Yordan Alvarez":[0.284,0.166,0.529,0.138],"Yoán Moncada":[0.217,0.26,0.434,0.143],"Zach Cole":[0.198,0.385,0.481,0.148],"Zach Dezenzo":[0.225,0.339,0.41,0.164],"Zach McKinstry":[0.247,0.217,0.305,0.061],"Zach Neto":[0.251,0.269,0.466,0.14],"Zack Gelof":[0.143,0.455,0.479,0.125],"Zack Short":[0.175,0.321,0.394,0.03]};
+
+
+
+// SP_STATS: [ERA, WHIP, K/9, hand] — covers ~100 active starters
+// K/9 converted to approx K% via: kpct ≈ k9 / (9 * ~4.0 PA/IP * ~0.9 BF/PA) ≈ k9 / 32.4
+// Simpler: kpct ≈ k9 * 0.028  (league avg ~8.5 K/9 = ~24% K%)
+function normalize(s){
+  return s.toLowerCase()
+    .replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i')
+    .replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/[ñ]/g,'n')
+    .replace(/[.]/g,'').trim();
+}
+
+const NAME_ALIASES = {
+  // Jr/Sr suffixes
+  'vladimir guerrero':       'vladimir guerrero jr.',
+  'vladimir guerrero jr':    'vladimir guerrero jr.',
+  'vladimir guerrero jr.':   'vladimir guerrero jr.',
+  'bobby witt':              'bobby witt jr.',
+  'bobby witt jr':           'bobby witt jr.',
+  'fernando tatis':          'fernando tatis jr.',
+  'fernando tatis jr':       'fernando tatis jr.',
+  'ronald acuna':            'ronald acuna jr.',
+  'ronald acuna jr':         'ronald acuna jr.',
+  'ronald acuña':            'ronald acuna jr.',
+  'ronald acuña jr.':        'ronald acuna jr.',
+  'chas mccormick':          'chas mccormick',
+  'michael harris':          'michael harris ii',
+  'michael harris ii':       'michael harris ii',
+  // Accent normalization (FantasyLabs vs Savant)
+  'yordan alvarez':          'yordan alvarez',
+  'jose ramirez':            'jose ramirez',
+  'julio rodriguez':         'julio rodriguez',
+  'elly de la cruz':         'elly de la cruz',
+  'luisangel acuna':         'luisangel acuña',
+  // Common shortened/alternate names
+  'cj abrams':               'cj abrams',
+  'tj friedl':               'tj friedl',
+  'jj wetherholt':           'jj wetherholt',
+  'jo adell':                'jo adell',
+  'ha-seong kim':            'ha-seong kim',
+  'jung hoo lee':            'jung hoo lee',
+  "ryan o'hearn":            "ryan o'hearn",
+  'ke bryan hayes':          "ke'bryan hayes",
+  "ke'bryan hayes":          "ke'bryan hayes",
+  // Pete Crow-Armstrong
+  'pete crow-armstrong':     'pete crow-armstrong',
+  'pete crow armstrong':     'pete crow-armstrong',
+  // Others commonly mismatched
+  'cedric mullins':          'cedric mullins ii',
+  'cedric mullins ii':       'cedric mullins ii',
+  'victor scott':            'victor scott ii',
+  'victor scott ii':         'victor scott ii',
+};
+
+// Resolve a display name to its canonical Statcast name
+function resolveAlias(name) {
+  const key = normalize(name);
+  return NAME_ALIASES[key] || name;
+}
+
+const SC_NORM = {};
+Object.keys(STATCAST).forEach(k => { SC_NORM[normalize(k)] = STATCAST[k]; });
+
+// Generic lookup helper — searches a live map then SC_NORM embedded fallback
+function lookupInMap(map, name) {
+  // First resolve any known aliases (Jr., accents, alternate spellings)
+  const resolved = resolveAlias(name);
+  const key = normalize(resolved);
+  if (map[key]) return map[key];
+
+  // Try original name too in case alias wasn't needed
+  const origKey = normalize(name);
+  if (map[origKey]) return map[origKey];
+
+  // Fuzzy: match on last name + first initial
+  // But skip if last part is 'jr', 'sr', 'ii', 'iii' — use second-to-last instead
+  const parts = key.split(' ');
+  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'jr.', 'sr.']);
+  let lLast = parts[parts.length - 1];
+  if (SUFFIXES.has(lLast) && parts.length >= 3) {
+    lLast = parts[parts.length - 2]; // use actual last name
+  }
+  const lInit = parts[0][0];
+  const lm = Object.keys(map).find(k => {
+    const kp = k.split(' ');
+    let kLast = kp[kp.length - 1];
+    if (SUFFIXES.has(kLast) && kp.length >= 3) kLast = kp[kp.length - 2];
+    return kLast === lLast && kp[0][0] === lInit;
+  });
+  if (lm) return map[lm];
+  return null;
+}
+
+// Look up batter stats — spHand determines which split xBA to use
+// Returns: { xba (split-specific), kpct, hardhitpct, barrelpct, splitUsed }
+function lookupStatcast(name, spHand) {
+  // Get overall stats (K%, HH%, Barrel%) — these are more stable overall than splits
+  const overall = lookupInMap(liveStatcast, name);
+
+  // Get split-specific xBA based on opposing SP hand
+  const splitMap = spHand === 'R' ? liveVsRHP : spHand === 'L' ? liveVsLHP : null;
+  const splitStats = splitMap ? lookupInMap(splitMap, name) : null;
+
+  // Embedded fallback for overall stats
+  const embKey = normalize(name);
+  let embedded = null;
+  if (SC_NORM[embKey]) { const s = SC_NORM[embKey]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+  if (!embedded) {
+    const parts = embKey.split(' ');
+    if (parts.length >= 2) {
+      const lLast = parts[parts.length-1], lInit = parts[0][0];
+      const match = Object.keys(SC_NORM).find(k => { const kp=k.split(' '); return kp[kp.length-1]===lLast && kp[0][0]===lInit; });
+      if (match) { const s = SC_NORM[match]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
     }
   }
 
-  // ── URL 1: expected_statistics — provides xBA, xSLG, xwOBA ──────────────────
-  let url1 = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=${type}&year=${year}&position=&team=&min=1&csv=true`;
-  if (hand) url1 += `&pitcher_hand=${hand}`;
+  if (!overall && !splitStats && !embedded) return null;
 
-  // ── URL 2: no longer needed — statcast leaderboard now fetched separately by frontend ──
-  let url2 = null;
+  // xBA: prefer split, fall back to overall live, then embedded
+  const splitXBA  = splitStats?.xba  ?? null;
+  const overallXBA = overall?.xba ?? embedded?.xba ?? null;
+
+  // Blend split xBA with overall when split PA is low
+  // splitStats.pa tells us how many PA in that split — fewer = more weight to overall
+  let xba = overallXBA;
+  let splitUsed = 'overall';
+  if (splitXBA !== null && overallXBA !== null) {
+    const splitPA = splitStats?.pa || 0;
+    // Confidence ramp: 0 PA = 0% split, 80+ PA = 100% split
+    // More aggressive than before — need 80 PA for full confidence vs 60
+    const wSplit = Math.min(1, splitPA / 80);
+    const wOverall = 1 - wSplit;
+    xba = parseFloat((splitXBA * wSplit + overallXBA * wOverall).toFixed(3));
+    splitUsed = splitPA >= 80 ? (spHand === 'R' ? 'vsRHP' : 'vsLHP')
+               : splitPA >= 20 ? `blend(${splitPA}PA)`
+               : 'overall';
+    // Store split PA count so scoring can apply a confidence penalty
+    return {
+      xba,
+      kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+      hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
+      barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+      splitUsed,
+      splitPA,      // expose PA count for confidence weighting in score
+      splitConfidence: parseFloat(wSplit.toFixed(2)), // 0-1
+    };
+  } else if (splitXBA !== null) {
+    xba = splitXBA;
+    splitUsed = spHand === 'R' ? 'vsRHP' : 'vsLHP';
+  }
+
+  return {
+    xba,
+    kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+    hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
+    barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+    splitUsed,
+    splitPA:         splitStats?.pa ?? 0,
+    splitConfidence: splitXBA !== null ? Math.min(1, (splitStats?.pa || 0) / 80) : 0,
+  };
+}
+
+// Lookup pitcher Statcast — live first, then SP_STATS hardcoded fallback
+function lookupPitcher(name) {
+  const key = normalize(name);
+  // 1. Live Statcast pitcher data (from proxy)
+  const liveMatch = lookupInMap(livePitchers, name);
+  if (liveMatch) return { ...liveMatch, fromStatcast: true };
+
+  // 2. SP_STATS hardcoded fallback (normalized lookup)
+  const sp = SP_NORM[key];
+  if (sp) return {
+    xbaAllowed:     null,
+    kpct:           sp[2] * 0.0275, // K/9 → approx K% (8.5 K/9 ≈ 23%, 12 K/9 ≈ 33%)
+    hardHitAllowed: null,
+    barrelAllowed:  null,
+    whiffPct:       null,
+    era: sp[0], whip: sp[1], k9: sp[2], hand: sp[3],
+    fromStatcast: false,
+  };
+
+  // 3. Partial name match in SP_NORM
+  const parts = key.split(' ');
+  if (parts.length >= 2) {
+    const lLast = parts[parts.length-1], lInit = parts[0][0];
+    const match = Object.keys(SP_NORM).find(k => {
+      const kp = k.split(' ');
+      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
+    });
+    if (match) {
+      const sp2 = SP_NORM[match];
+      return {
+        xbaAllowed: null, kpct: sp2[2] * 0.0275,
+        hardHitAllowed: null, barrelAllowed: null, whiffPct: null,
+        era: sp2[0], whip: sp2[1], k9: sp2[2], hand: sp2[3],
+        fromStatcast: false,
+      };
+    }
+  }
+  return null;
+}
+
+// ── Lineup projection ─────────────────────────────────────────────────────────
+// Batter handedness: R=right, L=left, S=switch
+const BATS = {
+  'Juan Soto':'L','Aaron Judge':'R','Jazz Chisholm Jr.':'L','Cody Bellinger':'L',
+  'Austin Wells':'L','Oswaldo Cabrera':'S','Trent Grisham':'L','Paul Goldschmidt':'R',
+  'Jorbit Vivas':'L','Rafael Devers':'L','Wilyer Abreu':'R','Masataka Yoshida':'L',
+  'Trevor Story':'R','Triston Casas':'L','Rob Refsnyder':'R','Connor Wong':'R',
+  'Ceddanne Rafaela':'R','David Hamilton':'L','Vladimir Guerrero Jr.':'R',
+  'George Springer':'R','Bo Bichette':'R','Daulton Varsho':'L','Alejandro Kirk':'R',
+  'Ernie Clement':'R','Davis Schneider':'R','Addison Barger':'L','Spencer Horwitz':'L',
+  'Gunnar Henderson':'L','Adley Rutschman':'S','Anthony Santander':'S',
+  'Ryan Mountcastle':'R','Colton Cowser':'L','Jordan Westburg':'R','Ramon Urias':'R',
+  'Austin Hays':'L','Jorge Mateo':'R','Brandon Lowe':'L','Yandy Diaz':'R',
+  'Josh Lowe':'L','Harold Ramirez':'R','Jonathan Aranda':'L','Jose Siri':'R',
+  'Richie Palacios':'L','Taylor Walls':'S',
+  'José Ramírez':'S','Josh Naylor':'L','Lane Thomas':'R','David Fry':'R',
+  'Will Brennan':'L','Bo Naylor':'L','Gabriel Arias':'R','Jhonkensy Noel':'R',
+  'Brayan Rocchio':'S','Carlos Correa':'R','Byron Buxton':'R','Ryan Jeffers':'R',
+  'Matt Wallner':'L','Max Kepler':'L','Trevor Larnach':'L','Edouard Julien':'L',
+  'Brooks Lee':'S','Christian Vázquez':'R','Bobby Witt Jr.':'R','Salvador Perez':'R',
+  'MJ Melendez':'L','Vinnie Pasquantino':'L','Hunter Renfroe':'R',
+  'Nelson Velázquez':'R','Maikel Garcia':'R','Michael Massey':'L','Freddy Fermin':'R',
+  'Jose Altuve':'R','Yordan Alvarez':'L','Alex Bregman':'R','Jeremy Peña':'R',
+  'Yainer Diaz':'R','Jake Meyers':'R','Mauricio Dubón':'R','Chas McCormick':'R',
+  'Victor Caratini':'S','Marcus Semien':'R','Corey Seager':'L','Nathaniel Lowe':'L',
+  'Adolis García':'R','Josh Smith':'L','Wyatt Langford':'R','Jonah Heim':'S',
+  'Travis Jankowski':'L','Leody Taveras':'S','Mike Trout':'R','Taylor Ward':'R',
+  'Nolan Schanuel':'L',"Logan O'Hoppe":'R','Mickey Moniak':'L','Zach Neto':'R',
+  'Luis Rengifo':'S','Julio Rodríguez':'R','Cal Raleigh':'L','Mitch Garver':'R',
+  'Eugenio Suárez':'R','Ty France':'R','Luke Raley':'L','Jorge Polanco':'S',
+  'Josh Rojas':'L','Sam Haggerty':'S','Francisco Lindor':'S','Pete Alonso':'R',
+  'Brandon Nimmo':'L','Jesse Winker':'L','Mark Vientos':'R','Jeff McNeil':'L',
+  'Starling Marte':'R','Francisco Alvarez':'R','Drake Baldwin':'L','Luisangel Acuña':'R',
+  'Ronald Acuña Jr.':'R','Ozzie Albies':'S','Austin Riley':'R','Marcell Ozuna':'R',
+  'Matt Olson':'L','Eddie Rosario':'L','Sean Murphy':'R','Michael Harris II':'L',
+  'Orlando Arcia':'R','Trea Turner':'R','Bryce Harper':'L','Kyle Schwarber':'L',
+  'Nick Castellanos':'R','Alec Bohm':'R','Brandon Marsh':'L','J.T. Realmuto':'R',
+  'Bryson Stott':'L','Johan Rojas':'R','CJ Abrams':'L','Keibert Ruiz':'R',
+  'Joey Meneses':'R','Alex Call':'L','Ildemaro Vargas':'R','Riley Adams':'R',
+  'Jake Alu':'R','Stone Garrett':'R','Dansby Swanson':'R','Ian Happ':'S',
+  'Nico Hoerner':'R','Michael Busch':'L','Christopher Morel':'R','Seiya Suzuki':'R',
+  'Miguel Amaya':'R','Miles Mastrobuoni':'R','Lars Nootbaar':'L','Nolan Arenado':'R',
+  'Willson Contreras':'R','Brendan Donovan':'L','Dylan Carlson':'S','Tommy Edman':'S',
+  'Masyn Winn':'R','Ivan Herrera':'R','Willy Adames':'R','William Contreras':'R',
+  'Christian Yelich':'L','Rhys Hoskins':'R','Jackson Chourio':'R','Sal Frelick':'L',
+  'Joey Wiemer':'R','Tyrone Taylor':'R','Owen Miller':'R','Elly De La Cruz':'S',
+  'TJ Friedl':'L','Jonathan India':'R','Tyler Stephenson':'R','Spencer Steer':'R',
+  'Jake Fraley':'L','Stuart Fairchild':'R','Matt McLain':'R','Will Benson':'L',
+  'Oneil Cruz':'L','Ji Hwan Bae':'L','Bryan Reynolds':'S','Carlos Santana':'S',
+  'Henry Davis':'R','Connor Joe':'R','Rowdy Tellez':'L','Josh Palacios':'L',
+  'Ji-Man Choi':'L','Corbin Carroll':'L','Ketel Marte':'S','Lourdes Gurriel Jr.':'R',
+  'Gabriel Moreno':'R','Christian Walker':'R','Randal Grichuk':'R',
+  'Geraldo Perdomo':'S','Jake McCarthy':'L','Joc Pederson':'L','Heliot Ramos':'R',
+  'Patrick Bailey':'S','Wilmer Flores':'R','Mike Yastrzemski':'L',
+  'Tyler Fitzgerald':'R','Marco Luciano':'R','Grant McCray':'L','Blake Sabol':'L',
+  'Casey Schmitt':'R','Mookie Betts':'R','Freddie Freeman':'L','Shohei Ohtani':'L',
+  'Will Smith':'R','Teoscar Hernandez':'R','Andy Pages':'R','Max Muncy':'L',
+  'Gavin Lux':'L','Miguel Rojas':'R','Fernando Tatis Jr.':'R','Manny Machado':'R',
+  'Xander Bogaerts':'R','Jake Cronenworth':'L','Jurickson Profar':'L',
+  'Jackson Merrill':'L','Ha-Seong Kim':'R','Kyle Higashioka':'R','Tyler Wade':'S',
+  'Ryan McMahon':'L','Ezequiel Tovar':'R','C.J. Cron':'R','Brenton Doyle':'R',
+  'Elias Díaz':'R','Charlie Blackmon':'L','Sean Bouchard':'R','Alan Trejo':'R',
+  'Andrew Vaughn':'R','Tommy Pham':'R','Korey Lee':'R','Nicky Lopez':'L',
+  'Gavin Sheets':'L','Zach DeLoach':'L','Lenyn Sosa':'R','Bryan Ramos':'R',
+  'Tim Anderson':'R','Kerry Carpenter':'L','Spencer Torkelson':'R','Matt Vierling':'R',
+  'Riley Greene':'L','Javier Báez':'R','Andy Ibáñez':'R','Parker Meadows':'L',
+  'Jake Rogers':'R','Brent Rooker':'R','Lawrence Butler':'L','Shea Langeliers':'R',
+  'Esteury Ruiz':'R','Seth Brown':'L','JJ Bleday':'L','Tyler Soderstrom':'L',
+  'Zack Gelof':'R','Nick Allen':'R','Luis Arraez':'L','Jake Burger':'R',
+  'Bryan De La Cruz':'R','Jesús Sánchez':'R','Josh Bell':'S','Nick Fortes':'R',
+  'Peyton Burdick':'R','René Pinto':'R','Rene Pinto':'R',
+    'Matt Chapman':'R',  'Harrison Bader':'R',  'Jordan Walker':'R',  'Pete Crow-Armstrong':'L',  'Roman Anthony':'L',  'Vaughn Grissom':'R',
+  'Junior Caminero':'R','Ben Williamson':'R','Chase DeLauter':'L','Kyle Manzardo':'L','Angel Martínez':'S','Steven Kwan':'L','Gleyber Torres':'R','Isaac Paredes':'R','Joey Loperfido':'R','Cam Smith':'R','Samuel Basallo':'L','Tyler O\'Neill':'R','Coby Mayo':'R','Blaze Alexander':'R','Carson Williams':'R','James Wood':'L','Daylen Lile':'L','JJ Wetherholt':'R','Moisés Ballesteros':'L','Iván Herrera':'R','Andrés Giménez':'S','Jarren Duran':'L','Carlos Narváez':'L','Caleb Durbin':'R','Marcelo Mayer':'L','Jung Hoo Lee':'L','Ben Rice':'L','José Caballero':'R',
+  'Jakob Marsee':'L',
+  'Otto Lopez':'R',
+  'Kyle Stowers':'L',
+  'Agustin Ramirez':'R',
+  'Liam Hicks':'L',
+  'Connor Norby':'R',
+  'Owen Caissie':'L',
+  'Graham Pauley':'L',
+  'Kevin McGonigle':'L',
+  'Colt Keith':'R',
+  'Dillon Dingler':'R',
+  'Nathan Lukes':'L',
+  'Pavin Smith':'L',
+  'Alek Thomas':'L',
+  'Jordan Lawlar':'L',
+  'Zac Veen':'L',
+  'Randy Arozarena':'R',
+  'Leo Rivas':'R',
+  'Dominic Canzone':'L',
+  'Ryan O\'Hearn':'L',
+  'Jared Triolo':'R',
+  'Nick Gonzales':'L',
+  'Jo Adell':'R',
+  'Jorge Soler':'R',
+  'Adam Frazier':'L',
+  'Nathan Church':'L',
+  'Miguel Andujar':'R',
+  'Kurt Suzuki':'R'
+};
+
+function getBats(name) { return BATS[name] || '?'; }
+
+function platoonLabel(bats, spHand, spPlatoon) {
+  if (bats === 'S') return { label: 'Switch', cls: 'good', adv: true };
+  if (!bats || bats === '?' || !spHand || spHand === '?') return { label: '?', cls: '', adv: null };
+  // Normal: same hand = pitcher advantage. Reverse split: opposite applies.
+  const isReverse = spPlatoon === 'reverse';
+  const normallyFav = bats !== spHand; // L vs R or R vs L = normally favorable
+  const fav = isReverse ? !normallyFav : normallyFav;
+  const reverseNote = isReverse ? ' (rev)' : '';
+  return fav
+    ? { label: bats + ' vs ' + spHand + ' ✓' + reverseNote, cls: 'good', adv: true }
+    : { label: bats + ' vs ' + spHand + reverseNote, cls: 'bad', adv: false };
+}
+
+// Known 2026 batting orders — sourced from MLB.com Opening Day + RotoWire current (Apr 20 2026)
+const SP_STATS = {
+  // AL East
+  'Gerrit Cole':[3.12,1.05,11.4,'R'],'Carlos Rodon':[3.85,1.22,10.8,'L'],
+  'Luis Gil':[3.90,1.25,10.2,'R'],'Clarke Schmidt':[4.10,1.28,8.8,'R'],
+  'Tanner Houck':[3.75,1.18,9.8,'R'],'Brayan Bello':[4.20,1.30,8.4,'R'],
+  'Kutter Crawford':[4.35,1.32,8.6,'R'],'Nick Pivetta':[4.45,1.35,9.2,'R'],
+  'Zack Wheeler':[3.07,1.08,10.2,'R'],'Ranger Suárez':[3.45,1.15,7.8,'L'],
+  'Cristopher Sánchez':[3.80,1.22,8.4,'L'],'Aaron Nola':[4.05,1.20,9.6,'R'],
+  'Braxton Garrett':[3.95,1.24,9.0,'L'],'Ryan Weathers':[4.20,1.28,8.2,'L'],
+  'Sandy Alcantara':[3.85,1.20,8.8,'R'],'Edward Cabrera':[4.30,1.32,10.2,'R'],
+  'Kevin Gausman':[3.45,1.12,10.4,'R'],'Jose Berrios':[4.15,1.28,8.6,'R'],
+  'Yusei Kikuchi':[3.80,1.22,10.8,'L'],'Chris Bassitt':[4.25,1.30,8.4,'R'],
+  'Bowden Francis':[4.40,1.35,9.0,'R'],'Yariel Rodriguez':[4.20,1.30,9.8,'R'],
+  'Dean Kremer':[4.35,1.32,7.8,'R'],'Grayson Rodriguez':[3.90,1.22,10.2,'R'],
+  'Trevor Rogers':[4.45,1.38,9.0,'L'],'Zach Eflin':[4.10,1.25,7.6,'R'],
+  // AL Central
+  'Tarik Skubal':[2.99,1.00,11.2,'L'],'Casey Mize':[4.20,1.28,7.8,'R'],
+  'Reese Olson':[4.05,1.24,9.4,'R'],'Kenta Maeda':[4.45,1.35,8.2,'R'],
+  'Gavin Williams':[3.95,1.24,10.2,'R'],'Tanner Bibee':[3.85,1.20,9.4,'R'],
+  'Ben Lively':[4.30,1.32,7.6,'R'],'Matthew Boyd':[4.40,1.35,9.0,'L'],
+  'Pablo López':[3.50,1.15,9.8,'R'],'Bailey Ober':[3.85,1.18,8.8,'R'],
+  'Louie Varland':[4.25,1.30,8.4,'R'],'David Festa':[4.50,1.38,8.6,'R'],
+  'Cole Ragans':[3.14,1.12,10.2,'L'],'Seth Lugo':[3.60,1.18,8.4,'R'],
+  'Michael Wacha':[4.20,1.30,7.8,'R'],'Brady Singer':[4.10,1.25,8.2,'R'],
+  'Jonathan Cannon':[4.55,1.40,7.4,'R'],'Chris Flexen':[4.65,1.42,6.8,'R'],
+  'Garrett Crochet':[3.80,1.20,11.8,'L'],'Sean Burke':[4.45,1.38,8.8,'R'],
+  'Erick Fedde':[4.30,1.32,7.6,'R'],'Davis Martin':[4.60,1.42,7.2,'R'],
+  // AL West
+  'Logan Gilbert':[3.44,1.09,10.8,'R'],'Luis Castillo':[3.48,1.18,10.1,'R'],
+  'George Kirby':[3.65,1.12,8.8,'R'],'Bryan Woo':[4.05,1.24,9.2,'R'],
+  'Hunter Brown':[3.75,1.19,10.2,'R'],'Framber Valdez':[3.45,1.18,8.8,'L'],
+  'Ronel Blanco':[3.95,1.24,9.4,'R'],'Spencer Arrighetti':[4.30,1.32,9.8,'R'],
+  'Taj Bradley':[3.85,1.22,9.4,'R'],'Shane Baz':[4.10,1.26,9.8,'R'],
+  'Zach Littell':[4.40,1.35,7.6,'R'],'Ryan Pepiot':[4.20,1.28,9.0,'R'],
+  'Tyler Anderson':[4.45,1.35,7.8,'L'],'Patrick Sandoval':[4.20,1.30,9.2,'L'],
+  'Reid Detmers':[4.35,1.32,9.0,'L'],'Jose Soriano':[4.25,1.30,9.4,'R'],
+  'Nathan Eovaldi':[4.15,1.28,8.4,'R'],'Andrew Heaney':[4.30,1.32,10.2,'L'],
+  'Kumar Rocker':[4.40,1.35,10.0,'R'],'Jack Leiter':[4.50,1.38,9.6,'R'],
+  'JP Sears':[4.35,1.33,8.6,'L'],'Luis Medina':[4.45,1.38,9.8,'R'],
+  'Aaron Civale':[4.25,1.30,7.8,'R'],'Shota Imanaga':[3.55,1.12,9.6,'L'],
+  // NL East
+  'Spencer Strider':[3.10,1.00,13.5,'R'],'Max Fried':[2.88,1.06,9.8,'L'],
+  'Chris Sale':[3.20,1.08,10.8,'L'],'Reynaldo López':[3.20,1.10,9.8,'R'],
+  'Andrew Painter':[3.65,1.15,10.8,'R'],'Cristopher Sánchez':[3.80,1.22,8.4,'L'],
+  'Jose Quintana':[4.40,1.35,7.8,'L'],'David Peterson':[4.12,1.28,8.4,'L'],
+  'Sean Manaea':[3.95,1.24,9.4,'L'],'Griffin Canning':[4.35,1.33,8.2,'R'],
+  'MacKenzie Gore':[4.05,1.26,10.2,'L'],'Jake Irvin':[4.40,1.35,7.6,'R'],
+  'Patrick Corbin':[5.20,1.55,6.4,'L'],'Trevor Williams':[4.50,1.38,7.8,'R'],
+  'Yoshinobu Yamamoto':[3.00,1.00,11.2,'R'],'Tyler Glasnow':[3.35,1.08,12.0,'R'],
+  'Gavin Stone':[3.90,1.22,9.4,'R'],'River Ryan':[4.20,1.28,9.8,'R'],
+  'Dylan Cease':[3.70,1.18,11.2,'R'],'Michael King':[3.55,1.14,10.4,'R'],
+  'Matt Waldron':[4.30,1.32,7.8,'R'],'Randy Vasquez':[4.55,1.40,8.4,'R'],
+  // NL Central
+  'Corbin Burnes':[2.94,1.05,10.8,'R'],'Freddy Peralta':[3.92,1.22,11.2,'R'],
+  'Colin Rea':[4.35,1.33,7.6,'R'],'Wade Miley':[4.50,1.38,7.2,'L'],
+  'Jameson Taillon':[4.20,1.28,7.8,'R'],'Javier Assad':[4.15,1.26,8.4,'R'],
+  'Kyle Hendricks':[4.65,1.42,6.2,'R'],'Justin Steele':[3.85,1.20,9.2,'L'],
+  'Sonny Gray':[3.75,1.18,9.8,'R'],'Nick Lodolo':[3.95,1.24,10.4,'L'],
+  'Hunter Greene':[3.80,1.20,12.2,'R'],'Graham Ashcraft':[4.35,1.33,7.6,'R'],
+  'Miles Mikolas':[4.30,1.30,7.4,'R'],'Erick Fedde':[4.30,1.32,7.6,'R'],
+  'Kyle Gibson':[4.55,1.40,7.2,'R'],'Paul Skenes':[2.85,1.02,11.8,'R'],
+  'Jared Jones':[4.10,1.26,10.4,'R'],'Marco Gonzales':[4.65,1.42,6.8,'L'],
+  // NL West
+  'Logan Webb':[3.25,1.10,8.4,'R'],'Robbie Ray':[3.95,1.25,10.1,'L'],
+  'Blake Snell':[3.85,1.24,11.4,'L'],'Mason Black':[4.40,1.35,9.0,'R'],
+  'Kyle Freeland':[4.55,1.40,7.2,'L'],'Cal Quantrill':[4.35,1.33,7.4,'R'],
+  'Ryan Feltner':[5.10,1.52,7.8,'R'],'Austin Gomber':[4.80,1.48,7.4,'L'],
+  'Zac Gallen':[3.65,1.14,9.8,'R'],'Merrill Kelly':[3.95,1.24,8.4,'R'],
+  'Eduardo Rodriguez':[4.25,1.30,8.8,'L'],'Brandon Pfaadt':[4.15,1.26,9.2,'R'],
+  'Ryne Nelson':[4.45,1.31,8.9,'R'],'Joe Musgrove':[3.80,1.20,9.4,'R'],
+  'Yu Darvish':[3.75,1.18,9.0,'R'],'Adam Mazur':[4.35,1.33,8.6,'R'],
+  'Clayton Kershaw':[3.95,1.22,8.8,'L'],'Bobby Miller':[4.10,1.26,9.4,'R'],
+  'Tony Gonsolin':[4.30,1.30,8.2,'R'],'Walker Buehler':[4.20,1.28,9.0,'R'],
+  // 2026 additions — pitchers missing from original dict
+  'Matthew Liberatore':[4.55,1.38,8.2,'L'],
+  'Mike Burrows':[3.85,1.22,9.8,'R'],
+  'Taijuan Walker':[4.80,1.42,7.8,'R'],
+  'Miles Mikolas':[4.25,1.30,7.2,'R'],
+  'Bubba Chandler':[4.10,1.28,9.4,'R'],
+  'Cam Schlittler':[4.20,1.30,9.1,'R'],
+  'Will Warren':[4.35,1.32,8.8,'R'],
+  'Ryan Weathers':[4.50,1.35,8.2,'L'],
+  'Luis Gil':[3.95,1.25,10.2,'R'],
+  'Kodai Senga':[3.80,1.18,10.8,'R'],
+  'Jose Soriano':[4.15,1.28,9.6,'R'],
+  'Michael Soroka':[4.40,1.33,7.8,'R'],
+  'Eric Lauer':[4.30,1.32,8.4,'L'],
+  'Logan Allen':[4.45,1.35,8.6,'L'],
+  'Parker Messick':[4.20,1.30,9.2,'L'],
+  'Joey Cantillo':[4.35,1.33,8.8,'L'],
+  'Gavin Williams':[4.15,1.28,9.4,'R'],
+  'Slade Cecconi':[4.50,1.36,8.6,'R'],
+  'Tanner Bibee':[3.90,1.22,9.2,'R'],
+  'Kyle Bradish':[3.75,1.18,9.8,'R'],
+  'Shane Baz':[4.10,1.28,9.6,'R'],
+  'Trevor Rogers':[3.85,1.24,9.0,'L'],
+  'Drew Rasmussen':[3.70,1.20,8.8,'R'],
+  'Ryan Pepiot':[4.05,1.26,9.4,'R'],
+  'Nick Martinez':[4.20,1.30,8.6,'R'],
+  'Steven Matz':[4.45,1.35,8.2,'L'],
+  'Shane McClanahan':[3.55,1.16,10.4,'L'],
+  'Cole Ragans':[3.65,1.18,11.0,'L'],
+  'Andrew Abbott':[4.00,1.24,10.2,'L'],
+  'Brayan Bello':[4.10,1.28,9.0,'R'],
+  'Kris Bubic':[4.35,1.33,8.4,'L'],
+  'Nathan Eovaldi':[3.90,1.24,8.6,'R'],
+  'Chris Bassitt':[4.15,1.28,8.4,'R'],
+  'Zach Eflin':[4.20,1.30,7.8,'R'],
+  'Sandy Alcantara':[3.80,1.22,8.8,'R'],
+  'Kyle Freeland':[4.65,1.42,7.4,'L'],
+  'Jacob Misiorowski':[4.35,1.30,10.8,'R'],
+  'Logan Gilbert':[3.50,1.14,10.2,'R'],
+  'Bryce Miller':[4.10,1.28,8.6,'R'],
+  'Bryan Woo':[3.80,1.20,9.4,'R'],
+  'Luis Castillo':[3.65,1.18,9.8,'R'],
+  'George Kirby':[3.55,1.15,9.0,'R'],
+  'Yoshinobu Yamamoto':[3.40,1.12,10.6,'R'],
+  'Jack Flaherty':[3.95,1.24,10.0,'R'],
+  'Bobby Miller':[4.10,1.26,9.4,'R'],
+  'Ryan Yarbrough':[4.40,1.34,7.6,'L'],
+  'Nick Pivetta':[3.95,1.24,9.8,'R'],
+  'Hunter Brown':[3.75,1.20,10.2,'R'],
+  'Cristian Javier':[4.25,1.30,9.8,'R'],
+  'Lance McCullers Jr.':[3.85,1.22,9.4,'R'],
+  'Tarik Skubal':[2.95,1.05,11.2,'L'],
+  'Max Fried':[3.50,1.15,9.8,'L'],
+  'Garrett Crochet':[3.20,1.08,12.0,'L'],
+  'Ranger Suarez':[3.55,1.18,9.2,'L'],
+  'Sonny Gray':[3.80,1.22,9.4,'R'],
+  'Zac Gallen':[3.75,1.20,9.6,'R'],
+  'Joe Ryan':[3.85,1.22,9.8,'R'],
+  'Chris Sale':[3.40,1.12,11.0,'L'],
+  'Kevin Gausman':[3.55,1.16,10.4,'R'],
+  'Dylan Cease':[3.80,1.20,11.2,'R'],
+  'Luis Severino':[4.54,1.32,9.0,'R'],
+  'Tobias Myers':[4.25,1.30,9.2,'R'],'Javier Assad':[4.10,1.28,9.0,'R'],'David Peterson':[4.12,1.28,8.4,'L'],'Griffin Canning':[4.55,1.38,8.2,'R'],'Paul Skenes':[2.99,1.05,11.8,'R'],
+  // Additional lefties commonly misidentified as R due to missing from dict
+  'PJ Poulin':[4.40,1.35,8.8,'L'],'P.J. Poulin':[4.40,1.35,8.8,'L'],
+  'MacKenzie Gore':[3.95,1.24,10.2,'L'],
+  'Cristopher Sanchez':[3.60,1.18,8.8,'L'],
+  'Patrick Sandoval':[4.30,1.32,9.0,'L'],
+  'Ryan Weathers':[4.50,1.35,8.2,'L'],
+  'Eric Lauer':[4.30,1.32,8.4,'L'],
+  'Joey Cantillo':[4.35,1.33,8.8,'L'],
+  'Parker Messick':[4.20,1.30,9.2,'L'],
+  'Logan Allen':[4.45,1.35,8.6,'L'],
+  'Kris Bubic':[4.35,1.33,8.4,'L'],
+  'Kyle Freeland':[4.65,1.42,7.4,'L'],
+  'Steven Matz':[4.45,1.35,8.2,'L'],
+  'Trevor Rogers':[3.85,1.24,9.0,'L'],
+  'Ranger Suarez':[3.55,1.18,9.2,'L'],
+  'Garrett Crochet':[3.20,1.08,12.0,'L'],
+  'Tarik Skubal':[2.95,1.05,11.2,'L'],
+  'Max Fried':[3.50,1.15,9.8,'L'],
+  'Cole Ragans':[3.65,1.18,11.0,'L'],
+  'Shane McClanahan':[3.55,1.16,10.4,'L'],
+  'Andrew Abbott':[4.00,1.24,10.2,'L'],
+  'Matthew Liberatore':[4.55,1.38,8.2,'L'],
+  'Clayton Kershaw':[3.95,1.22,8.8,'L'],
+  'Ryan Yarbrough':[4.40,1.34,7.6,'L'],
+  'Luis Garcia':[4.20,1.30,9.2,'L'],
+  'Jose Quintana':[4.55,1.38,7.8,'L'],
+  'Danny Duffy':[4.60,1.40,8.0,'L'],
+  'Robbie Ray':[4.35,1.32,10.2,'L'],
+  'Framber Valdez':[3.65,1.20,9.4,'L'],
+  'Rich Hill':[4.80,1.45,8.0,'L'],
+  'Sean Manaea':[3.95,1.24,9.2,'L'],
+  'Martin Perez':[4.50,1.38,7.8,'L'],
+  'Max Meyer':[3.85,1.22,10.4,'R'],'Jake Irvin':[4.30,1.32,8.2,'R'],
+  // Common starters missing — handedness verified
+  'PJ Poulin':[4.80,1.45,7.8,'L'],'P.J. Poulin':[4.80,1.45,7.8,'L'],
+  'MacKenzie Gore':[3.95,1.24,10.2,'L'],
+  'Patrick Corbin':[5.20,1.55,6.8,'L'],
+  'Trevor Williams':[4.40,1.33,8.0,'R'],
+  'Mitchell Parker':[4.35,1.32,9.0,'L'],
+  'Jake Irvin':[4.50,1.36,8.4,'R'],
+  'DJ Herz':[4.20,1.28,10.0,'L'],
+  'Cade Cavalli':[4.45,1.34,9.2,'R'],
+  'Jose Quintana':[4.80,1.42,7.6,'L'],
+  'Marco Gonzales':[4.55,1.38,7.4,'L'],
+  'Andrew Heaney':[4.35,1.32,10.2,'L'],
+  'Patrick Sandoval':[4.40,1.34,9.0,'L'],
+  'Wade Miley':[4.70,1.40,7.2,'L'],
+  'Framber Valdez':[3.65,1.20,9.0,'L'],
+  'Eduardo Rodriguez':[4.50,1.36,8.8,'L'],
+  'Sean Manaea':[3.95,1.24,9.2,'L'],
+  'Nestor Cortes':[4.10,1.28,9.8,'L'],
+  'James Paxton':[4.45,1.34,9.0,'L'],
+  'Rich Hill':[4.80,1.42,7.8,'L'],
+  'Jameson Taillon':[4.20,1.30,8.4,'R'],
+  'Cody Ponce':[4.60,1.38,8.0,'R'],
+  'Simeon Woods Richardson':[4.40,1.33,8.8,'R'],
+  'Reese Olson':[4.15,1.28,9.4,'R'],
+  'Sawyer Gipson-Long':[4.35,1.32,8.6,'R'],
+  'Jackson Jobe':[4.20,1.28,9.8,'R'],
+  'Keider Montero':[4.55,1.36,8.4,'R'],
+  'Casey Mize':[4.30,1.30,8.6,'R'],
+  'Jose Urquidy':[4.40,1.33,7.8,'R'],
+  'Ronel Blanco':[3.95,1.24,9.2,'R'],
+  'Spencer Schwellenbach':[3.80,1.20,9.4,'R'],
+  'Hurston Waldrep':[4.20,1.28,10.0,'R'],
+  'AJ Smith-Shaver':[4.45,1.34,9.0,'R'],
+  'Reynaldo Lopez':[4.10,1.28,9.6,'R'],
+  'Grant Holmes':[4.35,1.32,9.2,'R'],
+  'Bryce Elder':[4.50,1.36,7.8,'R'],
+  'Freddy Peralta':[4.05,1.26,11.0,'R'],
+  'Colin Rea':[4.45,1.35,7.6,'R'],
+  'Tobias Myers':[4.25,1.30,9.2,'R'],
+  'Max Scherzer':[4.20,1.28,10.0,'R'],
+  // Apr 21 2026 additions — missing from SP_STATS
+  'Ryan Weiss':[4.20,1.30,9.0,'R'],
+  'Chase Burns':[3.85,1.22,10.8,'R'],
+  'Dustin May':[4.10,1.28,8.4,'R'],
+  'Chris Paddack':[4.25,1.30,8.8,'R'],
+  'Kyle Harrison':[3.95,1.24,10.2,'L'],
+  'Foster Griffin':[4.40,1.35,8.2,'L'],
+  'Connelly Early':[4.50,1.38,8.6,'L'],
+  'Nolan McLean':[4.55,1.40,8.0,'R'],
+  'Jesus Luzardo':[3.80,1.22,10.4,'L'],
+  'Jack Kochanowicz':[4.35,1.33,9.0,'R'],
+  'Jacob Lopez':[4.30,1.32,8.8,'L'],
+  'Landen Roupp':[4.20,1.28,9.2,'R'],
+};
+
+
+// Normalize SP_STATS keys for accent-insensitive lookup
+const SP_NORM = {};
+Object.keys(SP_STATS).forEach(k => { SP_NORM[normalize(k)] = SP_STATS[k]; });
+
+// Pitchers with notable reverse platoon splits
+const REVERSE_SPLIT_PITCHERS = new Set([
+  'corbin burnes','kyle hendricks','andrew heaney',
+  'jose quintana','wade miley','marco gonzales','patrick sandoval',
+]);
+
+function getSPStats(name, apiHand) {
+  // apiHand: pitcher handedness from MLB API probablePitcher.pitchHand.code
+  // This is the most reliable source — always prefer it over SP_NORM
+  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: apiHand || 'R', platoon: 'normal' };
+  // Check runtime imported hand override from FantasyLabs paste
+  const importedHand = window.importedSPHands?.[name.toLowerCase()];
+  if (importedHand) apiHand = importedHand;
+  const key = normalize(name);
+  const platoon = REVERSE_SPLIT_PITCHERS.has(key) ? 'reverse' : 'normal';
+  const toObj = (s, hand) => ({ era: s[0], whip: s[1], k9: s[2], hand: hand || s[3], platoon });
+  const s = SP_NORM[key];
+  // If we have API hand, use it — SP_NORM hand could be stale for switch-pitchers etc
+  if (s) return toObj(s, apiHand || s[3]);
+  const parts = key.split(' ');
+  if (parts.length >= 2) {
+    const lLast = parts[parts.length-1], lInit = parts[0][0];
+    const match = Object.keys(SP_NORM).find(k => {
+      const kp = k.split(' ');
+      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
+    });
+    if (match) return toObj(SP_NORM[match], apiHand || SP_NORM[match][3]);
+  }
+  // Unknown pitcher — use API hand if available, otherwise default R
+  // NOTE: Default was 'R' which was wrong for lefties — API hand fixes this
+  return { era: 4.20, whip: 1.28, k9: 8.8, hand: apiHand || 'R', platoon };
+}
+
+// Merge live 2026 pitcher stats from MLB Stats API into SP stats object
+// Call this after fetchPitcherStats() has populated livePitcherStats
+function mergeLivePitcherStats(spStats) {
+  if (!spStats?.id) return spStats;
+  const live = livePitcherStats[spStats.id];
+  if (!live) return spStats;
+  return {
+    ...spStats,
+    // Use live 2026 stats where available, fall back to SP_STATS
+    era:   live.era   ?? spStats.era,
+    whip:  live.whip  ?? spStats.whip,
+    k9:    live.k9    ?? spStats.k9,
+    // Always use API hand — most reliable source
+    hand:  live.hand  || spStats.hand,
+    // Store live K% for use in pitcher matchup scoring
+    liveKpct: live.kpct ?? null,
+    livePa:   live.pa   ?? 0,
+    source: 'live-mlb-api',
+  };
+}
+
+const DEPTH_CHARTS = {
+  // AL East
+  'NYY': ['Trent Grisham','Ben Rice','Aaron Judge','Cody Bellinger','Giancarlo Stanton','Jazz Chisholm Jr.','Austin Wells','José Caballero','Ryan McMahon'],
+  'BOS': ['Roman Anthony','Trevor Story','Jarren Duran','Willson Contreras','Wilyer Abreu','Caleb Durbin','Marcelo Mayer','Ceddanne Rafaela','Carlos Narváez'],
+  'TOR': ['Nathan Lukes','Ernie Clement','Vladimir Guerrero Jr.','Jesus Sanchez','Eloy Jimenez','Daulton Varsho','Kazuma Okamoto','Andres Gimenez','Tyler Heineman'],
+  'BAL': ['Gunnar Henderson','Taylor Ward','Adley Rutschman','Pete Alonso','Dylan Beavers','Leody Taveras','Jeremiah Jackson','Colton Cowser','Coby Mayo'],
+  'TB':  ['Chandler Simpson','Junior Caminero','Jonathan Aranda','Yandy Diaz','Jake Fraley','Cedric Mullins','Richie Palacios','Nick Fortes','Taylor Walls'],
+  'TBR':  ['Chandler Simpson','Junior Caminero','Jonathan Aranda','Yandy Diaz','Jake Fraley','Cedric Mullins','Richie Palacios','Nick Fortes','Taylor Walls'],
+  // AL Central
+  'CLE': ['Steven Kwan','Chase DeLauter','José Ramírez','Kyle Manzardo','Rhys Hoskins','Angel Martínez','Bo Naylor','Gabriel Arias','Brayan Rocchio'],
+  'MIN': ['Byron Buxton','Trevor Larnach','Josh Bell','Ryan Jeffers','Kody Clemens','Luke Keaschall','Matt Wallner','Royce Lewis','Brooks Lee'],
+  'KC':  ['Maikel Garcia','Bobby Witt Jr.','Vinnie Pasquantino','Salvador Perez','Lane Thomas','Starling Marte','Isaac Collins','Nick Loftin','Elias Diaz'],
+  'KCR':  ['Maikel Garcia','Bobby Witt Jr.','Vinnie Pasquantino','Salvador Perez','Lane Thomas','Starling Marte','Isaac Collins','Nick Loftin','Elias Diaz'],
+  'CHW': ['Andrew Benintendi','Munetaka Murakami','Miguel Vargas','Colson Montgomery','Everson Pereira','Sam Antonacci','Chase Meidroth','Edgar Quero','Tristan Peters'],
+  'CWS': ['Andrew Benintendi','Munetaka Murakami','Miguel Vargas','Colson Montgomery','Everson Pereira','Sam Antonacci','Chase Meidroth','Edgar Quero','Tristan Peters'],
+  'DET': ['Kevin McGonigle','Gleyber Torres','Colt Keith','Riley Greene','Spencer Torkelson','Matt Vierling','Parker Meadows','Dillon Dingler','Zach McKinstry'],
+  // AL West
+  'HOU': ['Carlos Correa','Yordan Alvarez','Jose Altuve','Christian Walker','Isaac Paredes','Cam Smith','Daniel Johnson','Yainer Diaz','Dustin Harris'],
+  'TEX': ['Brandon Nimmo','Joc Pederson','Corey Seager','Jake Burger','Josh Jung','Evan Carter','Danny Jansen','Josh Smith','Alejandro Osuna'],
+  'LAA': ['Zach Neto','Mike Trout','Jo Adell','Jorge Soler','Oswald Peraza','Nolan Schanuel','Vaughn Grissom',"Logan O'Hoppe",'Bryce Teodosio'],
+  'ATH': ['Nick Kurtz','Shea Langeliers','Carlos Cortes','Tyler Soderstrom','Jacob Wilson','Jeff McNeil','Max Muncy','Lawrence Butler','Zack Gelof'],
+  'OAK': ['Nick Kurtz','Shea Langeliers','Carlos Cortes','Tyler Soderstrom','Jacob Wilson','Jeff McNeil','Max Muncy','Lawrence Butler','Zack Gelof'],
+  'SEA': ['J.P. Crawford','Cal Raleigh','Julio Rodriguez','Josh Naylor','Randy Arozarena','Luke Raley','Dominic Canzone','Cole Young','Leo Rivas'],
+  // NL East
+  'NYM': ['Bo Bichette','Juan Soto','Francisco Alvarez','Luis Robert','Brett Baty','Mark Vientos','Marcus Semien','Ronny Mauricio','Carson Benge'],
+  'ATL': ['Ronald Acuna Jr.','Drake Baldwin','Matt Olson','Austin Riley','Ozzie Albies','Michael Harris II','Dominic Smith','Mauricio Dubon','Mike Yastrzemski'],
+  'PHI': ['Trea Turner','Kyle Schwarber','Bryce Harper','Adolis Garcia','Brandon Marsh','Bryson Stott','Alec Bohm','Justin Crawford','Rafael Marchan'],
+  'MIA': ['Jakob Marsee','Xavier Edwards','Otto Lopez','Kyle Stowers','Agustin Ramirez','Liam Hicks','Connor Norby','Owen Caissie','Graham Pauley'],
+  'WSH': ['James Wood','Luis Garcia','Brady House','CJ Abrams','Jacob Young','Daylen Lile','Nasim Nunez','Jose Tena','Drew Millas'],
+  'WSN': ['James Wood','Luis Garcia','Brady House','CJ Abrams','Jacob Young','Daylen Lile','Nasim Nunez','Jose Tena','Drew Millas'],
+  // NL Central
+  'CHC': ['Nico Hoerner','Michael Busch','Alex Bregman','Ian Happ','Seiya Suzuki','Moisés Ballesteros','Miguel Amaya','Pete Crow-Armstrong','Dansby Swanson'],
+  'STL': ['JJ Wetherholt','Iván Herrera','Alec Burleson','Jordan Walker','Nolan Gorman','Masyn Winn','Nathan Church','Pedro Pagés','Victor Scott II'],
+  'MIL': ['Jackson Chourio','William Contreras','Christian Yelich','Rhys Hoskins','Sal Frelick','Joey Wiemer','Owen Miller','Tyrone Taylor','Brian Anderson'],
+  'CIN': ['TJ Friedl','Matt McLain','Elly De La Cruz','Spencer Steer','Sal Stewart','Gavin Lux','Tyler Stephenson',"Ke\'Bryan Hayes",'Noelvi Marte'],
+  'PIT': ['Oneil Cruz','Brandon Lowe','Bryan Reynolds','Marcell Ozuna',"Ryan O'Hearn",'Jared Triolo','Spencer Horwitz','Nick Gonzales','Henry Davis'],
+  // NL West
+  'AZ':  ['Ketel Marte','Corbin Carroll','Geraldo Perdomo','Gabriel Moreno','Pavin Smith','Nolan Arenado','Carlos Santana','Alek Thomas','Jordan Lawlar'],
+  'SF':  ['Willy Adames','Luis Arraez','Matt Chapman','Rafael Devers','Casey Schmitt','Jung Hoo Lee','Heliot Ramos','Drew Gilbert','Patrick Bailey'],
+  'SFG':  ['Willy Adames','Luis Arraez','Matt Chapman','Rafael Devers','Casey Schmitt','Jung Hoo Lee','Heliot Ramos','Drew Gilbert','Patrick Bailey'],
+  'LAD': ['Shohei Ohtani','Freddie Freeman','Will Smith','Kyle Tucker','Teoscar Hernandez','Max Muncy','Andy Pages','Hyeseong Kim','Alex Freeland'],
+  'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Nick Castellanos','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
+  'SDP':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Nick Castellanos','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
+  'COL': ['Edouard Julien','Mickey Moniak','Hunter Goodman','TJ Rumfield','Ezequiel Tovar','Troy Johnston','Kyle Karros','Jake McCarthy','Jordan Beck'],
+};
+
+function buildLineups(gameLineups, rawGames) {
+  return gameLineups.map(gl => {
+    const awaySPStats = getSPStats(gl.awaySP?.fullName, gl.awaySPHand);
+    const homeSPStats = getSPStats(gl.homeSP?.fullName, gl.homeSPHand);
+    // Store pitcher IDs for live stats lookup
+    awaySPStats.id = gl.awaySPId ? String(gl.awaySPId) : null;
+    homeSPStats.id = gl.homeSPId ? String(gl.homeSPId) : null;
+
+    const buildSide = (confirmed, abbr, spHand) => {
+      if (confirmed.length >= 8) {
+        return confirmed.slice(0, 9).map((p, i) => {
+          const name = p.fullName || p.person?.fullName || 'Unknown';
+          // MLB API gives batSide.code: 'R', 'L', 'S'
+          const apiBats = p.batSide?.code || p.person?.batSide?.code || null;
+          return {
+            order: i + 1,
+            name,
+            position: p.position?.abbreviation || '?',
+            bats: apiBats || getBats(name),
+            confirmed: true,
+          };
+        });
+      }
+      // Project from depth chart
+      const chart = DEPTH_CHARTS[abbr] || [];
+      return chart.slice(0, 9).map((name, i) => ({
+        order: i + 1,
+        name,
+        position: guessPosition(name, i),
+        bats: getBats(name),
+        confirmed: false,
+      }));
+    };
+
+    return {
+      awayTeam: gl.awayTeam,
+      awayAbbr: gl.awayAbbr,
+      homeTeam: gl.homeTeam,
+      homeAbbr: gl.homeAbbr,
+      venue: gl.venue,
+      awaySP: gl.awaySP?.fullName || 'TBD',
+      awaySPHand: awaySPStats.hand,
+      awaySPStats: awaySPStats,
+      homeSP: gl.homeSP?.fullName || 'TBD',
+      homeSPHand: homeSPStats.hand,
+      homeSPStats: homeSPStats,
+      awayLineup: buildSide(gl.awayConfirmed, gl.awayAbbr, homeSPStats.hand),
+      homeLineup: buildSide(gl.homeConfirmed, gl.homeAbbr, awaySPStats.hand),
+    };
+  });
+}
+
+function guessPosition(name, idx) {
+  const positions = ['CF','SS','1B','3B','LF','RF','2B','C','DH'];
+  return positions[idx] || 'UT';
+}
+
+// ── Scoring ───────────────────────────────────────────────────────────────────
+function scoreAllPlayers(games, maxOrder, minPA) {
+  const players = [];
+  games.forEach(g => {
+    ['away','home'].forEach(side => {
+      const lineup = g[side + 'Lineup'];
+      const opponentSP = side === 'away' ? g.homeSP : g.awaySP;
+      const opponentSPStats = side === 'away' ? g.homeSPStats : g.awaySPStats;
+      const opponentSPHand = side === 'away' ? g.homeSPHand : g.awaySPHand;
+      const myTeam = side === 'away' ? g.awayTeam : g.homeTeam;
+      const myAbbr = side === 'away' ? g.awayAbbr : g.homeAbbr;
+      const opponentTeam = side === 'away' ? g.homeTeam : g.awayTeam;
+      const oddsEntry = liveOdds[myAbbr] || null;
+      const impliedRuns = oddsEntry?.impliedRuns || null;
+
+      lineup.filter(p => p.order <= maxOrder).forEach(p => {
+        const sc = lookupStatcast(p.name, opponentSPHand);
+        if (sc && sc.pa < minPA && sc.pa > 0) return; // filter low PA
+
+        const spSC = lookupPitcher(opponentSP);
+        // Merge live 2026 MLB API stats into SP stats (updates ERA/WHIP/K9/hand)
+        const mergedSPStats = mergeLivePitcherStats(opponentSPStats);
+        const mergedSPHand  = mergedSPStats.hand || opponentSPHand;
+        const scored  = computeScore(p, sc, mergedSPStats, mergedSPHand, g.venue, p.bats || '?', spSC, impliedRuns);
+        const scoredA = computeScoreModelA(p, sc, mergedSPStats, mergedSPHand, g.venue, p.bats || '?', spSC, impliedRuns);
+        players.push({
+          ...scored,
+          scoreA: scoredA.compositeScore,
+          tierA:  scoredA.tier,
+          name: p.name,
+          team: myAbbr,
+          teamFull: myTeam,
+          position: p.position,
+          battingOrder: p.order,
+          lineupStatus: p.confirmed ? 'Confirmed' : 'Projected',
+          opponent: opponentTeam,
+          pitcher: opponentSP,
+          pitcherHand: opponentSPHand,
+          venue: g.venue,
+          impliedRuns: impliedRuns,
+        });
+      });
+    });
+  });
+  return players;
+}
+
+function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRuns) {
+  // --- Batter split xBA (30%) ---
+  const xba = (sc?.xba != null && sc.xba > 0) ? sc.xba : 0.255;
+  const rawXbaScore = Math.min(100, Math.max(0, ((xba - 0.180) / (0.360 - 0.180)) * 100));
+  // Split confidence: when split PA is low, regress xBA score toward league avg (50)
+  // Full confidence at 80+ split PA, pure regression at 0 PA
+  const splitConf = sc?.splitConfidence ?? (sc?.splitUsed === 'overall' ? 0 : 0.5);
+  const leagueAvgXbaScore = 50;
+  const xbaScore = Math.round(rawXbaScore * splitConf + leagueAvgXbaScore * (1 - splitConf));
+
+  // --- Batter K% and contact metrics ---
+  const hh     = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
+  const barrel = (sc?.barrelpct  != null && sc.barrelpct  >= 0) ? sc.barrelpct  : 0.07;
+  const kpct   = (sc?.kpct != null && sc.kpct >= 0) ? sc.kpct : 0.22;
+
+  // --- Contact-adjusted xBA: xBA × (1 - K%) ---
+  // Core per-PA hit probability signal.
+  const contactAdjXba = xba * (1 - kpct);
+  // Scale 0-100: ~.100 (weak/high-K) to .310 (elite/low-K)
+  const contactAdjScore = Math.min(100, Math.max(0,
+    ((contactAdjXba - 0.100) / (0.310 - 0.100)) * 100
+  ));
+
+  // --- Barrel% standalone (independent signal) ---
+  // Barrel% has less overlap with xBA than HH% since it requires
+  // both exit velo AND optimal launch window — captures true power ceiling
+  const barrelScore = Math.min(100, Math.max(0,
+    ((barrel - 0.02) / (0.20 - 0.02)) * 100
+  ));
+
+  // kScore kept for reasoning/display only (not used in composite)
+  const kScore = Math.min(100, Math.max(0, (1 - (kpct - 0.05) / (0.40 - 0.05)) * 100));
+
+  // --- Pitcher matchup (18%) ---
+  // Priority: live Statcast pitcher metrics > hardcoded SP_STATS fallback
+  // Key metrics: K% (strikeout pitcher = harder to get hits), xBA allowed, HH% allowed, whiff%
+  let spScore;
+  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
+    // Live Statcast pitcher scoring — higher K% = harder for batters, lower xBA allowed = harder
+    const spK    = spSC.kpct           ?? 0.22;  // pitcher K% — higher = worse for batter
+    const spXBA  = spSC.xbaAllowed     ?? 0.255; // lower = harder for batter
+    const spHH   = spSC.hardHitAllowed ?? 0.38;  // lower = harder for batter
+    const spBar  = spSC.barrelAllowed  ?? 0.07;  // lower = harder for batter
+    const spWh   = spSC.whiffPct       ?? 0.25;  // higher = harder for batter
+
+    // Score from batter's perspective: higher = better matchup for batter
+    //
+    // For HIT PROPS specifically:
+    // K% is most important — K = guaranteed no hit
+    // xBA allowed = best contact quality metric (exit velo + launch angle)
+    // HH% allowed = high means batters making quality contact = more hits
+    // Whiff% = high means fewer balls in play = fewer hit opportunities  
+    // Barrel% = power metric, less relevant for singles/hit props specifically
+    // NOTE: ERA intentionally excluded — park/defense dependent, poor hit predictor
+
+    const kComp   = Math.min(100, Math.max(0, (1 - (spK  - 0.10) / (0.40 - 0.10)) * 100));
+    // xBA allowed: most direct hit predictor — high xBA against = more hits expected
+    const xbaComp = Math.min(100, Math.max(0, ((spXBA - 0.150) / (0.330 - 0.150)) * 100));
+    // HH% allowed: high = batters squaring up = more hits
+    const hhComp  = Math.min(100, Math.max(0, ((spHH  - 0.25)  / (0.60 - 0.25))   * 100));
+    // Whiff%: high whiff = fewer balls in play = fewer hit chances
+    const whComp  = Math.min(100, Math.max(0, (1 - (spWh - 0.15) / (0.42 - 0.15)) * 100));
+    // Barrel% allowed: least relevant for hit props (power ≠ singles)
+    const barComp = Math.min(100, Math.max(0, ((spBar - 0.02)  / (0.18 - 0.02))   * 100));
+
+    // Weights: K% and xBA dominate since they most directly predict hit suppression
+    spScore = kComp   * 0.38 +   // K% — most direct no-hit predictor
+              xbaComp * 0.35 +   // xBA allowed — best contact quality metric
+              hhComp  * 0.15 +   // HH% allowed — contact quality signal
+              whComp  * 0.08 +   // Whiff% — balls-in-play suppression
+              barComp * 0.04;    // Barrel% — least relevant for hit props
+  } else {
+    // Fallback: SP_STATS has ERA/WHIP/K9 — use K/9 and WHIP only, skip ERA
+    // K/9 → approx K%: 9 K/9 ≈ 24%, 12 K/9 ≈ 32%, 6 K/9 ≈ 16%
+    const k9   = spSC?.k9   || spStats.k9   || 8.5;
+    const whip = spSC?.whip || spStats.whip  || 1.35;
+    // K/9 range 5.0-13.0 (realistic MLB bounds) — higher = harder for batter
+    // Each full K/9 unit = 12.5 pts, so Skubal vs Freeland is ~50pt gap
+    const k9Comp   = Math.min(100, Math.max(0, (1 - (k9   - 5.0) / (13.0 - 5.0)) * 100));
+    // WHIP range 0.90-1.70 — higher = softer pitcher, better for batter
+    const whipComp = Math.min(100, Math.max(0, ((whip - 0.90) / (1.70 - 0.90)) * 100));
+    // K/9 gets 65% — most reliable hit-prop signal. WHIP adds context on control.
+    spScore = k9Comp * 0.65 + whipComp * 0.35;
+  }
+
+  // No flat platoon bonus — split xBA already encodes platoon advantage.
+  // Switch hitters get a small bonus since they always have the favorable side.
+  const spPlatoon = spStats?.platoon || 'normal';
+  const platoon = platoonLabel(bats, spHand, spPlatoon);
+  const switchBonus = 0; // switch bonus removed — handled via platoonAdj
+  const platoonAdj = platoon.adv === true && bats !== 'S' ? 3 : 0; // +3 for favorable platoon
+  const matchupScore = Math.min(100, Math.max(0, spScore + switchBonus));
+
+  // ── Pitcher as multiplier on contactAdjXba ─────────────────────────────────
+  // Instead of adding pitcher matchup additively (which lets a great batter offset
+  // a tough pitcher by averaging), we compute a pitcher factor that scales the
+  // batter's contact-adjusted xBA up or down.
+  //
+  // pitcherFactor: 0.75 (elite ace) → 1.25 (very hittable pitcher), centered at 1.0
+  // This correctly models that a .280 contact hitter vs Corbin Burnes has a genuinely
+  // lower hit probability — not just a separate penalty that partially cancels out.
+  //
+  // matchupScore is 0-100 where 50 = league average pitcher
+  // Map to multiplier: score 0 → 0.75, score 50 → 1.00, score 100 → 1.25
+  const pitcherFactor = 0.70 + (matchupScore / 100) * 0.60;  // range: 0.70 (elite ace) → 1.30 (very hittable)
+  // Apply: scale contactAdjScore by pitcherFactor, clamp 0-100
+  const pitcherAdjContact = Math.min(100, Math.max(0, contactAdjScore * pitcherFactor));
+
+  // --- Park factor (8%) ---
+  const pk = parkScore(venue);
+
+  // --- Batting order (4%) ---
+  // PA per game by lineup slot (MLB averages): 1=4.7, 2=4.6, 3=4.5, 4=4.4, 5=4.3, 6=4.2, 7=4.0, 8=3.8, 9=3.6
+  const paBySlot = [4.7, 4.6, 4.5, 4.4, 4.3, 4.2, 4.0, 3.8, 3.6];
+  const slotPA = paBySlot[Math.min(player.order - 1, 8)];
+  const orderScore = Math.round(((slotPA - 3.6) / (4.7 - 3.6)) * 100);
+
+  // --- Implied team runs (14%) ---
+  // Two effects: (1) PA volume — more runs = more innings = more PA for bottom order
+  // (2) Offensive environment — high run games mean pitcher is struggling = more hits
+  // Effect is strongly order-dependent:
+  //   Slots 1-2: minimal effect — almost always get 4+ PA regardless
+  //   Slots 3-5: moderate effect
+  //   Slots 6-9: full effect — these hitters lose PA in low-scoring blowout losses
+  let impliedScore = 50; // neutral default when no odds data
+  if (impliedRuns !== null && impliedRuns !== undefined) {
+    // Range 2.5-6.0 runs → 0-100
+    // Neutral (50) at ~4.3 runs = actual MLB team average
+    // Today's typical range: 3.2 (very low) to 5.1 (very high)
+    // 6.0+ is rare ceiling — keeps scoring spread meaningful
+    impliedScore = Math.min(100, Math.max(0, ((impliedRuns - 2.5) / (6.0 - 2.5)) * 100));
+    // Small PA penalty only for bottom order (6-9) in low-run games (<4.0)
+    // These hitters risk losing plate appearances in lopsided losses
+    if (player.order >= 6 && impliedRuns < 4.0) {
+      const penalty = ((4.0 - impliedRuns) / (4.0 - 2.5)) * 12;
+      impliedScore = Math.max(0, Math.round(impliedScore - penalty));
+    } else {
+      impliedScore = Math.round(impliedScore);
+    }
+  }
+
+  // Weighted composite — weights sum to 1.0
+  // Weights: contactAdjScore = xBA × (1-K%) is the primary per-PA hit probability signal.
+  // K% is NO LONGER a separate component — it's baked into contactAdjScore to avoid double-counting.
+  // HH% removed (redundant with xBA). Barrel% kept as independent signal.
+  // ERA is NOT used anywhere in this model.
+  const rawComposite =
+    pitcherAdjContact * 0.56 +  // contact-adj xBA scaled by pitcher factor — primary signal
+    impliedScore      * 0.14 +  // team implied runs — PA penalty only bottom order in low-run games
+    orderScore        * 0.08 +  // PA volume by batting slot
+    barrelScore       * 0.04 +  // Barrel% — reduced: power ≠ hits
+    pk.score          * 0.05 +  // park factor
+    platoonAdj;                 // +3 flat for favorable platoon
+
+  const composite = Math.min(100, Math.max(0, Math.round(rawComposite)));
+
+  let tier = 'Avoid';
+  if (composite >= 65) tier = 'Elite';
+  else if (composite >= 57) tier = 'Strong';
+  else if (composite >= 48) tier = 'Lean';
+
+  // Build reasoning
+  const xbaStr = sc ? xba.toFixed(3) : '~.255 (est)';
+  const kStr   = sc ? (kpct * 100).toFixed(1) + '%' : '~22% (est)';
+  const reasons = [];
+  // Batter strengths
+  const splitSuffix = sc?.splitUsed && sc.splitUsed !== 'overall' ? ' ' + sc.splitUsed : '';
+  if (xba >= 0.290) reasons.push('strong xBA (' + xbaStr + splitSuffix + ')');
+  if (kpct <= 0.16) reasons.push('low K% (' + kStr + ')');
+  if (hh >= 0.46) reasons.push('elite HH% (' + (hh*100).toFixed(0) + '%)');
+  if (barrel >= 0.10) reasons.push('elite Barrel% (' + (barrel*100).toFixed(1) + '%)');
+  if (player.order <= 3) reasons.push('bats ' + (player.order===1?'leadoff':player.order===2?'2nd':'3rd'));
+  // Platoon
+  if (platoon.adv === true && bats !== 'S') reasons.push('favorable platoon (' + platoon.label + ')');
+  if (platoon.adv === false) reasons.push('same-side platoon (' + platoon.label + ')');
+  // Pitcher reasoning — ERA intentionally excluded
+  if (spSC && spSC.fromStatcast && spSC.kpct !== null) {
+    const spK = spSC.kpct;
+    // K% first — most direct hit suppression metric
+    if (spK >= 0.30) reasons.push('elite K% SP (' + (spK*100).toFixed(0) + '%) — tough');
+    else if (spK >= 0.24) reasons.push('high K% SP (' + (spK*100).toFixed(0) + '%)');
+    else if (spK <= 0.16) reasons.push('low K% SP (' + (spK*100).toFixed(0) + '%) — favorable');
+    // xBA allowed — best contact quality signal
+    if (spSC.xbaAllowed !== null) {
+      if (spSC.xbaAllowed >= 0.275) reasons.push('high xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ') — favorable');
+      else if (spSC.xbaAllowed <= 0.215) reasons.push('low xBA allowed (' + spSC.xbaAllowed.toFixed(3) + ') — tough');
+    }
+    // HH% allowed
+    if (spSC.hardHitAllowed !== null) {
+      if (spSC.hardHitAllowed >= 0.44) reasons.push('allows hard contact (' + (spSC.hardHitAllowed*100).toFixed(0) + '% HH)');
+      else if (spSC.hardHitAllowed <= 0.28) reasons.push('suppresses contact (' + (spSC.hardHitAllowed*100).toFixed(0) + '% HH)');
+    }
+    // Whiff%
+    if (spSC.whiffPct !== null && spSC.whiffPct >= 0.32) reasons.push('high whiff% (' + (spSC.whiffPct*100).toFixed(0) + '%) — fewer balls in play');
+  } else {
+    // Fallback: K/9 + WHIP, no ERA
+    const k9   = spSC?.k9   || spStats.k9   || 8.5;
+    const whip = spSC?.whip || spStats.whip  || 1.35;
+    if (k9 >= 10.5) reasons.push('high K/9 SP (' + k9.toFixed(1) + ') — tough');
+    else if (k9 <= 7.0) reasons.push('low K/9 SP (' + k9.toFixed(1) + ') — favorable');
+    if (whip >= 1.45) reasons.push('high WHIP (' + whip.toFixed(2) + ') — favorable');
+    else if (whip <= 1.10) reasons.push('low WHIP (' + whip.toFixed(2) + ') — tough');
+  }
+  // Park
+  if (pk.score >= 75) reasons.push('hitter park (' + venue + ')');
+  if (pk.score <= 30) reasons.push('pitcher park (' + venue + ')');
+  // Implied runs
+  if (impliedRuns !== null && impliedRuns !== undefined) {
+    if (impliedRuns >= 5.0) reasons.push('high run env (' + impliedRuns.toFixed(1) + ' proj)');
+    else if (impliedRuns >= 4.7) reasons.push('above-avg run env (' + impliedRuns.toFixed(1) + ' proj)');
+    if (impliedRuns < 3.8) reasons.push('low run env (' + impliedRuns.toFixed(1) + ' proj)' + (player.order >= 6 ? ' — PA risk' : ''));
+  }
+
+  // Negatives
+  if (kpct >= 0.28) reasons.push('high K% risk (' + kStr + ')');
+  if (xba < 0.230) reasons.push('weak xBA (' + xbaStr + splitSuffix + ')');
+  const reasoning = reasons.length ? reasons.join(' · ') + '.' : 'Moderate profile across all factors.';
+
+  return {
+    compositeScore: composite,
+    rawComposite,
+    contactScore: contactAdjScore,
+    pitcherAdjContact,
+    pitcherFactor,
+    matchupScore,
+    barrelScoreValue: barrelScore,
+    orderScoreValue: orderScore,
+    impliedScoreValue: impliedScore,
+    parkScoreValue: pk.score,
+    parkScoreLabel: pk.label,
+    slotPA,
+    platoonAdj,
+    tier,
+    xba,
+    kpct,
+    hardhitpct: hh,
+    barrelpct: barrel,
+    parkLabel: pk.label,
+    parkCls: pk.cls,
+    era: spStats.era,
+    statcastFound: !!sc,
+    splitUsed: sc?.splitUsed || 'overall',
+    spStatcast: !!(spSC?.fromStatcast && spSC.kpct !== null),
+    spKpct:  spSC?.kpct           ?? null,
+    spXBA:   spSC?.xbaAllowed     ?? null,
+    spHH:    spSC?.hardHitAllowed ?? null,
+    impliedRuns,
+    bats: bats || '?',
+    platoon,
+    platoonAdj,
+    reasoning,
+  };
+}
+
+// ── Render lineups tab ────────────────────────────────────────────────────────
+function renderLineupsTab(games) {
+  let html = '';
+  games.forEach(g => {
+    html += `<div class="card">
+      <div class="card-header">⚾ ${g.awayTeam} @ ${g.homeTeam} <span style="font-size:11px;font-weight:400;color:var(--muted);">${g.venue}</span></div>
+      <div class="card-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+        Away SP: <strong>${g.awaySP}</strong> (${g.awaySPHand}) · ERA ${g.awaySPStats.era.toFixed(2)} · WHIP ${g.awaySPStats.whip.toFixed(2)} · K/9 ${g.awaySPStats.k9.toFixed(1)}&nbsp;&nbsp;|&nbsp;&nbsp;
+        Home SP: <strong>${g.homeSP}</strong> (${g.homeSPHand}) · ERA ${g.homeSPStats.era.toFixed(2)} · WHIP ${g.homeSPStats.whip.toFixed(2)} · K/9 ${g.homeSPStats.k9.toFixed(1)}
+      </div>
+      <div class="lu-grid">`;
+    ['away','home'].forEach(side => {
+      const lineup = g[side + 'Lineup'];
+      const team = side === 'away' ? g.awayTeam : g.homeTeam;
+      const oSP = side === 'away' ? g.homeSP : g.awaySP;
+      const allConf = lineup.every(p => p.confirmed);
+      html += `<div class="lu-side">
+        <div class="lu-team-header">${team} <span class="game-badge ${allConf ? 'badge-confirmed' : 'badge-projected'}">${allConf ? '✓ Confirmed' : '~ Projected'}</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Batting vs ${oSP}</div>`;
+      lineup.forEach(p => {
+        const batsLabel = p.bats && p.bats !== '?' ? p.bats : '';
+        html += `<div class="lu-row">
+          <span class="lu-num">${p.order}</span>
+          <span class="lu-name">${p.name}</span>
+          <span class="lu-pos">${p.position} ${batsLabel}</span>
+          <span class="lu-conf ${p.confirmed ? 'confirmed' : 'projected'}">${p.confirmed ? '✓' : '~'}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div></div></div>`;
+  });
+  html += `<div class="disc">✓ Confirmed by MLB Stats API &nbsp;·&nbsp; ~ Projected from 2025/26 depth charts. Lineups typically post 3–4 hrs before first pitch ET.</div>`;
+  document.getElementById('luEmpty').style.display = 'none';
+  document.getElementById('luContent').innerHTML = html;
+}
+
+// ── Render results ────────────────────────────────────────────────────────────
+function renderResults(players) {
+  if (!players.length) return;
+  const elite = players.filter(p => p.tier === 'Elite').length;
+  const strong = players.filter(p => p.tier === 'Strong').length;
+  const avg = Math.round(players.reduce((a, p) => a + p.compositeScore, 0) / players.length);
+
+  // Data status bar — shows what actually loaded
+  const statcastCount = Object.keys(liveStatcast).length;
+  const embeddedCount = Object.keys(SC_NORM).length;
+  const pitcherCount  = Object.keys(livePitchers).length;
+  const oddsCount     = Object.keys(liveOdds).length;
+  const oddsLoaded    = players.some(p => p.impliedRuns !== null && p.impliedRuns !== undefined);
+  const statcastSrc   = statcastCount > 50 ? `${statcastCount} live` : statcastCount > 0 ? `${statcastCount} live + embedded` : `embedded dict`;
+  const fetchedAgo = window._statcastFetchedAt
+    ? Math.round((Date.now() - window._statcastFetchedAt) / 60000) + 'min ago'
+    : 'this session';
+  // Sample blend weight from top player to show typical 2026 vs 2025 weight
+  const samplePlayer = allScoredPlayers[0];
+  const samplePA = samplePlayer ? (liveStatcast[normalize(samplePlayer.name)]?.pa || 0) : 0;
+  const blendPct = samplePA > 0 ? Math.round(Math.min(100, samplePA / 100 * 100)) : 0;
+  const blendNote = samplePA > 0 ? ` · ${blendPct}% 2026 / ${100-blendPct}% 2025` : ' · using 2025 embedded';
+
+  const dataStatus = `<div class="status-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:11px;">
+    <span style="padding:3px 9px;border-radius:20px;background:#dcfce7;color:#15803d;" title="Fetched ${fetchedAgo}${blendNote}">
+      Statcast: ${statcastSrc} (${embeddedCount} players)${blendNote ? ' · <span style=\'opacity:.7\'>' + blendNote.slice(3) + '</span>' : ''}</span>
+    <span style="padding:3px 9px;border-radius:20px;background:${pitcherCount>20?'#dcfce7':'#fef9c3'};color:${pitcherCount>20?'#15803d':'#854d0e'};">
+      Pitcher Statcast: ${pitcherCount > 0 ? pitcherCount + ' live' : 'SP_STATS fallback'}</span>
+    <span style="padding:3px 9px;border-radius:20px;background:${oddsLoaded?'#dcfce7':'#fee2e2'};color:${oddsLoaded?'#15803d':'#b91c1c'};" title="Odds refresh every 10min. Re-run analysis for latest lines.">
+      Odds: ${oddsLoaded ? 'loaded ✓ (10min cache — re-run for latest)' : 'not loaded — add ODDS_API_KEY to Vercel env vars'}</span>
+  </div>`;
+
+  let html = dataStatus + `
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-val">${players.length}</div><div class="kpi-lbl">Analyzed</div></div>
+      <div class="kpi"><div class="kpi-val" style="color:var(--green)">${elite}</div><div class="kpi-lbl">Elite</div></div>
+      <div class="kpi"><div class="kpi-val" style="color:var(--blue)">${strong}</div><div class="kpi-lbl">Strong</div></div>
+      <div class="kpi"><div class="kpi-val">${avg}</div><div class="kpi-lbl">Avg Score</div></div>
+    </div>
+    <div class="filter-bar">
+      <button id="compareModeBtn" onclick="toggleCompareMode()"
+        style="padding:6px 14px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);cursor:pointer;font-family:inherit;">
+        ⚖️ Compare Models
+      </button>
+      <select onchange="filterTier(this.value)" id="tierFilterSel">
+        <option value="all">All Tiers</option><option>Elite</option><option>Strong</option><option>Lean</option><option>Avoid</option>
+      </select>
+      <select onchange="sortBy(this.value)">
+        <option value="score">Sort: Score</option>
+        <option value="xba">Sort: xBA</option>
+        <option value="kpct">Sort: K% ↑</option>
+      </select>
+      <input type="text" id="playerSearch" placeholder="🔍 Search player..." oninput="filterSearch(this.value)" style="padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:6px;width:160px;font-family:inherit;outline:none;">
+      <span class="result-count" id="resultCount">${players.length} players</span>
+    </div>
+    <div id="resultsGrid">`;
+  players.forEach((p, i) => { html += playerCard(p, i + 1); });
+  html += `</div>
+    <div class="disc">⚠️ Informational only. Statcast stats from Baseball Savant (updated nightly). Verify prop lines at your sportsbook before wagering. Gambling involves risk.</div>`;
+
+  document.getElementById('resEmpty').style.display = 'none';
+  document.getElementById('resContent').style.display = 'block';
+  document.getElementById('resContent').innerHTML = html;
+  DIAG.render(); // refresh diagnostic bar with final state
+  setTimeout(refreshResultPoolStatus, 50);
+}
+
+function playerCard(p, rank) {
+  const scColor = p.compositeScore >= 85 ? 'var(--green)' : p.compositeScore >= 70 ? 'var(--blue)' : p.compositeScore >= 55 ? 'var(--yellow)' : 'var(--red)';
+  const xbaC = p.xba >= 0.280 ? 'good' : p.xba < 0.230 ? 'bad' : '';
+  const kC = p.kpct <= 0.18 ? 'good' : p.kpct >= 0.28 ? 'bad' : 'warn';
+  const hhC = p.hardhitpct >= 0.45 ? 'good' : p.hardhitpct < 0.33 ? 'bad' : '';
+  const bC = p.barrelpct >= 0.08 ? 'good' : '';
+  const lsPill = p.lineupStatus === 'Confirmed'
+    ? '<span class="pill good">✓ Confirmed</span>'
+    : '<span class="pill warn">~ Projected</span>';
+  const scPill = p.statcastFound ? '' : '<span class="pill warn">Est. stats</span>';
+
+  return `<div class="player-card tier-${p.tier}" data-tier="${p.tier}" data-score="${p.compositeScore}" data-xba="${p.xba}" data-kpct="${p.kpct}" data-name="${p.name.toLowerCase()}" data-team="${(p.team||'').toLowerCase()}">
+    <div class="p-rank">${rank}</div>
+    <div>
+      <div class="p-name">${p.name} <span style="font-size:12px;font-weight:400;color:var(--muted);">${p.team} · #${p.battingOrder} · ${p.position}</span></div>
+      <div class="p-meta">Bats ${p.bats||"?"} · vs ${p.pitcher} (${p.pitcherHand}) — ${p.opponent} · ${p.venue}</div>
+      <div class="pills">
+        ${lsPill}${scPill}
+        <span class="pill ${xbaC}" style="cursor:pointer;" onclick="showXbaBreakdown(${rank-1})" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
+        <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
+        <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
+        <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
+        ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
+        ${p.spStatcast && p.spXBA ? `<span class="pill info">xBA vs ${p.spXBA.toFixed(3)}</span>` : ''}
+        ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}" title="Source: The Odds API (updates every 10min)">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
+        <span class="pill ${p.parkCls}">${p.parkLabel}</span>
+        <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
+      </div>
+      <div class="p-reasoning">${p.reasoning}</div>
+    </div>
+    <div class="score-wrap" onclick="showScoreBreakdown('${p.name.replace(/'/g, String.fromCharCode(39))}')" style="cursor:pointer;" title="Click for full score breakdown">
+      <div class="score-big" style="color:${scColor}">${p.compositeScore}</div>
+      ${p.scoreDelta!=null?`<div style="font-size:10px;font-weight:700;color:${p.scoreDelta>0?'var(--green)':'var(--red)'};">${p.scoreDelta>0?'▲':'▼'}${Math.abs(p.scoreDelta)}</div>`:''}
+      <div class="score-lbl">SCORE ▸</div>
+      <div class="tier-badge">${p.tier}</div>
+    </div>
+  </div>`;
+}
+
+function toggleDiag() {
+  const panel = document.getElementById('diagPanel');
+  const btn   = document.getElementById('diagToggleBtn');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if (btn) btn.style.background = isOpen ? 'var(--surface2)' : 'var(--surface)';
+}
+
+function showXbaBreakdown(idx) {
+  const p = allScoredPlayers[idx];
+  if (!p) return;
+  // Compute breakdown on-demand (not stored on every player)
+  const name = p.name;
+  const nKey = normalize(name);
+  const scEntry = lookupStatcast(name, p.pitcherHand);
+  const liveOv  = lookupInMap(liveStatcast, name);  // use lookupInMap — handles Jr./accents
+  const liveSp  = null; // splits disabled
+  const emb     = lookupInMap(SC_NORM, name);
+  const b = {
+    final: p.xba,
+    splitUsed: p.splitUsed || 'overall',
+    splitPA: scEntry?.splitPA || 0,
+    splitConfidence: scEntry?.splitConfidence || 0,
+    liveOverall: liveOv?.xba ?? null,
+    liveSplit: null, // splits disabled
+    embeddedXba: emb ? emb[0] : null,
+    source: liveOv ? liveOv.source || 'live' : 'embedded',
+    pa2026: liveOv?.pa ?? 0,
+  };
+
+  const pct = (v) => v != null ? (v * 100).toFixed(1) + '%' : 'N/A';
+  const val = (v) => v != null ? v.toFixed(3) : 'N/A';
+  const wt  = (v) => v != null ? (v * 100).toFixed(0) + '%' : 'N/A';
+
+  const rows = [
+    ['Player', p.name],
+    ['Team', p.team + ' vs ' + p.pitcher + ' (' + p.pitcherHand + ')'],
+    ['', ''],
+    ['── 2026 Live Data ──', ''],
+    ['2026 PA (live)', b.pa2026 > 0 ? b.pa2026 + ' PA' : 'No 2026 data yet'],
+    ['2026 xBA (overall)', val(b.liveOverall)],
+    ['2026 xBA vs ' + p.pitcherHand + 'HP (split)', val(b.liveSplit)],
+    ['', ''],
+    ['── Blending ──', ''],
+    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(1, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(1, b.pa2026/100)) + ' prior' : 'N/A — using embedded'],
+    ['Split confidence', b.splitPA > 0 ? wt(b.splitConfidence) + ' (' + b.splitPA + ' split PA of 80 needed)' : 'No split data — using overall'],
+    ['Embedded 2025 xBA', val(b.embeddedXba)],
+    ['', ''],
+    ['── Final Values Used ──', ''],
+    ['xBA used in model', val(b.final) + ' (' + (b.splitUsed || 'overall') + ')'],
+    ['Source', b.source || 'embedded'],
+    ['K%', pct(p.kpct)],
+    ['Contact-adj xBA (xBA × (1-K%))', ((p.xba || 0) * (1 - (p.kpct || 0.22))).toFixed(3)],
+  ];
+
+  const tableRows = rows.map(([k, v]) => {
+    if (!k && !v) return '<tr><td colspan="2" style="padding:4px 0;"></td></tr>';
+    if (v === '') return `<tr><td colspan="2" style="padding:4px 8px;font-weight:700;color:var(--blue);font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);">${k}</td></tr>`;
+    return `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 8px;color:var(--muted);font-size:12px;width:55%;">${k}</td><td style="padding:6px 8px;font-weight:600;font-size:12px;font-family:monospace;">${v}</td></tr>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;padding:0;width:480px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:700;font-size:15px;">${p.name} — xBA Breakdown</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">How the model calculated today's xBA</div>
+        </div>
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);padding:4px 8px;">×</button>
+      </div>
+      <div style="padding:12px 16px;">
+        <table style="width:100%;border-collapse:collapse;">${tableRows}</table>
+      </div>
+      <div style="padding:12px 16px;background:var(--surface2);border-top:1px solid var(--border);font-size:11px;color:var(--muted);border-radius:0 0 12px 12px;">
+        ℹ️ xBA blends 2026 live data with 2025 embedded stats. Full weight to 2026 at 100+ PA. Split xBA (vs RHP/LHP) gets full weight at 80+ split PA.
+      </div>
+    </div>`;
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+function filterTier(t) {
+  const search = document.getElementById('playerSearch');
+  if (search) search.value = '';
+  document.querySelectorAll('.player-card').forEach(c => { c.style.display = (t === 'all' || c.dataset.tier === t) ? '' : 'none'; });
+  updateResultCount();
+}
+
+function filterSearch(q) {
+  const term = q.toLowerCase().trim();
+  const grid = document.getElementById('resultsGrid');
+  if (!grid) return;
+
+  if (!term) {
+    // Restore top N display
+    const topN = parseInt(document.getElementById('topN')?.value || 25);
+    const top = allScoredPlayers.slice(0, topN);
+    grid.innerHTML = '';
+    top.forEach((p, i) => { grid.insertAdjacentHTML('beforeend', playerCard(p, i + 1)); });
+    updateResultCount();
+    return;
+  }
+
+  // Search full pool
+  const matches = allScoredPlayers.filter(p =>
+    p.name.toLowerCase().includes(term) ||
+    (p.team || '').toLowerCase().includes(term) ||
+    (p.teamFull || '').toLowerCase().includes(term)
+  );
+
+  grid.innerHTML = '';
+  if (matches.length === 0) {
+    grid.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;">No players found matching \"' + q + '\"</div>';
+  } else {
+    matches.forEach((p, i) => { grid.insertAdjacentHTML('beforeend', playerCard(p, i + 1)); });
+  }
+  updateResultCount();
+}
+
+function updateResultCount() {
+  const visible = [...document.querySelectorAll('.player-card')].filter(c => c.style.display !== 'none').length;
+  const el = document.getElementById('resultCount');
+  if (el) el.textContent = visible + ' players';
+}
+function sortBy(f) {
+  const grid = document.getElementById('resultsGrid');
+  const cards = [...grid.querySelectorAll('.player-card')];
+  cards.sort((a, b) => f === 'score' ? +b.dataset.score - +a.dataset.score : f === 'xba' ? +b.dataset.xba - +a.dataset.xba : +a.dataset.kpct - +b.dataset.kpct);
+  cards.forEach((c, i) => { c.querySelector('.p-rank').textContent = i + 1; grid.appendChild(c); });
+}
+
+// Lookup streak data — 7-day primary, 14-day fallback
+
+// ── OPTIMAL EXPOSURE CALCULATOR ──────────────────────────────────────────────
+function toggleExposureCalc() {
+  const body = document.getElementById('exposureCalcBody');
+  const chevron = document.getElementById('exposureChevron');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.textContent = isOpen ? '▶' : '▼';
+}
+
+function runExposureCalc() {
+  const output = document.getElementById('exposureOutput');
+  if (!output) return;
+
+  if (!allScoredPlayers.length) {
+    output.innerHTML = '<div style="color:var(--red);font-size:13px;">Run analysis first to generate player rankings.</div>';
+    return;
+  }
+  if (!pools.length) {
+    output.innerHTML = '<div style="color:var(--red);font-size:13px;">Create at least one pool in the Pools tab first.</div>';
+    return;
+  }
+
+  const today = new Date().toLocaleDateString('en-CA');
+  const numPools = pools.length;
+
+  // Get top players not yet used today in any pool
+  const usedToday = new Set();
+  pools.forEach(p => {
+    p.used.forEach(u => {
+      const name = typeof u === 'string' ? u : u.name;
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      if (date === today) usedToday.add(name.toLowerCase());
+    });
+  });
+
+  // Get eligible players (not used today, good scores)
+  const eligible = allScoredPlayers.filter(p =>
+    !usedToday.has(p.name.toLowerCase()) && p.compositeScore >= 50
+  );
+
+  if (!eligible.length) {
+    output.innerHTML = '<div style="color:var(--muted);font-size:13px;">All top players already used today, or run analysis to populate rankings.</div>';
+    return;
+  }
+
+  // For each pool, determine which players are AVAILABLE (not used at all)
+  // Then find optimal non-overlapping assignment
+  const poolAvailability = pools.map(pool => {
+    const usedNames = new Set(pool.used.map(u => (typeof u === 'string' ? u : u.name).toLowerCase()));
+    return {
+      pool,
+      available: eligible.filter(p => !usedNames.has(p.name.toLowerCase())),
+    };
+  });
+
+  // Greedy algorithm: assign best available player per pool, prefer unique assignments
+  // Sort pools by fewest available options first (most constrained)
+  const sortedPools = [...poolAvailability].sort((a, b) => a.available.length - b.available.length);
+
+  const assignments = {}; // poolId -> player
+  const assignedPlayers = new Set();
+
+  // First pass: assign unique players where possible
+  sortedPools.forEach(({ pool, available }) => {
+    const unique = available.find(p => !assignedPlayers.has(p.name));
+    if (unique) {
+      assignments[pool.id] = unique;
+      assignedPlayers.add(unique.name);
+    }
+  });
+
+  // Second pass: assign best available for pools without assignment
+  sortedPools.forEach(({ pool, available }) => {
+    if (!assignments[pool.id] && available.length) {
+      assignments[pool.id] = available[0];
+    }
+  });
+
+  // Build output HTML
+  const scoreColor = s => s >= 65 ? 'var(--green)' : s >= 57 ? 'var(--blue)' : 'var(--yellow)';
+
+  // Player exposure count (how many pools they're assigned to)
+  const playerPoolCount = {};
+  Object.values(assignments).forEach(p => {
+    if (p) playerPoolCount[p.name] = (playerPoolCount[p.name] || 0) + 1;
+  });
+
+  // Count unique vs shared assignments
+  const uniqueAssignments = Object.values(assignments).filter(p => p && playerPoolCount[p.name] === 1).length;
+  const sharedAssignments = numPools - uniqueAssignments;
+
+  let html = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;font-size:12px;flex-wrap:wrap;">
+      <span style="padding:3px 10px;border-radius:20px;background:#dcfce7;color:#15803d;font-weight:600;">
+        ✓ ${uniqueAssignments}/${numPools} unique picks
+      </span>
+      ${sharedAssignments > 0 ? `<span style="padding:3px 10px;border-radius:20px;background:#fef9c3;color:#854d0e;font-weight:600;">
+        ⚠ ${sharedAssignments} shared (unavoidable — best available)
+      </span>` : ''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:var(--surface2);border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Pool</th>
+          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Recommended Pick</th>
+          <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Score</th>
+          <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Matchup</th>
+          <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  pools.forEach((pool, i) => {
+    const p = assignments[pool.id];
+    const isShared = p && playerPoolCount[p.name] > 1;
+    const bg = i % 2 === 0 ? '' : 'background:var(--surface2);';
+    if (!p) {
+      html += `<tr style="${bg}border-bottom:1px solid var(--border);">
+        <td style="padding:9px 12px;font-weight:600;">${pool.name}</td>
+        <td colspan="4" style="padding:9px 12px;color:var(--muted);font-style:italic;">No eligible players available — all used</td>
+      </tr>`;
+      return;
+    }
+    html += `<tr style="${bg}border-bottom:1px solid var(--border);">
+      <td style="padding:9px 12px;font-weight:600;">${pool.name}</td>
+      <td style="padding:9px 12px;">
+        <span style="font-weight:700;">${p.name}</span>
+        ${isShared ? '<span style="font-size:10px;margin-left:5px;padding:1px 6px;background:#fef9c380;border:1px solid #ca8a0440;border-radius:10px;color:#ca8a04;">shared</span>' : ''}
+      </td>
+      <td style="padding:9px 10px;text-align:center;font-weight:700;color:${scoreColor(p.compositeScore)};">${p.compositeScore}</td>
+      <td style="padding:9px 12px;font-size:12px;color:var(--muted);">${p.team} vs ${p.pitcher} (${p.pitcherHand})</td>
+      <td style="padding:9px 10px;text-align:center;">
+        <button onclick="markUsed('${p.name}','${pool.id}','${today}')"
+          style="font-size:11px;padding:3px 10px;background:var(--blue);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:inherit;">
+          + Use
+        </button>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  // Show top 5 alternatives
+  const alts = eligible.filter(p => !Object.values(assignments).find(a => a && a.name === p.name)).slice(0, 5);
+  if (alts.length) {
+    html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Next Best Available</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">`;
+    alts.forEach(p => {
+      html += `<span style="padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:12px;background:var(--surface2);">
+        <span style="font-weight:600;">${p.name}</span>
+        <span style="color:${scoreColor(p.compositeScore)};font-weight:700;margin-left:4px;">${p.compositeScore}</span>
+        <span style="color:var(--muted);font-size:11px;margin-left:3px;">${p.team}</span>
+      </span>`;
+    });
+    html += '</div></div>';
+  }
+
+  output.innerHTML = html;
+}
+
+// Show exposure calc card when pools exist
+function checkShowExposureCard() {
+  const card = document.getElementById('exposureCalcCard');
+  if (card) card.style.display = pools.length ? 'block' : 'none';
+}
+
+// ── POOL MANAGEMENT ──────────────────────────────────────────────────────────
+// Pools stored in localStorage: { pools: [{id, name, used: [playerName, ...]}, ...] }
+
+const MAX_POOLS = 20;
+let pools = [];
+let activePoolId = null; // currently selected pool for marking players
+
+function loadPools() {
+  try { pools = JSON.parse(localStorage.getItem('survivorPools') || '[]'); }
+  catch(e) { pools = []; }
+  renderPools();
+  refreshResultPoolStatus();
+  renderPicksSidebar();
+}
+
+function savePools() {
+  localStorage.setItem('survivorPools', JSON.stringify(pools));
+  triggerAutoSave(); // auto-sync to cloud if PIN is set
+}
+
+function createPool() {
+  if (pools.length >= MAX_POOLS) { alert('Maximum ' + MAX_POOLS + ' pools supported.'); return; }
+  const id = 'pool_' + Date.now();
+  const name = 'Pool ' + (pools.length + 1);
+  pools.push({ id, name, used: [] });
+  savePools();
+  renderPools();
+}
+
+function deletePool(id) {
+  if (!confirm('Delete this pool and all used player history?')) return;
+  pools = pools.filter(p => p.id !== id);
+  if (activePoolId === id) activePoolId = null;
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function deletePoolByIndex(i) {
+  const pool = pools[i];
+  if (!pool) return;
+  if (!confirm('Delete pool "' + pool.name + '" and all its pick history?')) return;
+  if (activePoolId === pool.id) activePoolId = null;
+  pools.splice(i, 1);
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function renamePool(id, newName) {
+  const pool = pools.find(p => p.id === id);
+  if (pool) { pool.name = newName; savePools(); }
+}
+
+// Table uses index-based calls
+function renamePoolByIndex(i, newName) {
+  if (pools[i]) { pools[i].name = newName; savePools(); }
+}
+
+function markUsed(playerName, poolId, date) {
+  const pool = pools.find(p => p.id === poolId);
+  if (!pool) return;
+  const usedDate = date || new Date().toLocaleDateString('en-CA');
+  // Normalize to objects
+  pool.used = pool.used.map(u => typeof u === 'string' ? { name: u, date: '' } : u);
+  // Check if already in pool (by name)
+  if (!pool.used.find(u => u.name === playerName)) {
+    pool.used.push({ name: playerName, date: usedDate });
+    savePools();
+    renderPools();
+    refreshResultPoolStatus();
+  }
+}
+
+function unmarkUsed(playerName, poolId) {
+  const pool = pools.find(p => p.id === poolId);
+  if (!pool) return;
+  pool.used = pool.used.filter(u => {
+    const name = typeof u === 'string' ? u : u.name;
+    return name !== playerName;
+  });
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function isUsedInPool(playerName, poolId) {
+  const pool = pools.find(p => p.id === poolId);
+  if (!pool) return false;
+  return pool.used.some(u => {
+    const name = typeof u === 'string' ? u : u.name;
+    return name === playerName;
+  });
+}
+
+function getUsedPools(playerName) {
+  return pools.filter(p =>
+    p.used.some(u => (typeof u === 'string' ? u : u.name) === playerName)
+  ).map(p => p.name);
+}
+
+function getUsedDate(playerName, poolId) {
+  const pool = pools.find(p => p.id === poolId);
+  if (!pool) return '';
+  const entry = pool.used.find(u => (typeof u === 'string' ? u : u.name) === playerName);
+  if (!entry || typeof entry === 'string') return '';
+  return entry.date ? formatDate(entry.date) : '';
+}
+
+function renderPools() {
+  const list = document.getElementById('poolsList');
+  const empty = document.getElementById('poolsEmpty');
+  if (!list) return;
+
+  if (!pools.length) {
+    empty.style.display = 'block';
+    list.innerHTML = '';
+    renderCrossPool();
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Collect all unique dates across all pools, sorted desc
+  const allDates = new Set();
+  pools.forEach(pool => {
+    pool.used.forEach(u => {
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      if (date) allDates.add(date);
+    });
+  });
+  const sortedDates = [...allDates].sort((a,b) => b.localeCompare(a)); // newest first
+
+  const today = new Date().toLocaleDateString('en-CA');
+
+  // Format date header: "Apr 16"
+  function fmtDate(d) {
+    return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+
+  let tableHtml = `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px;">
+      <thead>
+        <tr style="background:var(--surface2);">
+          <th style="text-align:left;padding:9px 14px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:130px;position:sticky;left:0;background:var(--surface2);z-index:2;">Pool</th>
+          <th style="text-align:center;padding:9px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:48px;">Used</th>`;
+
+  sortedDates.forEach(d => {
+    const isToday = d === today;
+    tableHtml += `<th style="text-align:center;padding:9px 10px;font-size:11px;font-weight:700;color:${isToday?'var(--blue)':'var(--muted)'};text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:110px;${isToday?'background:rgba(37,99,235,0.06);':''}">${fmtDate(d)}${isToday?' ★':''}</th>`;
+  });
+
+  tableHtml += `<th style="text-align:center;padding:9px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);min-width:220px;">Add Pick</th>
+          <th style="text-align:center;padding:9px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border);width:110px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  pools.forEach((pool, i) => {
+    const isActive = activePoolId === pool.id;
+    const bg = isActive ? 'rgba(37,99,235,0.04)' : (i%2===0 ? '' : 'background:var(--surface2)');
+
+    // Build date→picks map
+    const dateMap = {};
+    pool.used.forEach((u, ui) => {
+      const name = typeof u === 'string' ? u : u.name;
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      if (!dateMap[date]) dateMap[date] = [];
+      dateMap[date].push({ name, ui });
+    });
+
+    tableHtml += `<tr style="border-bottom:1px solid var(--border);${bg}" 
+      draggable="true" 
+      ondragstart="window._dragPoolIdx=${i};this.style.opacity='.4'"
+      ondragend="this.style.opacity='1'"
+      ondragover="event.preventDefault();this.style.background='rgba(37,99,235,0.08)'"
+      ondragleave="this.style.background=''"
+      ondrop="event.preventDefault();this.style.background='';if(window._dragPoolIdx!==${i}){const m=pools.splice(window._dragPoolIdx,1)[0];pools.splice(${i},0,m);savePools();renderPools();}">
+
+      <td style="padding:10px 14px;font-weight:600;position:sticky;left:0;background:${isActive?'rgba(37,99,235,0.08)':'white'};z-index:1;cursor:grab;" title="Drag to reorder">
+        <span style="color:var(--muted);margin-right:6px;font-size:14px;">⠿</span>
+        <input type="text" value="${pool.name}"
+          onchange="renamePoolByIndex(${i}, this.value)"
+          style="font-weight:600;font-size:13px;border:1px solid transparent;border-radius:4px;padding:2px 4px;background:transparent;font-family:inherit;color:var(--text);max-width:110px;"
+          onfocus="this.style.borderColor='var(--blue)';this.style.background='var(--surface)'"
+          onblur="this.style.borderColor='transparent';this.style.background='transparent'">
+        ${isActive ? '<div style="font-size:10px;font-weight:700;color:var(--blue);letter-spacing:.4px;margin-top:1px;">● ACTIVE</div>' : ''}
+      </td>
+
+      <td style="padding:10px 8px;text-align:center;font-weight:700;color:${pool.used.length>0?'var(--red)':'var(--muted)'};">${pool.used.length}</td>`;
+
+    // One cell per date
+    sortedDates.forEach(d => {
+      const picks = dateMap[d] || [];
+      const isToday = d === today;
+      const cellBg = isToday ? 'rgba(37,99,235,0.04)' : '';
+      tableHtml += `<td style="padding:8px 10px;text-align:center;vertical-align:middle;${cellBg?'background:'+cellBg:''}">`;
+      if (picks.length) {
+        picks.forEach(p => {
+          tableHtml += `<div style="display:inline-flex;align-items:center;gap:3px;background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.25);border-radius:20px;padding:3px 8px;margin:1px;font-size:12px;white-space:nowrap;">
+            <span style="font-weight:600;">${p.name}</span>
+            <span onclick="removeUsed(${i},${p.ui});event.stopPropagation();" style="cursor:pointer;color:var(--muted);font-size:11px;margin-left:2px;" title="Remove">×</span>
+          </div>`;
+        });
+      } else {
+        tableHtml += `<span style="color:var(--border);font-size:18px;">—</span>`;
+      }
+      tableHtml += `</td>`;
+    });
+
+    // Add pick cell
+    tableHtml += `<td style="padding:8px 10px;">
+        <div style="display:flex;gap:5px;align-items:center;">
+          <input type="text" id="addName_${i}" placeholder="Name..."
+            style="padding:4px 7px;font-size:12px;border:1px solid var(--border);border-radius:5px;font-family:inherit;flex:1;min-width:80px;outline:none;"
+            onkeydown="if(event.key==='Enter')addUsed(${i})"
+            onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
+          <input type="date" id="addDate_${i}" value="${today}"
+            style="padding:4px 5px;font-size:11px;border:1px solid var(--border);border-radius:5px;font-family:inherit;outline:none;width:118px;"
+            onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn btn-secondary btn-sm" onclick="addUsed(${i})" style="padding:4px 8px;white-space:nowrap;">+</button>
+        </div>
+      </td>
+
+      <td style="padding:8px 8px;text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;">
+          <button onclick="setActivePool('${pool.id}')"
+            style="font-size:11px;padding:4px 9px;background:${isActive?'var(--blue)':'var(--surface2)'};color:${isActive?'#fff':'var(--text)'};border:1px solid ${isActive?'var(--blue)':'var(--border)'};border-radius:5px;cursor:pointer;font-family:inherit;">
+            ${isActive ? '✓ Active' : 'Activate'}
+          </button>
+          <button onclick="deletePoolByIndex(${i})"
+            style="font-size:11px;padding:4px 8px;background:var(--surface2);color:var(--red);border:1px solid var(--border);border-radius:5px;cursor:pointer;font-family:inherit;" title="Delete">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+
+  tableHtml += `</tbody></table></div>`;
+  list.innerHTML = tableHtml;
+  renderCrossPool();
+  checkShowExposureCard();
+}
+
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch(e) { return dateStr; }
+}
+
+function addPlayerManually(poolId) {
+  const nameEl = document.getElementById('addName_' + poolId);
+  const dateEl = document.getElementById('addDate_' + poolId);
+  if (!nameEl) return;
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const date = dateEl?.value || new Date().toLocaleDateString('en-CA');
+  markUsed(name, poolId, date);
+  nameEl.value = '';
+}
+
+// Table uses index-based calls — wrapper for renderPools table
+function addUsed(i) {
+  const pool = pools[i];
+  if (!pool) return;
+  const nameEl = document.getElementById('addName_' + i);
+  const dateEl = document.getElementById('addDate_' + i);
+  if (!nameEl) return;
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+  const date = dateEl?.value || new Date().toLocaleDateString('en-CA');
+  markUsed(name, pool.id, date);
+  nameEl.value = '';
+}
+
+function removeUsed(poolIdx, usedIdx) {
+  const pool = pools[poolIdx];
+  if (!pool) return;
+  pool.used.splice(usedIdx, 1);
+  savePools();
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function setActivePool(id) {
+  activePoolId = activePoolId === id ? null : id;
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+function renderCrossPool() {
+  const content = document.getElementById('crossPoolContent');
+  const crossCard = document.getElementById('crossPoolCard');
+  if (!content || !pools.length) return;
+  crossCard.style.display = 'block';
+
+  const today = new Date().toLocaleDateString('en-CA');
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+  const totalPools = pools.length;
+
+  // Build map: playerName -> { usedIn: [poolNames], availIn: [poolNames], usedToday: bool }
+  const playerMap = {};
+
+  const allUsedNames = new Set();
+  pools.forEach(pool => {
+    pool.used.forEach(u => {
+      const name = typeof u === 'string' ? u : u.name;
+      const date = typeof u === 'string' ? '' : (u.date || '');
+      allUsedNames.add(name);
+      if (!playerMap[name]) playerMap[name] = { usedIn: [], availIn: [], todayPools: [] };
+      playerMap[name].usedIn.push(pool.name);
+      if (date === today) playerMap[name].todayPools.push(pool.name);
+    });
+  });
+
+  // Mark available pools for each player
+  Object.keys(playerMap).forEach(name => {
+    playerMap[name].availIn = pools
+      .filter(p => !p.used.some(u => (typeof u === 'string' ? u : u.name) === name))
+      .map(p => p.name);
+  });
+
+  // Sort: most burned first, then alpha
+  const players = Object.entries(playerMap).sort((a, b) => b[1].usedIn.length - a[1].usedIn.length || a[0].localeCompare(b[0]));
+
+  // Today's picks summary
+  const todayRows = players.filter(([, d]) => d.todayPools.length > 0);
+
+  let html = '';
+
+  // ── TODAY'S PICKS ──────────────────────────────────────────────────
+  html += `<div style="margin-bottom:18px;">
+    <div style="font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📅 Today — ${todayLabel}</div>`;
+
+  if (todayRows.length) {
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;">`;
+    todayRows.forEach(([name, d]) => {
+      const scored = allScoredPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
+      const scoreStr = scored ? ` <span style="font-weight:700;color:${scored.compositeScore>=65?'var(--green)':scored.compositeScore>=57?'var(--blue)':'var(--yellow)'};">${scored.compositeScore}</span>` : '';
+      const pickCount = d.todayPools.length;
+      const pickLabel = `${pickCount}/${totalPools} pool${totalPools !== 1 ? 's' : ''}`;
+      const pickColor = pickCount === totalPools ? 'var(--blue)' : 'var(--muted)';
+      html += `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-weight:600;">${name}</span>${scoreStr}
+          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--blue);color:#fff;">${pickLabel}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">${d.todayPools.join(' · ')}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div style="font-size:13px;color:var(--muted);font-style:italic;">No picks logged for today yet.</div>`;
+  }
+  html += `</div>`;
+
+  // ── PLAYER AVAILABILITY TABLE ──────────────────────────────────────
+  if (players.length) {
+    html += `<div style="padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">🔄 Player Availability Across All Pools</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);background:var(--surface2);">
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Player</th>
+            <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Available</th>
+            <th style="text-align:center;padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Burned</th>
+            <th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Used In</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    players.forEach(([name, d], i) => {
+      const availCount = totalPools - d.usedIn.length;
+      const burnedCount = d.usedIn.length;
+      const allBurned = burnedCount === totalPools;
+      const bg = i % 2 === 0 ? '' : 'background:var(--surface2);';
+
+      // Availability bar
+      const pct = Math.round((availCount / totalPools) * 100);
+      const barColor = allBurned ? 'var(--red)' : availCount <= 1 ? 'var(--orange)' : availCount <= totalPools/2 ? 'var(--yellow)' : 'var(--green)';
+
+      const availCell = allBurned
+        ? `<span style="font-weight:700;color:var(--red);">❌ All burned</span>`
+        : `<span style="font-weight:700;color:${barColor};">${availCount}/${totalPools}</span>`;
+
+      html += `<tr style="${bg}border-bottom:1px solid var(--border);">
+        <td style="padding:8px 12px;font-weight:600;">${name}</td>
+        <td style="padding:8px 10px;text-align:center;">${availCell}</td>
+        <td style="padding:8px 10px;text-align:center;font-weight:600;color:${burnedCount>0?'var(--red)':'var(--muted)'};">${burnedCount}</td>
+        <td style="padding:8px 12px;font-size:12px;color:var(--muted);">${d.usedIn.join(' · ')}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  }
+
+  content.innerHTML = html || '<div style="font-size:13px;color:var(--muted);">No picks recorded yet.</div>';
+}
+
+function setActivePool(id) {
+  activePoolId = activePoolId === id ? null : id;
+  renderPools();
+  refreshResultPoolStatus();
+}
+
+// Refresh result cards to show used/available status for active pool
+function refreshResultPoolStatus() {
+  document.querySelectorAll('.player-card').forEach(card => {
+    const name = card.dataset.name ? 
+      allScoredPlayers.find(p => p.name.toLowerCase() === card.dataset.name)?.name : null;
+    if (!name) return;
+    const usedPools = getUsedPools(name);
+    card.classList.toggle('used-pool', activePoolId ? isUsedInPool(name, activePoolId) : false);
+    // Update or add pool status pill
+    let poolPill = card.querySelector('.pool-pill');
+    if (usedPools.length) {
+      if (!poolPill) {
+        poolPill = document.createElement('span');
+        poolPill.className = 'pill used pool-pill';
+        card.querySelector('.pills').appendChild(poolPill);
+      }
+      poolPill.textContent = 'Used: ' + usedPools.join(', ');
+    } else if (poolPill) {
+      poolPill.remove();
+    }
+    // Update mark-used button
+    let markBtn = card.querySelector('.mark-used-btn');
+    if (activePoolId) {
+      if (!markBtn) {
+        markBtn = document.createElement('button');
+        markBtn.className = 'btn btn-secondary btn-sm mark-used-btn';
+        markBtn.style.cssText = 'font-size:10px;padding:3px 8px;margin-top:6px;';
+        card.querySelector('div:nth-child(2)').appendChild(markBtn);
+      }
+      const isUsed = isUsedInPool(name, activePoolId);
+      const pool = pools.find(p => p.id === activePoolId);
+      markBtn.textContent = isUsed ? '✓ Used in ' + pool?.name : '+ Mark used in ' + pool?.name;
+      markBtn.onclick = () => {
+        if (isUsed) unmarkUsed(name, activePoolId);
+        else markUsed(name, activePoolId);
+      };
+      markBtn.style.color = isUsed ? 'var(--red)' : 'var(--blue)';
+    } else if (markBtn) {
+      markBtn.remove();
+    }
+  });
+}
+
+// ── 3-DAY SCHEDULE VIEW ───────────────────────────────────────────────────────
+const SCHEDULE_SP_DIFFICULTY = {
+  // Known tough SPs (high K%, low xBA allowed) — score 0-100 for batter (lower = tougher)
+  // Uses same SP_STATS data: [ERA, WHIP, K/9, hand]
+};
+
+async function loadScheduleView() {
+  const content = document.getElementById('scheduleViewContent');
+  content.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-msg">Loading 3-day schedule...</div></div>';
+
+  const today = new Date();
+  const dates = [0, 1, 2].map(offset => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString('en-CA');
+  });
+
+  const dateLabels = [0, 1, 2].map(offset => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    return offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  });
 
   try {
-    // Fetch both in parallel — url2 may be null (hand splits)
-    const [res1, res2] = await Promise.all([
-      fetch(url1, { headers: commonHeaders }),
-      url2 ? fetch(url2, { headers: commonHeaders }) : Promise.resolve(null),
-    ]);
+    // Fetch all 3 days in parallel
+    const schedules = await Promise.all(dates.map(date =>
+      fetch('/api/schedule?date=' + date).then(r => r.ok ? r.json() : {dates:[]}).catch(() => ({dates:[]}))
+    ));
 
-    const statusHdr = {
-      ...corsHeaders,
-      'X-Savant-Status': String(res1.status),
-    };
+    // Build matchup map: teamAbbr -> [day0matchup, day1matchup, day2matchup]
+    // matchup: {opponent, spName, spHand, impliedRuns, difficulty}
+    const teamMatchups = {}; // teamAbbr -> array of 3 (null if off)
 
-    if (!res1.ok) {
-      return new Response(JSON.stringify({ error: `Savant returned ${res1.status}`, url: url1 }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', ...statusHdr },
+    schedules.forEach((data, dayIdx) => {
+      const games = (data.dates || [])[0]?.games || [];
+      games.forEach(g => {
+        const homeAbbr = g.teams?.home?.team?.abbreviation;
+        const awayAbbr = g.teams?.away?.team?.abbreviation;
+        const homeSP = g.teams?.home?.probablePitcher?.fullName || 'TBD';
+        const awaySP = g.teams?.away?.probablePitcher?.fullName || 'TBD';
+
+        const processTeam = (myAbbr, opponentSP, opponentAbbr) => {
+          if (!teamMatchups[myAbbr]) teamMatchups[myAbbr] = [null, null, null];
+          // Score difficulty: SP K/9 + implied runs
+          const spData = SP_NORM[normalize(opponentSP)];
+          const k9 = spData ? spData[2] : 8.5;
+          // SP difficulty: higher K9 = harder (0=easy, 100=brutal)
+          const spScore = Math.min(100, Math.max(0, ((k9 - 5.0) / (14.0 - 5.0)) * 100));
+          // Implied runs from odds (if loaded)
+          const oddsEntry = liveOdds[myAbbr];
+          const impliedRuns = oddsEntry?.impliedRuns || null;
+          const runsScore = impliedRuns ? Math.min(100, Math.max(0, ((impliedRuns - 2.0) / (6.5 - 2.0)) * 100)) : 50;
+          // Batter matchup score: higher = easier for batter (inverted SP difficulty + runs)
+          const matchupScore = Math.round((1 - spScore/100) * 0.5 * 100 + runsScore * 0.5);
+
+          let cls = 'ok', label = opponentSP === 'TBD' ? 'TBD' : '';
+          if (matchupScore >= 70) cls = 'great';
+          else if (matchupScore >= 55) cls = 'good';
+          else if (matchupScore >= 40) cls = 'ok';
+          else if (matchupScore >= 25) cls = 'tough';
+          else cls = 'brutal';
+
+          const spHand = spData ? spData[3] : '?';
+          teamMatchups[myAbbr][dayIdx] = {
+            opponent: opponentAbbr, spName: opponentSP, spHand,
+            k9: k9.toFixed(1), impliedRuns, matchupScore, cls,
+          };
+        };
+
+        if (homeAbbr) processTeam(homeAbbr, awaySP, awayAbbr);
+        if (awayAbbr) processTeam(awayAbbr, homeSP, homeAbbr);
       });
-    }
-
-    const csv1 = await res1.text();
-    const csv2Status = res2 ? String(res2.status) : 'skipped';
-    const csv2 = res2 && res2.ok ? await res2.text() : '';
-    // Add url2 status to response headers for diagnostics
-
-    // If no second fetch needed (hand splits), just return csv1 as-is
-    if (!url2 || !csv2 || csv2.trim().startsWith('<') || csv2.length < 100) {
-      return new Response(csv1, {
-        status: 200,
-        headers: {
-          'Content-Type': 'text/csv',
-          'Cache-Control': 'public, max-age=600',
-          'X-Savant-Rows': String(csv1.split('\n').length),
-          ...statusHdr,
-        },
-      });
-    }
-
-    // ── Merge csv1 (xBA etc) with csv2 (K%, HH%, Barrel%) by player_id ────────
-    const parseCSV = (csv) => {
-      const lines = csv.trim().split('\n').filter(l => l.trim());
-      if (lines.length < 2) return { headers: [], rows: [] };
-      // Handle quoted fields like "last_name, first_name"
-      const parseRow = (line) => {
-        const result = [];
-        let cur = '', inQ = false;
-        for (const ch of line) {
-          if (ch === '"') { inQ = !inQ; }
-          else if (ch === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
-          else { cur += ch; }
-        }
-        result.push(cur.trim());
-        return result;
-      };
-      const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/"/g,''));
-      const rows = lines.slice(1).map(l => {
-        const vals = parseRow(l);
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
-        return obj;
-      });
-      return { headers, rows };
-    };
-
-    const { headers: h1, rows: rows1 } = parseCSV(csv1);
-    const { headers: h2, rows: rows2 } = parseCSV(csv2);
-
-    // Build lookup from csv2 by player_id
-    const csv2ByPlayerId = {};
-    rows2.forEach(row => {
-      const pid = row['player_id'] || row['batter'] || row['pitcher'] || '';
-      if (pid) csv2ByPlayerId[pid] = row;
     });
 
-    // Columns we want to pull from csv2 if not already in csv1
-    const wantFromCsv2 = ['k_percent', 'hard_hit_percent', 'barrel_batted_rate', 'brl_percent', 'whiff_percent', 'launch_speed_avg'];
+    // Get top players from allScoredPlayers to show their schedule
+    const topPlayers = allScoredPlayers.slice(0, 40);
+    if (!topPlayers.length) {
+      content.innerHTML = '<div class="empty"><div class="empty-icon">⚾</div><p>Run an analysis first to see player schedules.</p></div>';
+      return;
+    }
 
-    // Determine which columns csv1 is already missing
-    const csv1HasCol = (col) => h1.includes(col);
+    // Build table
+    const cols = `160px repeat(3, 1fr)`;
+    let html = `<div style="overflow-x:auto;">
+      <div class="sched-header" style="grid-template-columns:${cols};">
+        <div>Player</div>
+        ${dateLabels.map(l => `<div style="text-align:center;">${l}</div>`).join('')}
+      </div>`;
 
-    // Merge: for each row in csv1, add missing columns from csv2
-    const mergedRows = rows1.map(row => {
-      const pid = row['player_id'] || row['batter'] || row['pitcher'] || '';
-      const csv2Row = csv2ByPlayerId[pid] || {};
-      const merged = { ...row };
-      wantFromCsv2.forEach(col => {
-        if (!csv1HasCol(col) || !merged[col]) {
-          if (csv2Row[col] != null && csv2Row[col] !== '') {
-            merged[col] = csv2Row[col];
-          }
+    topPlayers.forEach(p => {
+      const matchups = teamMatchups[p.team] || [null, null, null];
+      const usedInActive = activePoolId ? isUsedInPool(p.name, activePoolId) : false;
+      const usedStyle = usedInActive ? 'opacity:.4;' : '';
+
+      html += `<div class="sched-row" style="grid-template-columns:${cols};${usedStyle}">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${p.name} ${usedInActive ? '<span style="font-size:10px;color:var(--red);">(used)</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--muted);">${p.team} · Today #${p.battingOrder}</div>
+        </div>`;
+
+      matchups.forEach((m, i) => {
+        if (!m) {
+          html += `<div class="sched-day off">OFF</div>`;
+        } else {
+          const runsStr = m.impliedRuns ? m.impliedRuns.toFixed(1) + 'R' : '';
+          html += `<div class="sched-day ${m.cls}" title="vs ${m.spName} (${m.spHand}) · K/9: ${m.k9}${m.impliedRuns ? ' · ' + m.impliedRuns.toFixed(1) + ' proj runs' : ''}">
+            <div>vs ${m.opponent}</div>
+            <div style="font-size:10px;opacity:.8;">${m.spName !== 'TBD' ? m.spName.split(' ').slice(-1)[0] : 'TBD'} ${runsStr}</div>
+          </div>`;
         }
       });
-      return merged;
+
+      html += `</div>`;
     });
 
-    // Also add any players in csv2 NOT in csv1 (rookies missing from expected_statistics)
-    const csv1PlayerIds = new Set(rows1.map(r => r['player_id'] || r['batter'] || r['pitcher'] || ''));
-    rows2.forEach(row => {
-      const pid = row['player_id'] || row['batter'] || row['pitcher'] || '';
-      if (pid && !csv1PlayerIds.has(pid)) {
-        // Ensure xba/est_ba column exists (empty) so frontend parser doesn't skip the row
-        // Frontend now accepts null xBA as long as k%/hh%/barrel% are present
-        const enriched = { ...row, est_ba: row['est_ba'] || '', xba: row['xba'] || '' };
-        mergedRows.push(enriched);
+    html += `</div>
+      <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;font-size:11px;">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#dcfce7;margin-right:4px;"></span>Great</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#d1fae5;margin-right:4px;"></span>Good</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--surface2);margin-right:4px;"></span>Neutral</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#fef9c3;margin-right:4px;"></span>Tough</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#fee2e2;margin-right:4px;"></span>Brutal</span>
+      </div>
+      <div class="disc" style="margin-top:10px;">Difficulty based on opposing SP K/9 + team implied runs. Hover cells for full SP details. Run analysis first to populate player list.</div>`;
+
+    content.innerHTML = html;
+
+  } catch(e) {
+    content.innerHTML = '<div class="err"><strong>Error:</strong> ' + e.message + '</div>';
+  }
+}
+
+// Load pools on startup and after results render
+document.addEventListener('DOMContentLoaded', loadPools);
+
+// ── RESULTS TRACKER ───────────────────────────────────────────────────────────
+// Stored in localStorage: { picks: [{date, players: [{name, team, score, tier, pitcher, gotHit}]}] }
+
+let trackerData = { picks: [] };
+
+function loadTracker() {
+  try { trackerData = JSON.parse(localStorage.getItem('hitPropTracker') || '{"picks":[]}'); }
+  catch(e) { trackerData = { picks: [] }; }
+  renderTracker();
+}
+
+function saveTracker() {
+  localStorage.setItem('hitPropTracker', JSON.stringify(trackerData));
+}
+
+function saveCurrentPicks() {
+  if (!allScoredPlayers.length) { alert('Run an analysis first.'); return; }
+  const today = new Date().toLocaleDateString('en-CA');
+  // Don't double-save same date
+  if (trackerData.picks.find(p => p.date === today)) {
+    if (!confirm('Picks already saved for today. Overwrite?')) return;
+    trackerData.picks = trackerData.picks.filter(p => p.date !== today);
+  }
+  const top10 = allScoredPlayers.slice(0, 10).map(p => ({
+    name: p.name, team: p.team, score: p.compositeScore, tier: p.tier,
+    pitcher: p.pitcher, pitcherHand: p.pitcherHand,
+    gotHit: null, hits: null, atBats: null,
+  }));
+  trackerData.picks.unshift({ date: today, players: top10, savedAt: new Date().toISOString() });
+  // Keep last 60 days
+  trackerData.picks = trackerData.picks.slice(0, 60);
+  saveTracker();
+  renderTracker();
+  switchTab('tracker');
+  setTrackerStatus('success', '✅', 'Today\'s top 10 saved', 'Click \'Auto-fetch Results\' tomorrow to check box scores.');
+}
+
+async function checkYesterdayResults() {
+  // Find the most recent saved picks that don't have results yet
+  const pending = trackerData.picks.find(p => p.players.some(pl => pl.gotHit === null));
+  if (!pending) {
+    setTrackerStatus('warn', '📋', 'No pending results', 'All saved picks already have results, or no picks saved yet.');
+    return;
+  }
+
+  setTrackerStatus('info', '⏳', 'Fetching box scores...', 'Checking MLB Stats API for ' + pending.date);
+
+  const names = pending.players.map(p => p.name).join(',');
+  try {
+    // 8-second timeout on results fetch
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch('/api/results?date=' + pending.date + '&players=' + encodeURIComponent(names), {
+      signal: controller.signal
+    });
+    clearTimeout(tid);
+
+    if (!res.ok) throw new Error('Results API returned ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    let updated = 0;
+    pending.players.forEach(pick => {
+      const result = data.players.find(r => r.name.toLowerCase() === pick.name.toLowerCase());
+      if (result && result.gotHit !== null) {
+        pick.gotHit = result.gotHit;
+        pick.hits = result.hits;
+        pick.atBats = result.atBats;
+        pick.gameStatus = result.gameStatus;
+        updated++;
       }
     });
 
-    // Rebuild all headers (union)
-    const allHeaders = [...new Set([...h1, ...wantFromCsv2.filter(c => !csv1HasCol(c))])];
+    saveTracker();
+    renderTracker();
 
-    // Serialize back to CSV
-    const escapeField = (val) => {
-      if (val == null) return '';
-      const s = String(val);
-      return s.includes(',') ? `"${s}"` : s;
-    };
-    const csvOut = [
-      allHeaders.join(','),
-      ...mergedRows.map(row => allHeaders.map(h => escapeField(row[h] ?? '')).join(',')),
-    ].join('\n');
-
-    return new Response(csvOut, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/csv',
-        'Cache-Control': 'public, max-age=600',
-        'X-Savant-Rows': String(mergedRows.length),
-        'X-Savant-Merged': 'true',
-        'X-Savant-Url2-Status': csv2Status,
-        'X-Savant-Url2-Rows': String(rows2.length),
-        ...statusHdr,
-      },
-    });
-
+    if (updated === 0 && data.gamesChecked === 0) {
+      setTrackerStatus('warn', '⚠️', 'No completed games found for ' + pending.date,
+        'Games may still be in progress. Use the ✓/✗ buttons to enter results manually.');
+    } else {
+      const hits = pending.players.filter(p => p.gotHit === true).length;
+      const total = pending.players.filter(p => p.gotHit !== null).length;
+      setTrackerStatus('success', '✅', hits + '/' + total + ' hit on ' + pending.date,
+        updated + ' players updated automatically. Use ✓/✗ buttons to correct any errors.');
+    }
   } catch(e) {
-    return new Response(JSON.stringify({ error: e.message, url: url1 }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    });
+    const msg = e.name === 'AbortError' ? 'Request timed out — use ✓/✗ buttons to enter results manually' : e.message;
+    setTrackerStatus('warn', '⚠️', 'Auto-fetch failed', msg);
+    // Don't block — tracker is still fully functional with manual entry
   }
 }
+
+function setTrackerStatus(type, icon, title, sub) {
+  document.getElementById('trackerStatus').innerHTML =
+    `<div class="sbar ${type}"><div class="sbar-icon">${icon}</div><div class="sbar-text"><div class="sbar-title">${title}</div><div class="sbar-sub">${sub}</div></div></div>`;
+}
+
+function renderTracker() {
+  const content = document.getElementById('trackerContent');
+  const statsCard = document.getElementById('trackerStatsCard');
+  if (!content) return;
+
+  if (!trackerData.picks.length) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">📈</div><p>No picks saved yet. Run an analysis and click "Save Today's Top 10".</p></div>`;
+    statsCard.style.display = 'none';
+    return;
+  }
+
+  // Render each day's picks
+  let html = '';
+  trackerData.picks.forEach(day => {
+    const withResults = day.players.filter(p => p.gotHit !== null);
+    const hits = withResults.filter(p => p.gotHit).length;
+    const pending = day.players.filter(p => p.gotHit === null).length;
+    const hitRate = withResults.length ? Math.round((hits / withResults.length) * 100) : null;
+
+    const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+    html += `<div class="card" style="margin-bottom:12px;">
+      <div class="card-header" style="justify-content:space-between;">
+        <span>${dateLabel}</span>
+        <span style="font-size:12px;font-weight:400;color:var(--muted);">
+          ${withResults.length > 0 ? `${hits}/${withResults.length} hit (${hitRate}%)` : ''}
+          ${pending > 0 ? `<span style="color:var(--yellow);">${pending} pending</span>` : ''}
+        </span>
+      </div>
+      <div class="card-body" style="padding:12px 16px;">`;
+
+    day.players.forEach(p => {
+      const resultIcon = p.gotHit === true ? '✅' : p.gotHit === false ? '❌' : '⏳';
+      const resultStyle = p.gotHit === true ? 'color:var(--green)' : p.gotHit === false ? 'color:var(--red)' : 'color:var(--muted)';
+      const tierColor = p.tier === 'Elite' ? 'var(--green)' : p.tier === 'Strong' ? 'var(--blue)' : p.tier === 'Lean' ? 'var(--yellow)' : 'var(--red)';
+      const hitStr = p.hits !== null ? `${p.hits}-${p.atBats}` : '';
+
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <span style="font-size:16px;">${resultIcon}</span>
+        <span style="flex:1;font-weight:600;">${p.name}</span>
+        <span style="font-size:11px;color:var(--muted);">${p.team} · vs ${p.pitcher||'?'}</span>
+        <span style="font-size:11px;font-weight:700;color:${tierColor};">${p.score}</span>
+        <span style="font-size:12px;font-weight:600;${resultStyle};">${hitStr}</span>
+        ${p.gotHit === null ? `<button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 7px;" onclick="manualResult('${day.date}','${p.name.replace(/'/g,"\'")}',true)">✓ Hit</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:10px;padding:2px 7px;" onclick="manualResult('${day.date}','${p.name.replace(/'/g,"\'")}',false)">✗ No hit</button>` : ''}
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  content.innerHTML = html;
+
+  // Render model performance stats
+  renderTrackerStats();
+}
+
+function manualResult(date, playerName, gotHit) {
+  const day = trackerData.picks.find(p => p.date === date);
+  if (!day) return;
+  const pick = day.players.find(p => p.name === playerName);
+  if (!pick) return;
+  pick.gotHit = gotHit;
+  pick.hits = gotHit ? 1 : 0;
+  pick.atBats = 1;
+  pick.gameStatus = 'Manual';
+  saveTracker();
+  renderTracker();
+}
+
+function renderTrackerStats() {
+  const statsCard = document.getElementById('trackerStatsCard');
+  const statsDiv = document.getElementById('trackerStats');
+  if (!statsCard || !statsDiv) return;
+
+  // Collect all picks with results
+  const allPicks = trackerData.picks.flatMap(d => d.players).filter(p => p.gotHit !== null);
+  if (allPicks.length < 5) { statsCard.style.display = 'none'; return; }
+
+  statsCard.style.display = 'block';
+
+  // Hit rate by tier
+  const tiers = ['Elite','Strong','Lean','Avoid'];
+  const tierStats = {};
+  tiers.forEach(t => {
+    const tp = allPicks.filter(p => p.tier === t);
+    tierStats[t] = { total: tp.length, hits: tp.filter(p => p.gotHit).length };
+  });
+
+  // Hit rate by score range
+  const ranges = [{label:'85+',min:85,max:100},{label:'70-84',min:70,max:84},{label:'55-69',min:55,max:69},{label:'<55',min:0,max:54}];
+  const rangeStats = ranges.map(r => {
+    const rp = allPicks.filter(p => p.score >= r.min && p.score <= r.max);
+    return { label: r.label, total: rp.length, hits: rp.filter(p => p.gotHit).length };
+  });
+
+  const overall = allPicks.filter(p => p.gotHit).length;
+  const overallRate = Math.round((overall / allPicks.length) * 100);
+
+  let html = `<div class="kpi-strip" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+    <div class="kpi"><div class="kpi-val">${allPicks.length}</div><div class="kpi-lbl">Tracked picks</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:var(--green);">${overall}</div><div class="kpi-lbl">Total hits</div></div>
+    <div class="kpi"><div class="kpi-val">${overallRate}%</div><div class="kpi-lbl">Overall hit rate</div></div>
+  </div>`;
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+
+  // Tier breakdown
+  html += '<div><div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">By Tier</div>';
+  tiers.forEach(t => {
+    const s = tierStats[t];
+    if (!s.total) return;
+    const rate = Math.round((s.hits/s.total)*100);
+    const color = t==='Elite'?'var(--green)':t==='Strong'?'var(--blue)':t==='Lean'?'var(--yellow)':'var(--red)';
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="font-weight:700;color:${color};width:60px;">${t}</span>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;">
+        <div style="width:${rate}%;background:${color};height:100%;border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:600;">${s.hits}/${s.total} (${rate}%)</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Score range breakdown
+  html += '<div><div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">By Score</div>';
+  rangeStats.forEach(r => {
+    if (!r.total) return;
+    const rate = Math.round((r.hits/r.total)*100);
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span style="font-weight:700;width:55px;">${r.label}</span>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;">
+        <div style="width:${rate}%;background:var(--blue);height:100%;border-radius:4px;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:600;">${r.hits}/${r.total} (${rate}%)</span>
+    </div>`;
+  });
+  html += '</div></div>';
+
+  statsDiv.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', loadTracker);
+
+// ── DATA EXPORT / IMPORT ─────────────────────────────────────────────────────
+
+function exportData() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    pools: JSON.parse(localStorage.getItem('survivorPools') || '[]'),
+    tracker: JSON.parse(localStorage.getItem('hitPropTracker') || '{"picks":[]}'),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mlb-hit-prop-backup-' + new Date().toLocaleDateString('en-CA') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.version) throw new Error('Invalid backup file format');
+
+      const poolCount = (data.pools || []).length;
+      const pickDays  = (data.tracker?.picks || []).length;
+
+      if (!confirm(`Import backup from ${new Date(data.exportedAt).toLocaleDateString()}?
+
+` +
+        `This will REPLACE your current data with:
+` +
+        `• ${poolCount} pool${poolCount !== 1 ? 's' : ''}
+` +
+        `• ${pickDays} day${pickDays !== 1 ? 's' : ''} of tracker history
+
+` +
+        `Your current data will be overwritten.`)) return;
+
+      if (data.pools)   localStorage.setItem('survivorPools',    JSON.stringify(data.pools));
+      if (data.tracker) localStorage.setItem('hitPropTracker',   JSON.stringify(data.tracker));
+
+      // Reload state
+      loadPools();
+      loadTracker();
+      alert(`✅ Import successful!
+${poolCount} pools and ${pickDays} days of tracker history restored.`);
+    } catch(err) {
+      alert('❌ Import failed: ' + err.message + '\nMake sure you selected a valid backup file.');
+    }
+  };
+  reader.readAsText(file);
+  // Reset input so same file can be re-imported if needed
+  event.target.value = '';
+}
+
+// ── CLOUD SYNC (Vercel KV) ────────────────────────────────────────────────────
+// PIN-based sync — same PIN loads same data on any device
+
+function getSyncPin() {
+  return (document.getElementById('syncPin')?.value || '').trim().toUpperCase();
+}
+
+function setSyncStatus(msg, color) {
+  const el = document.getElementById('syncStatus');
+  if (el) { el.textContent = msg; el.style.color = color || 'var(--muted)'; }
+}
+
+// Auto-restore last used PIN from localStorage
+function initCloudSync() {
+  const lastPin = localStorage.getItem('mlbSyncPin');
+  if (lastPin) {
+    const input = document.getElementById('syncPin');
+    if (input) input.value = lastPin;
+  }
+}
+
+async function saveToCloud() {
+  const pin = getSyncPin();
+  if (!pin || pin.length < 3) {
+    setSyncStatus('Enter a PIN first (min 3 chars)', 'var(--red)');
+    return;
+  }
+
+  setSyncStatus('Saving...', 'var(--muted)');
+
+  try {
+    const payload = {
+      pools:   JSON.parse(localStorage.getItem('survivorPools') || '[]'),
+      tracker: JSON.parse(localStorage.getItem('hitPropTracker') || '{"picks":[]}'),
+    };
+
+    const res = await fetch('/api/kv?pin=' + encodeURIComponent(pin), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+
+    localStorage.setItem('mlbSyncPin', pin);
+    const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    setSyncStatus(`✅ Saved at ${time} — PIN: ${pin}`, 'var(--green)');
+  } catch(e) {
+    setSyncStatus('❌ ' + e.message, 'var(--red)');
+  }
+}
+
+async function loadFromCloud() {
+  const pin = getSyncPin();
+  if (!pin || pin.length < 3) {
+    setSyncStatus('Enter a PIN first', 'var(--red)');
+    return;
+  }
+
+  setSyncStatus('Loading...', 'var(--muted)');
+
+  try {
+    const res = await fetch('/api/kv?pin=' + encodeURIComponent(pin));
+    const data = await res.json();
+
+    if (res.status === 404) {
+      setSyncStatus('No data found for PIN: ' + pin + ' — save first from another device', 'var(--yellow)');
+      return;
+    }
+    if (!res.ok) throw new Error(data.error || 'Load failed');
+
+    const poolCount   = (data.data?.pools   || []).length;
+    const trackerDays = (data.data?.tracker?.picks || []).length;
+    const savedAt     = data.data?.savedAt
+      ? new Date(data.data.savedAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })
+      : 'unknown time';
+
+    if (!confirm(
+      `Load data for PIN: ${pin}?
+
+` +
+      `Saved: ${savedAt}
+` +
+      `• ${poolCount} pool${poolCount !== 1 ? 's' : ''}
+` +
+      `• ${trackerDays} day${trackerDays !== 1 ? 's' : ''} of tracker history
+
+` +
+      `This will replace your current local data.`
+    )) return;
+
+    if (data.data.pools)   localStorage.setItem('survivorPools',  JSON.stringify(data.data.pools));
+    if (data.data.tracker) localStorage.setItem('hitPropTracker', JSON.stringify(data.data.tracker));
+
+    localStorage.setItem('mlbSyncPin', pin);
+    loadPools();
+    loadTracker();
+    setSyncStatus(`✅ Loaded ${poolCount} pools · Saved ${savedAt}`, 'var(--green)');
+  } catch(e) {
+    setSyncStatus('❌ ' + e.message, 'var(--red)');
+  }
+}
+
+// Auto-save to cloud whenever pools change (debounced)
+let cloudSaveTimer = null;
+function cloudSave() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Saving…';
+  const pin = 'DREW_MLB_POOLS'; // fixed key — only you use this
+  const payload = {
+    pools,
+    tracker: typeof picks !== 'undefined' ? picks : [],
+    savedAt: new Date().toISOString(),
+    pin,
+  };
+  fetch('/api/kv?pin=' + pin, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
+    if (status) {
+      status.textContent = '✓ Saved at ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      status.style.color = 'var(--green)';
+    }
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
+}
+
+function cloudLoad() {
+  const status = document.getElementById('syncStatus');
+  if (status) status.textContent = 'Loading…';
+  const pin = 'DREW_MLB_POOLS';
+  fetch('/api/kv?pin=' + pin)
+  .then(r => r.json())
+  .then(d => {
+    if (d.error) throw new Error(d.error);
+    const data = d.data;
+    if (data?.pools) {
+      pools = data.pools;
+      localStorage.setItem('survivorPools', JSON.stringify(pools));
+      renderPools();
+      refreshResultPoolStatus();
+      const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'unknown';
+      if (status) {
+        status.textContent = `✓ Loaded (saved ${savedAt})`;
+        status.style.color = 'var(--green)';
+      }
+    } else {
+      throw new Error('No saved pools found');
+    }
+  })
+  .catch(e => {
+    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
+  });
+}
+
+// Remove old PIN-based functions (replaced by cloudSave/cloudLoad above)
+function triggerAutoSave() {} // no-op — sync is now manual
+function getSyncPin() { return 'DREW_MLB_POOLS'; }
+</script>
+</body>
+</html>
