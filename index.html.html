@@ -1360,6 +1360,322 @@ const STATCAST={"Aaron Judge":[0.3,0.236,0.582,0.247],"Abraham Toro":[0.253,0.14
 // SP_STATS: [ERA, WHIP, K/9, hand] — covers ~100 active starters
 // K/9 converted to approx K% via: kpct ≈ k9 / (9 * ~4.0 PA/IP * ~0.9 BF/PA) ≈ k9 / 32.4
 // Simpler: kpct ≈ k9 * 0.028  (league avg ~8.5 K/9 = ~24% K%)
+function normalize(s){
+  return s.toLowerCase()
+    .replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i')
+    .replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/[ñ]/g,'n')
+    .replace(/[.]/g,'').trim();
+}
+
+const NAME_ALIASES = {
+  // Jr/Sr suffixes
+  'vladimir guerrero':       'vladimir guerrero jr.',
+  'vladimir guerrero jr':    'vladimir guerrero jr.',
+  'vladimir guerrero jr.':   'vladimir guerrero jr.',
+  'bobby witt':              'bobby witt jr.',
+  'bobby witt jr':           'bobby witt jr.',
+  'fernando tatis':          'fernando tatis jr.',
+  'fernando tatis jr':       'fernando tatis jr.',
+  'ronald acuna':            'ronald acuna jr.',
+  'ronald acuna jr':         'ronald acuna jr.',
+  'ronald acuña':            'ronald acuna jr.',
+  'ronald acuña jr.':        'ronald acuna jr.',
+  'chas mccormick':          'chas mccormick',
+  'michael harris':          'michael harris ii',
+  'michael harris ii':       'michael harris ii',
+  // Accent normalization (FantasyLabs vs Savant)
+  'yordan alvarez':          'yordan alvarez',
+  'jose ramirez':            'jose ramirez',
+  'julio rodriguez':         'julio rodriguez',
+  'elly de la cruz':         'elly de la cruz',
+  'luisangel acuna':         'luisangel acuña',
+  // Common shortened/alternate names
+  'cj abrams':               'cj abrams',
+  'tj friedl':               'tj friedl',
+  'jj wetherholt':           'jj wetherholt',
+  'jo adell':                'jo adell',
+  'ha-seong kim':            'ha-seong kim',
+  'jung hoo lee':            'jung hoo lee',
+  "ryan o'hearn":            "ryan o'hearn",
+  'ke bryan hayes':          "ke'bryan hayes",
+  "ke'bryan hayes":          "ke'bryan hayes",
+  // Pete Crow-Armstrong
+  'pete crow-armstrong':     'pete crow-armstrong',
+  'pete crow armstrong':     'pete crow-armstrong',
+  // Others commonly mismatched
+  'cedric mullins':          'cedric mullins ii',
+  'cedric mullins ii':       'cedric mullins ii',
+  'victor scott':            'victor scott ii',
+  'victor scott ii':         'victor scott ii',
+};
+
+// Resolve a display name to its canonical Statcast name
+function resolveAlias(name) {
+  const key = normalize(name);
+  return NAME_ALIASES[key] || name;
+}
+
+const SC_NORM = {};
+Object.keys(STATCAST).forEach(k => { SC_NORM[normalize(k)] = STATCAST[k]; });
+
+// Generic lookup helper — searches a live map then SC_NORM embedded fallback
+function lookupInMap(map, name) {
+  // First resolve any known aliases (Jr., accents, alternate spellings)
+  const resolved = resolveAlias(name);
+  const key = normalize(resolved);
+  if (map[key]) return map[key];
+
+  // Try original name too in case alias wasn't needed
+  const origKey = normalize(name);
+  if (map[origKey]) return map[origKey];
+
+  // Fuzzy: match on last name + first initial
+  // But skip if last part is 'jr', 'sr', 'ii', 'iii' — use second-to-last instead
+  const parts = key.split(' ');
+  const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'jr.', 'sr.']);
+  let lLast = parts[parts.length - 1];
+  if (SUFFIXES.has(lLast) && parts.length >= 3) {
+    lLast = parts[parts.length - 2]; // use actual last name
+  }
+  const lInit = parts[0][0];
+  const lm = Object.keys(map).find(k => {
+    const kp = k.split(' ');
+    let kLast = kp[kp.length - 1];
+    if (SUFFIXES.has(kLast) && kp.length >= 3) kLast = kp[kp.length - 2];
+    return kLast === lLast && kp[0][0] === lInit;
+  });
+  if (lm) return map[lm];
+  return null;
+}
+
+// Look up batter stats — spHand determines which split xBA to use
+// Returns: { xba (split-specific), kpct, hardhitpct, barrelpct, splitUsed }
+function lookupStatcast(name, spHand) {
+  // Get overall stats (K%, HH%, Barrel%) — these are more stable overall than splits
+  const overall = lookupInMap(liveStatcast, name);
+
+  // Get split-specific xBA based on opposing SP hand
+  const splitMap = spHand === 'R' ? liveVsRHP : spHand === 'L' ? liveVsLHP : null;
+  const splitStats = splitMap ? lookupInMap(splitMap, name) : null;
+
+  // Embedded fallback for overall stats
+  const embKey = normalize(name);
+  let embedded = null;
+  if (SC_NORM[embKey]) { const s = SC_NORM[embKey]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+  if (!embedded) {
+    const parts = embKey.split(' ');
+    if (parts.length >= 2) {
+      const lLast = parts[parts.length-1], lInit = parts[0][0];
+      const match = Object.keys(SC_NORM).find(k => { const kp=k.split(' '); return kp[kp.length-1]===lLast && kp[0][0]===lInit; });
+      if (match) { const s = SC_NORM[match]; embedded = { xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] }; }
+    }
+  }
+
+  if (!overall && !splitStats && !embedded) return null;
+
+  // xBA: prefer split, fall back to overall live, then embedded
+  const splitXBA  = splitStats?.xba  ?? null;
+  const overallXBA = overall?.xba ?? embedded?.xba ?? null;
+
+  // Blend split xBA with overall when split PA is low
+  // splitStats.pa tells us how many PA in that split — fewer = more weight to overall
+  let xba = overallXBA;
+  let splitUsed = 'overall';
+  if (splitXBA !== null && overallXBA !== null) {
+    const splitPA = splitStats?.pa || 0;
+    // Confidence ramp: 0 PA = 0% split, 80+ PA = 100% split
+    // More aggressive than before — need 80 PA for full confidence vs 60
+    const wSplit = Math.min(1, splitPA / 80);
+    const wOverall = 1 - wSplit;
+    xba = parseFloat((splitXBA * wSplit + overallXBA * wOverall).toFixed(3));
+    splitUsed = splitPA >= 80 ? (spHand === 'R' ? 'vsRHP' : 'vsLHP')
+               : splitPA >= 20 ? `blend(${splitPA}PA)`
+               : 'overall';
+    // Store split PA count so scoring can apply a confidence penalty
+    return {
+      xba,
+      kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+      hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
+      barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+      splitUsed,
+      splitPA,      // expose PA count for confidence weighting in score
+      splitConfidence: parseFloat(wSplit.toFixed(2)), // 0-1
+    };
+  } else if (splitXBA !== null) {
+    xba = splitXBA;
+    splitUsed = spHand === 'R' ? 'vsRHP' : 'vsLHP';
+  }
+
+  return {
+    xba,
+    kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+    hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
+    barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+    splitUsed,
+    splitPA:         splitStats?.pa ?? 0,
+    splitConfidence: splitXBA !== null ? Math.min(1, (splitStats?.pa || 0) / 80) : 0,
+  };
+}
+
+// Lookup pitcher Statcast — live first, then SP_STATS hardcoded fallback
+function lookupPitcher(name) {
+  const key = normalize(name);
+  // 1. Live Statcast pitcher data (from proxy)
+  const liveMatch = lookupInMap(livePitchers, name);
+  if (liveMatch) return { ...liveMatch, fromStatcast: true };
+
+  // 2. SP_STATS hardcoded fallback (normalized lookup)
+  const sp = SP_NORM[key];
+  if (sp) return {
+    xbaAllowed:     null,
+    kpct:           sp[2] * 0.0275, // K/9 → approx K% (8.5 K/9 ≈ 23%, 12 K/9 ≈ 33%)
+    hardHitAllowed: null,
+    barrelAllowed:  null,
+    whiffPct:       null,
+    era: sp[0], whip: sp[1], k9: sp[2], hand: sp[3],
+    fromStatcast: false,
+  };
+
+  // 3. Partial name match in SP_NORM
+  const parts = key.split(' ');
+  if (parts.length >= 2) {
+    const lLast = parts[parts.length-1], lInit = parts[0][0];
+    const match = Object.keys(SP_NORM).find(k => {
+      const kp = k.split(' ');
+      return kp[kp.length-1] === lLast && kp[0][0] === lInit;
+    });
+    if (match) {
+      const sp2 = SP_NORM[match];
+      return {
+        xbaAllowed: null, kpct: sp2[2] * 0.0275,
+        hardHitAllowed: null, barrelAllowed: null, whiffPct: null,
+        era: sp2[0], whip: sp2[1], k9: sp2[2], hand: sp2[3],
+        fromStatcast: false,
+      };
+    }
+  }
+  return null;
+}
+
+// ── Lineup projection ─────────────────────────────────────────────────────────
+// Batter handedness: R=right, L=left, S=switch
+const BATS = {
+  'Juan Soto':'L','Aaron Judge':'R','Jazz Chisholm Jr.':'L','Cody Bellinger':'L',
+  'Austin Wells':'L','Oswaldo Cabrera':'S','Trent Grisham':'L','Paul Goldschmidt':'R',
+  'Jorbit Vivas':'L','Rafael Devers':'L','Wilyer Abreu':'R','Masataka Yoshida':'L',
+  'Trevor Story':'R','Triston Casas':'L','Rob Refsnyder':'R','Connor Wong':'R',
+  'Ceddanne Rafaela':'R','David Hamilton':'L','Vladimir Guerrero Jr.':'R',
+  'George Springer':'R','Bo Bichette':'R','Daulton Varsho':'L','Alejandro Kirk':'R',
+  'Ernie Clement':'R','Davis Schneider':'R','Addison Barger':'L','Spencer Horwitz':'L',
+  'Gunnar Henderson':'L','Adley Rutschman':'S','Anthony Santander':'S',
+  'Ryan Mountcastle':'R','Colton Cowser':'L','Jordan Westburg':'R','Ramon Urias':'R',
+  'Austin Hays':'L','Jorge Mateo':'R','Brandon Lowe':'L','Yandy Diaz':'R',
+  'Josh Lowe':'L','Harold Ramirez':'R','Jonathan Aranda':'L','Jose Siri':'R',
+  'Richie Palacios':'L','Taylor Walls':'S',
+  'José Ramírez':'S','Josh Naylor':'L','Lane Thomas':'R','David Fry':'R',
+  'Will Brennan':'L','Bo Naylor':'L','Gabriel Arias':'R','Jhonkensy Noel':'R',
+  'Brayan Rocchio':'S','Carlos Correa':'R','Byron Buxton':'R','Ryan Jeffers':'R',
+  'Matt Wallner':'L','Max Kepler':'L','Trevor Larnach':'L','Edouard Julien':'L',
+  'Brooks Lee':'S','Christian Vázquez':'R','Bobby Witt Jr.':'R','Salvador Perez':'R',
+  'MJ Melendez':'L','Vinnie Pasquantino':'L','Hunter Renfroe':'R',
+  'Nelson Velázquez':'R','Maikel Garcia':'R','Michael Massey':'L','Freddy Fermin':'R',
+  'Jose Altuve':'R','Yordan Alvarez':'L','Alex Bregman':'R','Jeremy Peña':'R',
+  'Yainer Diaz':'R','Jake Meyers':'R','Mauricio Dubón':'R','Chas McCormick':'R',
+  'Victor Caratini':'S','Marcus Semien':'R','Corey Seager':'L','Nathaniel Lowe':'L',
+  'Adolis García':'R','Josh Smith':'L','Wyatt Langford':'R','Jonah Heim':'S',
+  'Travis Jankowski':'L','Leody Taveras':'S','Mike Trout':'R','Taylor Ward':'R',
+  'Nolan Schanuel':'L',"Logan O'Hoppe":'R','Mickey Moniak':'L','Zach Neto':'R',
+  'Luis Rengifo':'S','Julio Rodríguez':'R','Cal Raleigh':'L','Mitch Garver':'R',
+  'Eugenio Suárez':'R','Ty France':'R','Luke Raley':'L','Jorge Polanco':'S',
+  'Josh Rojas':'L','Sam Haggerty':'S','Francisco Lindor':'S','Pete Alonso':'R',
+  'Brandon Nimmo':'L','Jesse Winker':'L','Mark Vientos':'R','Jeff McNeil':'L',
+  'Starling Marte':'R','Francisco Alvarez':'R','Drake Baldwin':'L','Luisangel Acuña':'R',
+  'Ronald Acuña Jr.':'R','Ozzie Albies':'S','Austin Riley':'R','Marcell Ozuna':'R',
+  'Matt Olson':'L','Eddie Rosario':'L','Sean Murphy':'R','Michael Harris II':'L',
+  'Orlando Arcia':'R','Trea Turner':'R','Bryce Harper':'L','Kyle Schwarber':'L',
+  'Nick Castellanos':'R','Alec Bohm':'R','Brandon Marsh':'L','J.T. Realmuto':'R',
+  'Bryson Stott':'L','Johan Rojas':'R','CJ Abrams':'L','Keibert Ruiz':'R',
+  'Joey Meneses':'R','Alex Call':'L','Ildemaro Vargas':'R','Riley Adams':'R',
+  'Jake Alu':'R','Stone Garrett':'R','Dansby Swanson':'R','Ian Happ':'S',
+  'Nico Hoerner':'R','Michael Busch':'L','Christopher Morel':'R','Seiya Suzuki':'R',
+  'Miguel Amaya':'R','Miles Mastrobuoni':'R','Lars Nootbaar':'L','Nolan Arenado':'R',
+  'Willson Contreras':'R','Brendan Donovan':'L','Dylan Carlson':'S','Tommy Edman':'S',
+  'Masyn Winn':'R','Ivan Herrera':'R','Willy Adames':'R','William Contreras':'R',
+  'Christian Yelich':'L','Rhys Hoskins':'R','Jackson Chourio':'R','Sal Frelick':'L',
+  'Joey Wiemer':'R','Tyrone Taylor':'R','Owen Miller':'R','Elly De La Cruz':'S',
+  'TJ Friedl':'L','Jonathan India':'R','Tyler Stephenson':'R','Spencer Steer':'R',
+  'Jake Fraley':'L','Stuart Fairchild':'R','Matt McLain':'R','Will Benson':'L',
+  'Oneil Cruz':'L','Ji Hwan Bae':'L','Bryan Reynolds':'S','Carlos Santana':'S',
+  'Henry Davis':'R','Connor Joe':'R','Rowdy Tellez':'L','Josh Palacios':'L',
+  'Ji-Man Choi':'L','Corbin Carroll':'L','Ketel Marte':'S','Lourdes Gurriel Jr.':'R',
+  'Gabriel Moreno':'R','Christian Walker':'R','Randal Grichuk':'R',
+  'Geraldo Perdomo':'S','Jake McCarthy':'L','Joc Pederson':'L','Heliot Ramos':'R',
+  'Patrick Bailey':'S','Wilmer Flores':'R','Mike Yastrzemski':'L',
+  'Tyler Fitzgerald':'R','Marco Luciano':'R','Grant McCray':'L','Blake Sabol':'L',
+  'Casey Schmitt':'R','Mookie Betts':'R','Freddie Freeman':'L','Shohei Ohtani':'L',
+  'Will Smith':'R','Teoscar Hernandez':'R','Andy Pages':'R','Max Muncy':'L',
+  'Gavin Lux':'L','Miguel Rojas':'R','Fernando Tatis Jr.':'R','Manny Machado':'R',
+  'Xander Bogaerts':'R','Jake Cronenworth':'L','Jurickson Profar':'L',
+  'Jackson Merrill':'L','Ha-Seong Kim':'R','Kyle Higashioka':'R','Tyler Wade':'S',
+  'Ryan McMahon':'L','Ezequiel Tovar':'R','C.J. Cron':'R','Brenton Doyle':'R',
+  'Elias Díaz':'R','Charlie Blackmon':'L','Sean Bouchard':'R','Alan Trejo':'R',
+  'Andrew Vaughn':'R','Tommy Pham':'R','Korey Lee':'R','Nicky Lopez':'L',
+  'Gavin Sheets':'L','Zach DeLoach':'L','Lenyn Sosa':'R','Bryan Ramos':'R',
+  'Tim Anderson':'R','Kerry Carpenter':'L','Spencer Torkelson':'R','Matt Vierling':'R',
+  'Riley Greene':'L','Javier Báez':'R','Andy Ibáñez':'R','Parker Meadows':'L',
+  'Jake Rogers':'R','Brent Rooker':'R','Lawrence Butler':'L','Shea Langeliers':'R',
+  'Esteury Ruiz':'R','Seth Brown':'L','JJ Bleday':'L','Tyler Soderstrom':'L',
+  'Zack Gelof':'R','Nick Allen':'R','Luis Arraez':'L','Jake Burger':'R',
+  'Bryan De La Cruz':'R','Jesús Sánchez':'R','Josh Bell':'S','Nick Fortes':'R',
+  'Peyton Burdick':'R','René Pinto':'R','Rene Pinto':'R',
+    'Matt Chapman':'R',  'Harrison Bader':'R',  'Jordan Walker':'R',  'Pete Crow-Armstrong':'L',  'Roman Anthony':'L',  'Vaughn Grissom':'R',
+  'Junior Caminero':'R','Ben Williamson':'R','Chase DeLauter':'L','Kyle Manzardo':'L','Angel Martínez':'S','Steven Kwan':'L','Gleyber Torres':'R','Isaac Paredes':'R','Joey Loperfido':'R','Cam Smith':'R','Samuel Basallo':'L','Tyler O\'Neill':'R','Coby Mayo':'R','Blaze Alexander':'R','Carson Williams':'R','James Wood':'L','Daylen Lile':'L','JJ Wetherholt':'R','Moisés Ballesteros':'L','Iván Herrera':'R','Andrés Giménez':'S','Jarren Duran':'L','Carlos Narváez':'L','Caleb Durbin':'R','Marcelo Mayer':'L','Jung Hoo Lee':'L','Ben Rice':'L','José Caballero':'R',
+  'Jakob Marsee':'L',
+  'Otto Lopez':'R',
+  'Kyle Stowers':'L',
+  'Agustin Ramirez':'R',
+  'Liam Hicks':'L',
+  'Connor Norby':'R',
+  'Owen Caissie':'L',
+  'Graham Pauley':'L',
+  'Kevin McGonigle':'R',
+  'Colt Keith':'R',
+  'Dillon Dingler':'R',
+  'Nathan Lukes':'L',
+  'Pavin Smith':'L',
+  'Alek Thomas':'L',
+  'Jordan Lawlar':'L',
+  'Zac Veen':'L',
+  'Randy Arozarena':'R',
+  'Leo Rivas':'R',
+  'Dominic Canzone':'L',
+  'Ryan O\'Hearn':'L',
+  'Jared Triolo':'R',
+  'Nick Gonzales':'L',
+  'Jo Adell':'R',
+  'Jorge Soler':'R',
+  'Adam Frazier':'L',
+  'Nathan Church':'L',
+  'Miguel Andujar':'R',
+  'Kurt Suzuki':'R'
+};
+
+function getBats(name) { return BATS[name] || '?'; }
+
+function platoonLabel(bats, spHand, spPlatoon) {
+  if (bats === 'S') return { label: 'Switch', cls: 'good', adv: true };
+  if (!bats || bats === '?' || !spHand || spHand === '?') return { label: '?', cls: '', adv: null };
+  // Normal: same hand = pitcher advantage. Reverse split: opposite applies.
+  const isReverse = spPlatoon === 'reverse';
+  const normallyFav = bats !== spHand; // L vs R or R vs L = normally favorable
+  const fav = isReverse ? !normallyFav : normallyFav;
+  const reverseNote = isReverse ? ' (rev)' : '';
+  return fav
+    ? { label: bats + ' vs ' + spHand + ' ✓' + reverseNote, cls: 'good', adv: true }
+    : { label: bats + ' vs ' + spHand + reverseNote, cls: 'bad', adv: false };
+}
+
+// Known 2026 batting orders — sourced from MLB.com Opening Day + RotoWire current (Apr 20 2026)
 const SP_STATS = {
   // AL East
   'Gerrit Cole':[3.12,1.05,11.4,'R'],'Carlos Rodon':[3.85,1.22,10.8,'L'],
@@ -1584,12 +1900,6 @@ const SP_STATS = {
   'Landen Roupp':[4.20,1.28,9.2,'R'],
 };
 
-function normalize(s){
-  return s.toLowerCase()
-    .replace(/[áàäâ]/g,'a').replace(/[éèëê]/g,'e').replace(/[íìïî]/g,'i')
-    .replace(/[óòöô]/g,'o').replace(/[úùüû]/g,'u').replace(/[ñ]/g,'n')
-    .replace(/[.]/g,'').trim();
-}
 
 // Normalize SP_STATS keys for accent-insensitive lookup
 const SP_NORM = {};
@@ -1648,6 +1958,45 @@ function mergeLivePitcherStats(spStats) {
     source: 'live-mlb-api',
   };
 }
+
+const DEPTH_CHARTS = {
+  // AL East
+  'NYY': ['Trent Grisham','Ben Rice','Aaron Judge','Cody Bellinger','Giancarlo Stanton','Jazz Chisholm Jr.','Austin Wells','José Caballero','Ryan McMahon'],
+  'BOS': ['Roman Anthony','Trevor Story','Jarren Duran','Willson Contreras','Wilyer Abreu','Caleb Durbin','Marcelo Mayer','Ceddanne Rafaela','Carlos Narváez'],
+  'TOR': ['Nathan Lukes','Ernie Clement','Vladimir Guerrero Jr.','Jesus Sanchez','Eloy Jimenez','Daulton Varsho','Kazuma Okamoto','Andres Gimenez','Tyler Heineman'],
+  'BAL': ['Gunnar Henderson','Taylor Ward','Adley Rutschman','Pete Alonso','Dylan Beavers','Leody Taveras','Jeremiah Jackson','Colton Cowser','Coby Mayo'],
+  'TB':  ['Chandler Simpson','Junior Caminero','Jonathan Aranda','Yandy Diaz','Jake Fraley','Cedric Mullins','Richie Palacios','Nick Fortes','Taylor Walls'],
+  // AL Central
+  'CLE': ['Steven Kwan','Chase DeLauter','José Ramírez','Kyle Manzardo','Rhys Hoskins','Angel Martínez','Bo Naylor','Gabriel Arias','Brayan Rocchio'],
+  'MIN': ['Byron Buxton','Trevor Larnach','Josh Bell','Ryan Jeffers','Kody Clemens','Luke Keaschall','Matt Wallner','Royce Lewis','Brooks Lee'],
+  'KC':  ['Maikel Garcia','Bobby Witt Jr.','Vinnie Pasquantino','Salvador Perez','Lane Thomas','Starling Marte','Isaac Collins','Nick Loftin','Elias Diaz'],
+  'CHW': ['Andrew Benintendi','Munetaka Murakami','Miguel Vargas','Colson Montgomery','Everson Pereira','Sam Antonacci','Chase Meidroth','Edgar Quero','Tristan Peters'],
+  'DET': ['Kevin McGonigle','Gleyber Torres','Colt Keith','Riley Greene','Spencer Torkelson','Matt Vierling','Parker Meadows','Dillon Dingler','Zach McKinstry'],
+  // AL West
+  'HOU': ['Carlos Correa','Yordan Alvarez','Jose Altuve','Christian Walker','Isaac Paredes','Cam Smith','Daniel Johnson','Yainer Diaz','Dustin Harris'],
+  'TEX': ['Brandon Nimmo','Joc Pederson','Corey Seager','Jake Burger','Josh Jung','Evan Carter','Danny Jansen','Josh Smith','Alejandro Osuna'],
+  'LAA': ['Zach Neto','Mike Trout','Jo Adell','Jorge Soler','Oswald Peraza','Nolan Schanuel','Vaughn Grissom',"Logan O'Hoppe",'Bryce Teodosio'],
+  'ATH': ['Nick Kurtz','Shea Langeliers','Carlos Cortes','Tyler Soderstrom','Jacob Wilson','Jeff McNeil','Max Muncy','Lawrence Butler','Zack Gelof'],
+  'SEA': ['J.P. Crawford','Cal Raleigh','Julio Rodriguez','Josh Naylor','Randy Arozarena','Luke Raley','Dominic Canzone','Cole Young','Leo Rivas'],
+  // NL East
+  'NYM': ['Bo Bichette','Juan Soto','Francisco Alvarez','Luis Robert','Brett Baty','Mark Vientos','Marcus Semien','Ronny Mauricio','Carson Benge'],
+  'ATL': ['Ronald Acuna Jr.','Drake Baldwin','Matt Olson','Austin Riley','Ozzie Albies','Michael Harris II','Dominic Smith','Mauricio Dubon','Mike Yastrzemski'],
+  'PHI': ['Trea Turner','Kyle Schwarber','Bryce Harper','Adolis Garcia','Brandon Marsh','Bryson Stott','Alec Bohm','Justin Crawford','Rafael Marchan'],
+  'MIA': ['Jakob Marsee','Xavier Edwards','Otto Lopez','Kyle Stowers','Agustin Ramirez','Liam Hicks','Connor Norby','Owen Caissie','Graham Pauley'],
+  'WSH': ['James Wood','Luis Garcia','Brady House','CJ Abrams','Jacob Young','Daylen Lile','Nasim Nunez','Jose Tena','Drew Millas'],
+  // NL Central
+  'CHC': ['Nico Hoerner','Michael Busch','Alex Bregman','Ian Happ','Seiya Suzuki','Moisés Ballesteros','Miguel Amaya','Pete Crow-Armstrong','Dansby Swanson'],
+  'STL': ['JJ Wetherholt','Iván Herrera','Alec Burleson','Jordan Walker','Nolan Gorman','Masyn Winn','Nathan Church','Pedro Pagés','Victor Scott II'],
+  'MIL': ['Jackson Chourio','William Contreras','Christian Yelich','Rhys Hoskins','Sal Frelick','Joey Wiemer','Owen Miller','Tyrone Taylor','Brian Anderson'],
+  'CIN': ['TJ Friedl','Matt McLain','Elly De La Cruz','Spencer Steer','Sal Stewart','Gavin Lux','Tyler Stephenson',"Ke\'Bryan Hayes",'Noelvi Marte'],
+  'PIT': ['Oneil Cruz','Brandon Lowe','Bryan Reynolds','Marcell Ozuna',"Ryan O'Hearn",'Jared Triolo','Spencer Horwitz','Nick Gonzales','Henry Davis'],
+  // NL West
+  'AZ':  ['Ketel Marte','Corbin Carroll','Geraldo Perdomo','Gabriel Moreno','Pavin Smith','Nolan Arenado','Carlos Santana','Alek Thomas','Jordan Lawlar'],
+  'SF':  ['Willy Adames','Luis Arraez','Matt Chapman','Rafael Devers','Casey Schmitt','Jung Hoo Lee','Heliot Ramos','Drew Gilbert','Patrick Bailey'],
+  'LAD': ['Shohei Ohtani','Freddie Freeman','Will Smith','Kyle Tucker','Teoscar Hernandez','Max Muncy','Andy Pages','Hyeseong Kim','Alex Freeland'],
+  'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Nick Castellanos','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
+  'COL': ['Edouard Julien','Mickey Moniak','Hunter Goodman','TJ Rumfield','Ezequiel Tovar','Troy Johnston','Kyle Karros','Jake McCarthy','Jordan Beck'],
+};
 
 function buildLineups(gameLineups, rawGames) {
   return gameLineups.map(gl => {
