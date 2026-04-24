@@ -15,9 +15,19 @@ export default async function handler(req) {
 
   const cors = { 'Access-Control-Allow-Origin': '*' };
 
-  // Build Savant URL — expected_statistics for xBA (batter & pitcher)
-  let url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=${type === 'pitcher' ? 'pitcher' : 'batter'}&year=${year}&position=&team=&min=1&csv=true`;
-  if (hand) url += `&pitcher_hand=${hand}`;
+  // type=statcast → fetch K%/HH%/Barrel%/xBA from Savant custom leaderboard
+  // type=batter/pitcher → expected_statistics (xBA + splits)
+  let url;
+  if (type === 'statcast') {
+    // This endpoint has k_percent, hard_hit_percent, barrel_batted_rate, xba, whiff_percent
+    url = `https://baseballsavant.mlb.com/leaderboard/statcast?type=batter&year=${year}&position=&team=&min=1&csv=true`;
+  } else if (type === 'pitcher') {
+    url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=pitcher&year=${year}&position=&team=&min=1&csv=true`;
+  } else {
+    // batter — expected_statistics gives xBA; hand split adds pitcher_hand filter
+    url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year=${year}&position=&team=&min=1&csv=true`;
+    if (hand) url += `&pitcher_hand=${hand}`;
+  }
 
   try {
     const res = await fetch(url, { headers });
@@ -31,6 +41,15 @@ export default async function handler(req) {
     }
 
     const csv = await res.text();
+
+    // Sanity check — if we got an HTML error page instead of CSV, return error
+    if (csv.trim().startsWith('<') || csv.length < 200) {
+      return new Response(JSON.stringify({ error: 'Got HTML instead of CSV', url }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...statusHdr },
+      });
+    }
+
     return new Response(csv, {
       status: 200,
       headers: {
