@@ -1655,7 +1655,14 @@ const BATS = {
   'Adam Frazier':'L',
   'Nathan Church':'L',
   'Miguel Andujar':'R',
-  'Kurt Suzuki':'R'
+  'Kurt Suzuki':'R',
+  'Andrew Benintendi':'L','Colson Montgomery':'L','Miguel Vargas':'R',
+  'Everson Pereira':'R','Sam Antonacci':'L','Chase Meidroth':'L',
+  'Edgar Quero':'S','Tristan Peters':'L','Nick Kurtz':'L',
+  'Jacob Wilson':'R','Brett Baty':'L','Ronny Mauricio':'R',
+  'Justin Crawford':'L','Nolan Jones':'L','Zac Veen':'L',
+  'Carlos Cortes':'L','Nasim Nunez':'S','Luis Garcia Jr.':'L',
+  'Curtis Mead':'R','Ben Williamson':'R','Isaac Collins':'B'
 };
 
 function getBats(name) { return BATS[name] || '?'; }
@@ -1685,22 +1692,22 @@ const DEPTH_CHARTS = {
   'CLE': ['Steven Kwan','Chase DeLauter','José Ramírez','Kyle Manzardo','Rhys Hoskins','Angel Martínez','Bo Naylor','Gabriel Arias','Brayan Rocchio'],
   'MIN': ['Byron Buxton','Carlos Correa','Ryan Jeffers','Matt Wallner','Max Kepler','Brooks Lee','Edouard Julien','Trevor Larnach','Austin Martin'],
   'KC':  ['Maikel Garcia','Bobby Witt Jr.','Vinnie Pasquantino','Salvador Perez','Isaac Collins','Jonathan India','Carter Jensen','Starling Marte','Lane Thomas'],
-  'CHW': ['Andrew Vaughn','Tommy Pham','Korey Lee','Nicky Lopez','Munetaka Murakami','Zach DeLoach','Lenyn Sosa','Bryan Ramos','Tim Anderson'],
+  'CHW': ['Andrew Benintendi','Munetaka Murakami','Miguel Vargas','Colson Montgomery','Everson Pereira','Sam Antonacci','Chase Meidroth','Edgar Quero','Tristan Peters'],
   'DET': ['Kevin McGonigle','Gleyber Torres','Colt Keith','Riley Greene','Spencer Torkelson','Matt Vierling','Parker Meadows','Dillon Dingler','Zach McKinstry'],
   // AL West
   'HOU': ['Jose Altuve','Yordan Alvarez','Isaac Paredes','Carlos Correa','Christian Walker','Joey Loperfido','Cam Smith','Yainer Diaz','Jake Meyers'],
   'TEX': ['Brandon Nimmo','Corey Seager','Nathaniel Lowe','Adolis García','Josh Smith','Wyatt Langford','Jonah Heim','Travis Jankowski','Leody Taveras'],
   'LAA': ['Zach Neto','Mike Trout','Nolan Schanuel',"Logan O'Hoppe",'Jo Adell','Jorge Soler','Josh Lowe','Kyren Paris','Adam Frazier'],
-  'ATH': ['Brent Rooker','Lawrence Butler','Shea Langeliers','Esteury Ruiz','Seth Brown','JJ Bleday','Tyler Soderstrom','Zack Gelof','Nick Allen'],
+  'ATH': ['Nick Kurtz','Shea Langeliers','Carlos Cortes','Tyler Soderstrom','Jacob Wilson','Jeff McNeil','Lawrence Butler','Zack Gelof','Nick Allen'],
   'SEA': ['Brendan Donovan','Julio Rodríguez','Cal Raleigh','Josh Naylor','Randy Arozarena','Luke Raley','Leo Rivas','Dominic Canzone','Cole Young'],
   // NL East
-  'NYM': ['Francisco Lindor','Pete Crow-Armstrong','Jesse Winker','Mark Vientos','Marcus Semien','Jeff McNeil','Francisco Alvarez','Luisangel Acuña','Jose Iglesias'],
+  'NYM': ['Francisco Lindor','Juan Soto','Jesse Winker','Mark Vientos','Francisco Alvarez','Brett Baty','Marcus Semien','Ronny Mauricio','Luisangel Acuña'],
   'ATL': ['Ronald Acuña Jr.','Drake Baldwin','Matt Olson','Austin Riley','Ozzie Albies','Michael Harris II','Orlando Arcia','Mauricio Dubón','Jorge Soler'],
-  'PHI': ['Trea Turner','Bryce Harper','Kyle Schwarber','Nick Castellanos','Alec Bohm','Brandon Marsh','J.T. Realmuto','Bryson Stott','Johan Rojas'],
+  'PHI': ['Trea Turner','Bryce Harper','Kyle Schwarber','Brandon Marsh','Alec Bohm','Justin Crawford','J.T. Realmuto','Bryson Stott','Johan Rojas'],
   'MIA': ['Jakob Marsee','Xavier Edwards','Otto Lopez','Kyle Stowers','Agustin Ramirez','Liam Hicks','Connor Norby','Owen Caissie','Graham Pauley'],
   'WSH': ['James Wood','Curtis Mead','Brady House','Daylen Lile','CJ Abrams','Joey Wiemer','Luis García Jr.','Keibert Ruiz','Nasim Nunez'],
   // NL Central
-  'CHC': ['Nico Hoerner','Ian Happ','Alex Bregman','Michael Busch','Pete Crow-Armstrong','Seiya Suzuki','Dansby Swanson','Carson Kelly','Moisés Ballesteros'],
+  'CHC': ['Nico Hoerner','Michael Busch','Alex Bregman','Ian Happ','Seiya Suzuki','Moisés Ballesteros','Miguel Amaya','Pete Crow-Armstrong','Dansby Swanson'],
   'STL': ['JJ Wetherholt','Iván Herrera','Alec Burleson','Jordan Walker','Nolan Gorman','Masyn Winn','Nathan Church','Pedro Pagés','Victor Scott II'],
   'MIL': ['Jackson Chourio','William Contreras','Christian Yelich','Rhys Hoskins','Sal Frelick','Joey Wiemer','Owen Miller','Tyrone Taylor','Brian Anderson'],
   'CIN': ['TJ Friedl','Matt McLain','Elly De La Cruz','Spencer Steer','Sal Stewart','Gavin Lux','Tyler Stephenson',"Ke\'Bryan Hayes",'Noelvi Marte'],
@@ -1709,7 +1716,7 @@ const DEPTH_CHARTS = {
   'AZ':  ['Ketel Marte','Corbin Carroll','Geraldo Perdomo','Gabriel Moreno','Pavin Smith','Nolan Arenado','Carlos Santana','Alek Thomas','Jordan Lawlar'],
   'SF':  ['Luis Arraez','Matt Chapman','Rafael Devers','Willy Adames','Jung Hoo Lee','Heliot Ramos','Casey Schmitt','Patrick Bailey','Harrison Bader'],
   'LAD': ['Mookie Betts','Shohei Ohtani','Freddie Freeman','Kyle Tucker','Will Smith','Teoscar Hernandez','Max Muncy','Andy Pages','Miguel Rojas'],
-  'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Miguel Andujar','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
+  'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Nick Castellanos','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
   'COL': ['Zac Veen','Ryan McMahon','C.J. Cron','Ezequiel Tovar','Elias Díaz','Brenton Doyle','Sean Bouchard','Alan Trejo','Nolan Jones'],
 };
 
