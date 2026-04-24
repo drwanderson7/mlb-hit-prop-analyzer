@@ -103,7 +103,7 @@ export default async function handler(req) {
     });
 
     // Columns we want to pull from csv2 if not already in csv1
-    const wantFromCsv2 = ['k_percent', 'hard_hit_percent', 'barrel_batted_rate', 'whiff_percent', 'launch_speed_avg'];
+    const wantFromCsv2 = ['k_percent', 'hard_hit_percent', 'barrel_batted_rate', 'brl_percent', 'whiff_percent', 'launch_speed_avg'];
 
     // Determine which columns csv1 is already missing
     const csv1HasCol = (col) => h1.includes(col);
