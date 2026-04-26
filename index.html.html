@@ -673,16 +673,22 @@ function parseFantasyLabsPaste() {
   const txt = box?.value?.trim();
   if (!txt) { if (st) { st.textContent = 'Paste lineup text first.'; st.style.color = 'var(--red)'; } return; }
 
-  // Parse FantasyLabs format:
-  // "Away Team (+odds) @ Home Team (-odds)"  — game header
-  // "Pitcher Name (R/L) $price"              — starting pitchers (first two after header)
-  // "Projected Lineup" or "Confirmed Lineup" — section header
-  // "* 1 - Player Name (R/L) POS $price"    — batters with order slot
-  window.importedLineupsByTeam = window.importedLineupsByTeam || {};
-  window.importedSPHands       = window.importedSPHands       || {};
+  // FantasyLabs format:
+  // "Away Team (+odds) @ Home Team (-odds)"   — game header
+  // "Pitcher Name (R/L) $price"               — away SP
+  // "$price"                                  — possible price line or time
+  // "Pitcher Name (R/L) $price"               — home SP
+  // "Projected Lineup"                        — FIRST = away lineup section
+  // "1 - Player (B) POS $price"              — away batters
+  // "Projected Lineup"                        — SECOND = home lineup section
+  // "1 - Player (B) POS $price"              — home batters
 
-  const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
+  window.importedLineupsByTeam = {};
+  window.importedSPHands = {};
+
+  const lines = txt.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   let gamesFound = 0, playersFound = 0;
+  const norm = s => s.toLowerCase().replace(/[^a-z]/g, '');
 
   let i = 0;
   while (i < lines.length) {
@@ -690,96 +696,94 @@ function parseFantasyLabsPaste() {
 
     // Game header: "Away Team (+110) @ Home Team (-132)"
     const gameMatch = line.match(/^(.+?)\s*\([+-]?\d+\)\s*@\s*(.+?)\s*\([+-]?\d+\)/);
-    if (gameMatch) {
-      const awayFull = gameMatch[1].trim();
-      const homeFull = gameMatch[2].trim();
-      i++;
+    if (!gameMatch) { i++; continue; }
 
-      // Next lines: pitchers (up to 2) then lineup
-      let pitchers = [], awayPlayers = [], homePlayers = [], inAway = true;
-      let spCount = 0;
-
-      while (i < lines.length) {
-        const l = lines[i];
-
-        // Stop at next game header
-        if (l.match(/^(.+?)\s*\([+-]?\d+\)\s*@\s*(.+?)\s*\([+-]?\d+\)/)) break;
-
-        // Pitcher line: "Name (R/L) $price" — before lineup section
-        const pitcherMatch = l.match(/^([A-Za-zÀ-ÿ\s'\.\-]+)\s*\(([RLS])\)\s*\$\d+/);
-        if (pitcherMatch && spCount < 2 && !l.match(/^\*/)) {
-          pitchers.push({ name: pitcherMatch[1].trim(), hand: pitcherMatch[2] });
-          window.importedSPHands[pitcherMatch[1].trim().toLowerCase()] = pitcherMatch[2];
-          spCount++;
-          i++; continue;
-        }
-
-        // Section dividers
-        if (/projected lineup|confirmed lineup/i.test(l)) {
-          i++; continue;
-        }
-
-        // Batter line: "* 1 - Player Name (R/L) POS $price"
-        const batterMatch = l.match(/^\*?\s*(\d+)\s*-\s*([A-Za-zÀ-ÿ\s'\.\-]+?)\s*\(([RLS])\)\s*([A-Z]{1,3})\s*\$/);
-        if (batterMatch) {
-          const slot = parseInt(batterMatch[1]);
-          const name = batterMatch[2].trim();
-          const bats = batterMatch[3];
-          const pos  = batterMatch[4];
-          const player = { order: slot, name, bats, position: pos, confirmed: true };
-
-          // First 9 = away, next 9 = home (FantasyLabs shows away first)
-          if (awayPlayers.length < 9) awayPlayers.push(player);
-          else homePlayers.push(player);
-          playersFound++;
-          i++; continue;
-        }
-
-        i++;
-      }
-
-      // Sort by batting order
-      awayPlayers.sort((a,b) => a.order - b.order);
-      homePlayers.sort((a,b) => a.order - b.order);
-
-      // Store by team name (normalize for lookup)
-      const norm = s => s.toLowerCase().replace(/[^a-z]/g,'');
-      if (awayPlayers.length) {
-        window.importedLineupsByTeam[norm(awayFull)] = awayPlayers;
-        // Also try just the city/nickname
-        const parts = awayFull.split(' ');
-        window.importedLineupsByTeam[norm(parts[parts.length-1])] = awayPlayers;
-      }
-      if (homePlayers.length) {
-        window.importedLineupsByTeam[norm(homeFull)] = homePlayers;
-        const parts = homeFull.split(' ');
-        window.importedLineupsByTeam[norm(parts[parts.length-1])] = homePlayers;
-      }
-      // Store SPs: first pitcher = away SP, second = home SP
-      if (pitchers[0]) {
-        window.importedLineupsByTeam[norm(awayFull) + '_sp'] = pitchers[0];
-      }
-      if (pitchers[1]) {
-        window.importedLineupsByTeam[norm(homeFull) + '_sp'] = pitchers[1];
-      }
-
-      gamesFound++;
-      continue;
-    }
+    const awayFull = gameMatch[1].trim();
+    const homeFull = gameMatch[2].trim();
     i++;
+
+    let pitchers = [];
+    let awayPlayers = [];
+    let homePlayers = [];
+    let lineupSectionsFound = 0; // 0=before lineups, 1=in away, 2=in home
+
+    while (i < lines.length) {
+      const l = lines[i];
+
+      // Stop at next game header
+      if (l.match(/^(.+?)\s*\([+-]?\d+\)\s*@\s*(.+?)\s*\([+-]?\d+\)/)) break;
+
+      // "Projected Lineup" or "Confirmed Lineup" — section divider
+      if (/^(projected|confirmed)\s+lineup$/i.test(l)) {
+        lineupSectionsFound++;
+        i++; continue;
+      }
+
+      // Pitcher line BEFORE any lineup section: "Name (R/L) $price"
+      // Must be before first "Projected Lineup" and not a batter line
+      if (lineupSectionsFound === 0) {
+        const pitcherMatch = l.match(/^([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s'\.\-]+?)\s*\(([RLS])\)\s*\$\d+\s*$/);
+        if (pitcherMatch && pitchers.length < 2) {
+          const pName = pitcherMatch[1].trim();
+          const pHand = pitcherMatch[2];
+          pitchers.push({ name: pName, hand: pHand });
+          window.importedSPHands[pName.toLowerCase()] = pHand;
+          i++; continue;
+        }
+        i++; continue; // skip time, weather, odds lines before lineup
+      }
+
+      // Batter line: "1 - Player Name (R/L/B) POS $price"
+      const batterMatch = l.match(/^(\d+)\s*-\s*([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s'\.\-]+?)\s*\(([RLBSrslbs])\)\s*([A-Z0-9]{1,3})\s*\$\d+/);
+      if (batterMatch) {
+        const slot = parseInt(batterMatch[1]);
+        const name = batterMatch[2].trim();
+        const bats = batterMatch[3].toUpperCase() === 'B' ? 'S' : batterMatch[3].toUpperCase();
+        const pos  = batterMatch[4];
+        const player = { order: slot, name, bats, position: pos, confirmed: true };
+
+        if (lineupSectionsFound === 1) awayPlayers.push(player);
+        else if (lineupSectionsFound === 2) homePlayers.push(player);
+        playersFound++;
+        i++; continue;
+      }
+
+      i++;
+    }
+
+    // Sort by batting order slot
+    awayPlayers.sort((a, b) => a.order - b.order);
+    homePlayers.sort((a, b) => a.order - b.order);
+
+    // Store by full team name and nickname (last word)
+    const storeTeam = (fullName, players) => {
+      if (!players.length) return;
+      const key1 = norm(fullName);
+      const parts = fullName.split(' ');
+      const key2 = norm(parts[parts.length - 1]);
+      window.importedLineupsByTeam[key1] = players;
+      window.importedLineupsByTeam[key2] = players;
+    };
+
+    storeTeam(awayFull, awayPlayers);
+    storeTeam(homeFull, homePlayers);
+
+    // Store SP info indexed by team
+    if (pitchers[0]) window.importedLineupsByTeam[norm(awayFull) + '_sp'] = pitchers[0];
+    if (pitchers[1]) window.importedLineupsByTeam[norm(homeFull) + '_sp'] = pitchers[1];
+
+    if (awayPlayers.length || homePlayers.length) gamesFound++;
   }
 
-  // Show result
   if (st) {
     if (gamesFound > 0) {
       st.textContent = `✓ Parsed ${gamesFound} game${gamesFound!==1?'s':''}, ${playersFound} players. Re-run analysis to apply.`;
       st.style.color = 'var(--green)';
-      // Show re-run prompt
       const prompt = document.getElementById('importRerunPrompt');
       if (prompt) {
         prompt.style.display = 'block';
         prompt.innerHTML = `<div style="margin-top:10px;">
-          <button class="btn btn-primary" onclick="document.getElementById('analyzeBtn')?.click()||runAnalysis()" style="width:100%;">
+          <button class="btn btn-primary" onclick="runAnalysis()" style="width:100%;">
             ⚡ Re-run Analysis with Imported Lineups
           </button>
         </div>`;
