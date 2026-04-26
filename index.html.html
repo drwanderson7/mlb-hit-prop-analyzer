@@ -756,6 +756,14 @@ function parseFantasyLabsPaste() {
     homePlayers.sort((a, b) => a.order - b.order);
 
     // Store by full team name and nickname (last word)
+    const TEAM_ABBRS = {
+      'yankees':'NYY','redsox':'BOS','bluejays':'TOR','orioles':'BAL','rays':'TBR',
+      'whitesox':'CWS','guardians':'CLE','tigers':'DET','royals':'KC','twins':'MIN',
+      'astros':'HOU','angels':'LAA','athletics':'ATH','mariners':'SEA','rangers':'TEX',
+      'braves':'ATL','marlins':'MIA','mets':'NYM','phillies':'PHI','nationals':'WSH',
+      'cubs':'CHC','reds':'CIN','brewers':'MIL','pirates':'PIT','cardinals':'STL',
+      'dodgers':'LAD','giants':'SF','padres':'SD','rockies':'COL','diamondbacks':'AZ',
+    };
     const storeTeam = (fullName, players) => {
       if (!players.length) return;
       const key1 = norm(fullName);
@@ -763,6 +771,9 @@ function parseFantasyLabsPaste() {
       const key2 = norm(parts[parts.length - 1]);
       window.importedLineupsByTeam[key1] = players;
       window.importedLineupsByTeam[key2] = players;
+      // Also store by MLB abbreviation
+      const abbr = TEAM_ABBRS[key2] || TEAM_ABBRS[key1];
+      if (abbr) window.importedLineupsByTeam[norm(abbr)] = players;
     };
 
     storeTeam(awayFull, awayPlayers);
@@ -2354,8 +2365,11 @@ function buildLineups(gameLineups, rawGames) {
       // Check imported lineups from FantasyLabs paste
       const norm = s => s.toLowerCase().replace(/[^a-z]/g,'');
       const importedMap = window.importedLineupsByTeam || {};
-      // Try full team name, abbreviation, and nickname
-      const teamNames = [abbr, gl?.awayTeam, gl?.homeTeam].filter(Boolean);
+      // Only look up by abbr — importedLineupsByTeam stores by team nickname/full name
+      // abbr = e.g. 'BOS', 'BAL' — try abbr directly, then full team name for this side only
+      const isAway = abbr === gl?.awayAbbr;
+      const thisTeam = isAway ? gl?.awayTeam : gl?.homeTeam;
+      const teamNames = [abbr, thisTeam].filter(Boolean);
       let importedPlayers = null;
       for (const t of teamNames) {
         importedPlayers = importedMap[norm(t)];
