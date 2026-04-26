@@ -3400,8 +3400,17 @@ function renderPools() {
       tableHtml += `<td style="padding:8px 10px;text-align:center;vertical-align:middle;${cellBg?'background:'+cellBg:''}">`;
       if (picks.length) {
         picks.forEach(p => {
-          tableHtml += `<div style="display:inline-flex;align-items:center;gap:3px;background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.25);border-radius:20px;padding:3px 8px;margin:1px;font-size:12px;white-space:nowrap;">
-            <span style="font-weight:600;">${p.name}</span>
+          const hitKey = `hitResult_${today}_${p.name.replace(/[^a-zA-Z]/g,'_')}`;
+          const hitResult = isToday ? localStorage.getItem(hitKey) : null;
+          const pillBg = hitResult === 'hit'   ? 'rgba(22,163,74,0.15)'   :
+                         hitResult === 'nohit' ? 'rgba(220,38,38,0.15)'   :
+                                                  'rgba(220,38,38,0.1)';
+          const pillBorder = hitResult === 'hit'   ? 'rgba(22,163,74,0.5)'   :
+                             hitResult === 'nohit' ? 'rgba(220,38,38,0.5)'   :
+                                                      'rgba(220,38,38,0.25)';
+          const resultIcon = hitResult === 'hit' ? ' ✅' : hitResult === 'nohit' ? ' ❌' : '';
+          tableHtml += `<div style="display:inline-flex;align-items:center;gap:3px;background:${pillBg};border:1px solid ${pillBorder};border-radius:20px;padding:3px 8px;margin:1px;font-size:12px;white-space:nowrap;">
+            <span style="font-weight:600;">${p.name}${resultIcon}</span>
             <span onclick="removeUsed(${i},${p.ui});event.stopPropagation();" style="cursor:pointer;color:var(--muted);font-size:11px;margin-left:2px;" title="Remove">×</span>
           </div>`;
         });
@@ -3501,7 +3510,8 @@ function markPoolHit(name, result, date) {
   } else {
     localStorage.setItem(key, result);
   }
-  renderCrossPool(); // re-render to reflect updated state
+  renderPools();      // re-render pool table pills
+  renderCrossPool();  // re-render summary cards
 }
 
 function renderCrossPool() {
