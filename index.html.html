@@ -1006,13 +1006,20 @@ let allScoredPlayers = []; // full pool including beyond topN
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('navDate').textContent = new Date().toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
-  });
-  loadSchedule();
-  purgeOldLineupSaves();
-  // Restore any lineups imported earlier today
-  const hadSaved = loadSavedLineups();
+  try {
+    document.getElementById('navDate').textContent = new Date().toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+    });
+    loadSchedule();
+    purgeOldLineupSaves();
+    const hadSaved = loadSavedLineups();
+  } catch(e) {
+    // Show error visibly so we can diagnose
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div style="background:red;color:#fff;padding:16px;font-size:13px;position:fixed;top:0;left:0;right:0;z-index:99999;">' +
+      '⚠️ Init error: ' + e.message + ' | ' + (e.stack||'').split('\n')[1] + '</div>');
+    console.error('DOMContentLoaded error:', e);
+  }
 });
 
 function switchTab(t) {
