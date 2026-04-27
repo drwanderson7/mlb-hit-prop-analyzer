@@ -311,7 +311,7 @@ max-height:85vh !important;
   <div class="card" style="margin-top:8px;">
     <div class="card-header">📅 Today's Games</div>
     <div class="card-body">
-      <div id="scheduleStatus">
+      <div id="scheduleStatusWrap">
         <div class="sbar info" id="scheduleStatus">
           <div class="sbar-icon">⏳</div>
           <div class="sbar-text">
@@ -1063,23 +1063,23 @@ function switchTab(t) {
 // Format: {id, away, awayAbbr, home, homeAbbr, time, venue, awaySP, homeSP}
 // Updated: Tue Apr 7, 2026
 const TODAYS_GAMES = [
-  // Auto-updated: Apr 21, 2026
+  // Auto-updated: Apr 27, 2026
   // Tool will try live MLB API first; this is the fallback
-  {id:'g1',away:'Houston Astros',awayAbbr:'HOU',home:'Cleveland Guardians',homeAbbr:'CLE',time:'5:10 PM ET',venue:'Progressive Field',awaySP:'Ryan Weiss',homeSP:'Parker Messick'},
-  {id:'g2',away:'Cincinnati Reds',awayAbbr:'CIN',home:'Tampa Bay Rays',homeAbbr:'TB',time:'5:40 PM ET',venue:'Tropicana Field',awaySP:'Chase Burns',homeSP:'Steven Matz'},
-  {id:'g3',away:'St. Louis Cardinals',awayAbbr:'STL',home:'Miami Marlins',homeAbbr:'MIA',time:'5:40 PM ET',venue:'loanDepot park',awaySP:'Dustin May',homeSP:'Chris Paddack'},
-  {id:'g4',away:'Milwaukee Brewers',awayAbbr:'MIL',home:'Detroit Tigers',homeAbbr:'DET',time:'5:40 PM ET',venue:'Comerica Park',awaySP:'Kyle Harrison',homeSP:'Keider Montero'},
-  {id:'g5',away:'Atlanta Braves',awayAbbr:'ATL',home:'Washington Nationals',homeAbbr:'WSH',time:'5:45 PM ET',venue:'Nationals Park',awaySP:'Reynaldo Lopez',homeSP:'Foster Griffin'},
-  {id:'g6',away:'New York Yankees',awayAbbr:'NYY',home:'Boston Red Sox',homeAbbr:'BOS',time:'5:45 PM ET',venue:'Fenway Park',awaySP:'Luis Gil',homeSP:'Connelly Early'},
-  {id:'g7',away:'Minnesota Twins',awayAbbr:'MIN',home:'New York Mets',homeAbbr:'NYM',time:'6:10 PM ET',venue:'Citi Field',awaySP:'Simeon Woods Richardson',homeSP:'Nolan McLean'},
-  {id:'g8',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Kansas City Royals',homeAbbr:'KC',time:'6:40 PM ET',venue:'Kauffman Stadium',awaySP:'Shane Baz',homeSP:'Kris Bubic'},
-  {id:'g9',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Chicago Cubs',homeAbbr:'CHC',time:'6:40 PM ET',venue:'Wrigley Field',awaySP:'Jesus Luzardo',homeSP:'Shota Imanaga'},
-  {id:'g10',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Texas Rangers',homeAbbr:'TEX',time:'7:05 PM ET',venue:'Globe Life Field',awaySP:'TBD',homeSP:'TBD'},
-  {id:'g11',away:'San Diego Padres',awayAbbr:'SD',home:'Colorado Rockies',homeAbbr:'COL',time:'7:40 PM ET',venue:'Coors Field',awaySP:'Randy Vasquez',homeSP:'TBD'},
-  {id:'g12',away:'Toronto Blue Jays',awayAbbr:'TOR',home:'Los Angeles Angels',homeAbbr:'LAA',time:'8:38 PM ET',venue:'Angel Stadium',awaySP:'Patrick Corbin',homeSP:'Jack Kochanowicz'},
-  {id:'g13',away:'Athletics',awayAbbr:'ATH',home:'Seattle Mariners',homeAbbr:'SEA',time:'8:40 PM ET',venue:'T-Mobile Park',awaySP:'Jacob Lopez',homeSP:'Luis Castillo'},
-  {id:'g14',away:'Chicago White Sox',awayAbbr:'CHW',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'8:40 PM ET',venue:'Chase Field',awaySP:'Sean Burke',homeSP:'Merrill Kelly'},
-  {id:'g15',away:'Los Angeles Dodgers',awayAbbr:'LAD',home:'San Francisco Giants',homeAbbr:'SF',time:'8:45 PM ET',venue:'Oracle Park',awaySP:'Yoshinobu Yamamoto',homeSP:'Landen Roupp'},
+  {id:'g1',away:'Boston Red Sox',awayAbbr:'BOS',home:'Baltimore Orioles',homeAbbr:'BAL',time:'1:35 PM ET',venue:'Oriole Park at Camden Yards',awaySP:'Connelly Early',homeSP:'Kyle Bradish'},
+  {id:'g2',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Atlanta Braves',homeAbbr:'ATL',time:'1:35 PM ET',venue:'Truist Park',awaySP:'Aaron Nola',homeSP:'Chris Sale'},
+  {id:'g3',away:'Cleveland Guardians',awayAbbr:'CLE',home:'Toronto Blue Jays',homeAbbr:'TOR',time:'1:37 PM ET',venue:'Rogers Centre',awaySP:'Slade Cecconi',homeSP:'Patrick Corbin'},
+  {id:'g4',away:'Minnesota Twins',awayAbbr:'MIN',home:'Tampa Bay Rays',homeAbbr:'TBR',time:'1:40 PM ET',venue:'Tropicana Field',awaySP:'Simeon Woods Richardson',homeSP:'Jesse Scholtens'},
+  {id:'g5',away:'Detroit Tigers',awayAbbr:'DET',home:'Cincinnati Reds',homeAbbr:'CIN',time:'1:40 PM ET',venue:'Great American Ball Park',awaySP:'Keider Montero',homeSP:'Rhett Lowder'},
+  {id:'g6',away:'Colorado Rockies',awayAbbr:'COL',home:'New York Mets',homeAbbr:'NYM',time:'1:40 PM ET',venue:'Citi Field',awaySP:'Jose Quintana',homeSP:'Nolan McLean'},
+  {id:'g7',away:'Washington Nationals',awayAbbr:'WSH',home:'Chicago White Sox',homeAbbr:'CWS',time:'2:10 PM ET',venue:'Rate Field',awaySP:'Foster Griffin',homeSP:'Bryan Hudson'},
+  {id:'g8',away:'New York Yankees',awayAbbr:'NYY',home:'Houston Astros',homeAbbr:'HOU',time:'2:10 PM ET',venue:'Daikin Park',awaySP:'Luis Gil',homeSP:'Spencer Arrighetti'},
+  {id:'g9',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Milwaukee Brewers',homeAbbr:'MIL',time:'2:10 PM ET',venue:'American Family Field',awaySP:'Carmen Mlodzinski',homeSP:'Kyle Harrison'},
+  {id:'g10',away:'Seattle Mariners',awayAbbr:'SEA',home:'St. Louis Cardinals',homeAbbr:'STL',time:'2:15 PM ET',venue:'Busch Stadium',awaySP:'Emerson Hancock',homeSP:'Michael McGreevy'},
+  {id:'g11',away:'Athletics',awayAbbr:'ATH',home:'Texas Rangers',homeAbbr:'TEX',time:'2:35 PM ET',venue:'Globe Life Field',awaySP:'J.T. Ginn',homeSP:'Kumar Rocker'},
+  {id:'g12',away:'San Diego Padres',awayAbbr:'SD',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'4:05 PM ET',venue:'Chase Field',awaySP:'Michael King',homeSP:'Ryne Nelson'},
+  {id:'g13',away:'Miami Marlins',awayAbbr:'MIA',home:'San Francisco Giants',homeAbbr:'SF',time:'4:05 PM ET',venue:'Oracle Park',awaySP:'Max Meyer',homeSP:'Landen Roupp'},
+  {id:'g14',away:'Chicago Cubs',awayAbbr:'CHC',home:'Los Angeles Dodgers',homeAbbr:'LAD',time:'4:10 PM ET',venue:'Dodger Stadium',awaySP:'Shota Imanaga',homeSP:'Justin Wrobleski'},
+  {id:'g15',away:'Los Angeles Angels',awayAbbr:'LAA',home:'Kansas City Royals',homeAbbr:'KC',time:'7:20 PM ET',venue:'Kauffman Stadium',awaySP:'Reid Detmers',homeSP:'Seth Lugo'},
 ];
 
 async function loadSchedule() {
