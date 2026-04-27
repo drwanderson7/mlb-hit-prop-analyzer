@@ -699,18 +699,7 @@ function loadSavedLineups() {
   return null;
 }
 
-function generateSyncCode() {
-  const area=document.getElementById('syncCodeArea'), box=document.getElementById('syncCodeBox'), imp=document.getElementById('importCodeArea');
-  if (!area||!box) return; if (imp) imp.style.display='none';
-  try { box.value=btoa(encodeURIComponent(JSON.stringify({pools,savedAt:new Date().toISOString(),v:1}))); area.style.display='block'; box.select(); } catch(e) { alert('Error: '+e.message); }
-}
-
-function copySyncCode() {
-  const box=document.getElementById('syncCodeBox'), st=document.getElementById('syncCopyStatus');
-  if (!box) return; box.select();
-  try { navigator.clipboard.writeText(box.value).catch(()=>document.execCommand('copy')); } catch(e) { document.execCommand('copy'); }
-  if (st) { st.textContent='✓ Copied!'; setTimeout(()=>st.textContent='',2000); }
-}
+// sync functions moved to bottom of file
 
 
 function clearImportedLineups() {
@@ -861,31 +850,7 @@ function parseFantasyLabsPaste() {
   }
 }
 
-function showImportCode() {
-  const area=document.getElementById('importCodeArea'), sync=document.getElementById('syncCodeArea');
-  if (!area) return; if (sync) sync.style.display='none';
-  area.style.display=area.style.display==='none'?'block':'none';
-  if (area.style.display==='block') setTimeout(()=>document.getElementById('importCodeBox')?.focus(),100);
-}
-
-function importSyncCode() {
-  const box=document.getElementById('importCodeBox'), st=document.getElementById('importStatus');
-  if (!box) return;
-  try {
-    const code=box.value.trim(); if (!code){if(st){st.textContent='Paste code first';st.style.color='var(--red)';}return;}
-    const payload=JSON.parse(decodeURIComponent(atob(code)));
-    if (!payload.pools||!Array.isArray(payload.pools)) throw new Error('Invalid');
-    pools=payload.pools; localStorage.setItem('survivorPools',JSON.stringify(pools));
-    renderPools(); refreshResultPoolStatus(); checkShowExposureCard();
-    const at=payload.savedAt?new Date(payload.savedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'unknown';
-    if(st){st.textContent=`✓ Imported ${pools.length} pools (${at})`;st.style.color='var(--green)';}
-    document.getElementById('importCodeArea').style.display='none'; box.value='';
-  } catch(e){if(st){st.textContent='✗ Invalid code';st.style.color='var(--red)';}}
-}
-
-function triggerAutoSave(){}
-function cloudSave(){generateSyncCode();}
-function cloudLoad(){showImportCode();}
+// old sync functions removed
 
 function renderPicksSidebar() {
   const el=document.getElementById('picksSidebar');
