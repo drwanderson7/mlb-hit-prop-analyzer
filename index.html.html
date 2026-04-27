@@ -4281,66 +4281,81 @@ async function loadFromCloud() {
 }
 
 // Auto-save to cloud whenever pools change (debounced)
-let cloudSaveTimer = null;
+// Simple code-based sync — no server needed
+// Encodes pool data as base64, copy/paste between devices
+
 function cloudSave() {
   const status = document.getElementById('syncStatus');
-  if (status) status.textContent = 'Saving…';
-  const pin = 'DREW_MLB_POOLS'; // fixed key — only you use this
-  const payload = {
-    pools,
-    tracker: typeof picks !== 'undefined' ? picks : [],
-    savedAt: new Date().toISOString(),
-    pin,
-  };
-  fetch('/api/kv?pin=' + pin, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.error) throw new Error(d.error);
-    if (status) {
-      status.textContent = '✓ Saved at ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      status.style.color = 'var(--green)';
-    }
-  })
-  .catch(e => {
+  try {
+    const payload = {
+      pools,
+      tracker: typeof picks !== 'undefined' ? picks : [],
+      savedAt: new Date().toISOString(),
+    };
+    const code = btoa(JSON.stringify(payload));
+    // Show code in a prompt box they can copy
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:12px;padding:20px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+        <div style="font-weight:700;font-size:15px;margin-bottom:8px;">📋 Your Sync Code</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Copy this code and paste it on your other device using Load.</div>
+        <textarea readonly onclick="this.select()" style="width:100%;height:80px;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--surface2);color:var(--text);resize:none;box-sizing:border-box;">${code}</textarea>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button onclick="navigator.clipboard?.writeText('${code.replace(/'/g,"\'")}').then(()=>{this.textContent='✓ Copied!';setTimeout(()=>this.textContent='Copy',1500)}).catch(()=>{})" 
+            style="flex:1;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">Copy</button>
+          <button onclick="this.closest('div[style*="inset"]').remove()" 
+            style="padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;">Done</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    if (status) { status.textContent = '✓ Code generated'; status.style.color = 'var(--green)'; }
+  } catch(e) {
     if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
-  });
+  }
 }
 
 function cloudLoad() {
   const status = document.getElementById('syncStatus');
-  if (status) status.textContent = 'Loading…';
-  const pin = 'DREW_MLB_POOLS';
-  fetch('/api/kv?pin=' + pin)
-  .then(r => r.json())
-  .then(d => {
-    if (d.error) throw new Error(d.error);
-    const data = d.data;
-    if (data?.pools) {
-      pools = data.pools;
-      localStorage.setItem('survivorPools', JSON.stringify(pools));
-      renderPools();
-      refreshResultPoolStatus();
-      const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : 'unknown';
-      if (status) {
-        status.textContent = `✓ Loaded (saved ${savedAt})`;
-        status.style.color = 'var(--green)';
-      }
-    } else {
-      throw new Error('No saved pools found');
-    }
-  })
-  .catch(e => {
-    if (status) { status.textContent = '✗ ' + e.message; status.style.color = 'var(--red)'; }
-  });
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:12px;padding:20px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+      <div style="font-weight:700;font-size:15px;margin-bottom:8px;">📥 Load from Sync Code</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Paste the sync code from your other device.</div>
+      <textarea id="syncLoadInput" placeholder="Paste sync code here..." 
+        style="width:100%;height:80px;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--surface2);color:var(--text);resize:none;box-sizing:border-box;"></textarea>
+      <div id="syncLoadError" style="font-size:12px;color:var(--red);margin-top:6px;display:none;"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="
+          try {
+            const code = document.getElementById('syncLoadInput').value.trim();
+            const data = JSON.parse(atob(code));
+            if (!data.pools) throw new Error('Invalid code');
+            pools = data.pools;
+            localStorage.setItem('survivorPools', JSON.stringify(pools));
+            renderPools(); refreshResultPoolStatus(); renderCrossPool();
+            this.closest('div[style*=inset]').remove();
+            const st = document.getElementById('syncStatus');
+            const savedAt = data.savedAt ? new Date(data.savedAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+            if (st) { st.textContent = '✓ Loaded' + (savedAt ? ' (saved ' + savedAt + ')' : ''); st.style.color = 'var(--green)'; }
+          } catch(e) {
+            const err = document.getElementById('syncLoadError');
+            if (err) { err.textContent = '✗ Invalid code — make sure you copied the full code.'; err.style.display = 'block'; }
+          }"
+          style="flex:1;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">Load Pools</button>
+        <button onclick="this.closest('div[style*="inset"]').remove()" 
+          style="padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer;">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  setTimeout(() => document.getElementById('syncLoadInput')?.focus(), 100);
 }
 
-// Remove old PIN-based functions (replaced by cloudSave/cloudLoad above)
-function triggerAutoSave() {} // no-op — sync is now manual
-function getSyncPin() { return 'DREW_MLB_POOLS'; }
+function triggerAutoSave() {} // no-op
+function getSyncPin() { return ''; }
 </script>
 </body>
 </html>
