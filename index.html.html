@@ -1051,7 +1051,13 @@ async function loadSchedule() {
   const date = new Date().toLocaleDateString('en-CA');
 
   // Always load hardcoded games instantly so UI never hangs
-  loadHardcodedGames();
+  try { loadHardcodedGames(); } catch(e) {
+    // Last resort — show error in status bar
+    document.getElementById('scheduleStatus').innerHTML =
+      '<div class="sbar info"><div class="sbar-icon">⚠️</div><div class="sbar-text"><div class="sbar-title">Schedule error</div><div class="sbar-sub">' + e.message + '</div></div></div>';
+    document.getElementById('gamesWrap').style.display = 'block';
+    console.error('loadHardcodedGames failed:', e);
+  }
 
   // Then try to enrich with live data in the background (4s timeout)
   try {
