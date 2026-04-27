@@ -1454,25 +1454,21 @@ async function fetchStatcast() {
   };
 
   // Fetch in parallel
-  const [tCur, tPri, tRHP, tLHP, tPit, tSC26] = await Promise.all([
+  const [tCur, tPri, tPit, tSC26] = await Promise.all([
     fetchCsv('batter', year, ''),        // expected_statistics 2026 (xBA overall)
     fetchCsv('batter', prev, ''),        // expected_statistics 2025 (xBA prior year)
-    fetchCsv('batter', year, 'R'),       // xBA vs RHP splits
-    fetchCsv('batter', year, 'L'),       // xBA vs LHP splits
     fetchCsv('pitcher', year, ''),       // pitcher stats
     fetchCsv('statcast', year, ''),      // K%/HH%/Barrel%/xBA for all batters
   ]);
 
-  const batterCur    = parseSavantCsv(tCur);
-  const batterPri    = parseSavantCsv(tPri);
-  const vsRHPCur     = parseSavantCsv(tRHP);
-  const vsLHPCur     = parseSavantCsv(tLHP);
-  const pitcherMap   = parseSavantCsv(tPit, 'pitcher');
-  const sc26Map      = parseSavantCsv(tSC26); // live K%/HH%/Barrel% — overrides embedded
+  const batterCur  = parseSavantCsv(tCur);
+  const batterPri  = parseSavantCsv(tPri);
+  const pitcherMap = parseSavantCsv(tPit, 'pitcher');
+  const sc26Map    = parseSavantCsv(tSC26);
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
-  liveVsRHP    = blendMaps(vsRHPCur, batterPri, 150);
-  liveVsLHP    = blendMaps(vsLHPCur, batterPri, 150);
+  liveVsRHP    = {};
+  liveVsLHP    = {};
 
   // Enrich liveStatcast — priority: live sc26Map > STATCAST_2026 embedded > SC_NORM 2025 > BARREL_2026
   // Merge live sc26Map (K%/HH%/Barrel%) into liveStatcast first
@@ -1707,8 +1703,8 @@ function lookupStatcast(name, spHand) {
   const overall = lookupInMap(liveStatcast, name);
 
   // Get split-specific xBA based on opposing SP hand
-  const splitMap = spHand === 'R' ? liveVsRHP : spHand === 'L' ? liveVsLHP : null;
-  const splitStats = splitMap ? lookupInMap(splitMap, name) : null;
+  // Splits disabled — noisy early season; platoon bonus handles handedness matchup
+  const splitStats = null;
 
   // Embedded fallback for overall stats
   const embKey = normalize(name);
