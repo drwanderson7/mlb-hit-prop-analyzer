@@ -1442,12 +1442,15 @@ async function fetchStatcast() {
     new Set([...Object.keys(cur),...Object.keys(pri)]).forEach(k => {
       const c=cur[k], p=pri[k];
       if (!c&&!p) return;
-      if (!p) { out[k]={...c,source:'current'}; return; }
-      if (!c||(c.pa||0)<10) { out[k]={...p,source:'prior'}; return; }
+      // If no prior from live 2025 fetch, try embedded SC_NORM as fallback prior
+      const embPrior = SC_NORM[k] ? { xba: SC_NORM[k][0], kpct: SC_NORM[k][1], hardhitpct: SC_NORM[k][2], barrelpct: SC_NORM[k][3] } : null;
+      const prior = p || embPrior;
+      if (!prior) { out[k]={...c,source:'current'}; return; }
+      if (!c||(c.pa||0)<10) { out[k]={ ...(p||{}), ...(!p&&embPrior?embPrior:{}), name:c?.name||k, source:'prior'}; return; }
       const wC=Math.min(0.85,(c.pa||0)/thresh), wP=1-wC; // 2025 always retains ≥15% weight
       const bv=(a,b)=>a==null&&b==null?null:a==null?b:b==null?a:parseFloat((a*wC+b*wP).toFixed(4));
-      const m={name:c.name||p.name,pa:c.pa,source:`blend(${c.pa}PA)`};
-      new Set([...Object.keys(c),...Object.keys(p)].filter(f=>!['name','pa','source'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,p[f]??null);});
+      const m={name:c.name||k,pa:c.pa,source:`blend(${c.pa}PA)`};
+      new Set([...Object.keys(c),...Object.keys(prior)].filter(f=>!['name','pa','source'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,prior[f]??null);});
       out[k]=m;
     });
     return out;
