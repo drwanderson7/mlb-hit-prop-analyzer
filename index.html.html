@@ -1427,7 +1427,7 @@ async function fetchStatcast() {
       const barrelpct = safe(iBrl,100);
       // Skip row only if ALL stats are null (truly empty row)
       if (xba === null && kpct === null && hardhitpct === null && barrelpct === null) return;
-      const key = name.toLowerCase();
+      const key = normalize(name); // normalize strips accents so "José Ramírez" → "jose ramirez"
       if (type === 'batter') {
         result[key] = { name, pa, xba, kpct, hardhitpct, barrelpct, ba: safe(iBA) };
       } else {
@@ -1984,13 +1984,17 @@ const BATS = {
 
 function getBats(name) { return BATS[name] || '?'; }
 
-function platoonLabel(bats, spHand) {
+function platoonLabel(bats, spHand, spPlatoon) {
   if (bats === 'S') return { label: 'Switch', cls: 'good', adv: true };
   if (!bats || bats === '?' || !spHand || spHand === '?') return { label: '?', cls: '', adv: null };
-  const fav = bats !== spHand; // L vs R or R vs L = favorable
+  // Normal: same hand = pitcher advantage. Reverse split: opposite applies.
+  const isReverse = spPlatoon === 'reverse';
+  const normallyFav = bats !== spHand; // L vs R or R vs L = normally favorable
+  const fav = isReverse ? !normallyFav : normallyFav;
+  const reverseNote = isReverse ? ' (rev)' : '';
   return fav
-    ? { label: bats + ' vs ' + spHand + ' ✓', cls: 'good', adv: true }
-    : { label: bats + ' vs ' + spHand, cls: 'bad', adv: false };
+    ? { label: bats + ' vs ' + spHand + ' ✓' + reverseNote, cls: 'good', adv: true }
+    : { label: bats + ' vs ' + spHand + reverseNote, cls: 'bad', adv: false };
 }
 
 // Known 2026 batting orders — sourced from MLB.com Opening Day + RotoWire current (Apr 20 2026)
@@ -2201,19 +2205,25 @@ const SP_STATS = {
 const SP_NORM = {};
 Object.keys(SP_STATS).forEach(k => { SP_NORM[normalize(k)] = SP_STATS[k]; });
 
+// Pitchers with notable reverse platoon splits
+const REVERSE_SPLIT_PITCHERS = new Set([
+  'corbin burnes','kyle hendricks','andrew heaney',
+  'jose quintana','wade miley','marco gonzales','patrick sandoval',
+]);
 
 function getSPStats(name, apiHand) {
   // apiHand: pitcher handedness from MLB API probablePitcher.pitchHand.code
   // This is the most reliable source — always prefer it over SP_NORM
-  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: apiHand || 'R' };
+  if (!name) return { era: 4.50, whip: 1.35, k9: 8.5, hand: apiHand || 'R', platoon: 'normal' };
   // Check runtime imported hand override from FantasyLabs paste
   const importedHand = window.importedSPHands?.[name.toLowerCase()];
   if (importedHand) apiHand = importedHand;
   const key = normalize(name);
+  const platoon = REVERSE_SPLIT_PITCHERS.has(key) ? 'reverse' : 'normal';
   const toObj = (s, hand) => {
     const key2 = normalize(name);
     const sc = SP_STATCAST[name] || Object.entries(SP_STATCAST).find(([k]) => normalize(k) === key2)?.[1] || null;
-    return { era: s[0], whip: s[1], k9: s[2], hand: hand || s[3],
+    return { era: s[0], whip: s[1], k9: s[2], hand: hand || s[3], platoon,
       spKpct:     sc ? sc[0] : null,
       spXbaAllow: sc ? sc[1] : null,
       spHH:       sc ? sc[2] : null,
@@ -2237,7 +2247,7 @@ function getSPStats(name, apiHand) {
   const scEntry = SP_STATCAST[name] || 
     Object.entries(SP_STATCAST).find(([k]) => normalize(k) === key)?.[1] || null;
   return { 
-    era: 4.20, whip: 1.28, k9: 8.8, hand: apiHand || 'R',
+    era: 4.20, whip: 1.28, k9: 8.8, hand: apiHand || 'R', platoon,
     spKpct:     scEntry ? scEntry[0] : null,
     spXbaAllow: scEntry ? scEntry[1] : null,
     spHH:       scEntry ? scEntry[2] : null,
@@ -2561,7 +2571,8 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // +3 flat pts for favorable platoon (LHB vs RHP or RHB vs LHP)
   // +1.5 flat pts for switch hitters — always get favorable side but smaller edge
   // 0 for same-side or unknown matchup
-  const platoon = platoonLabel(bats, spHand);
+  const spPlatoon = spStats?.platoon || 'normal';
+  const platoon = platoonLabel(bats, spHand, spPlatoon);
   const switchBonus = 0;
   const platoonAdj = bats === 'S' ? 1.5                              // switch hitter always favorable
                    : platoon.adv === true ? 3                         // true platoon advantage
