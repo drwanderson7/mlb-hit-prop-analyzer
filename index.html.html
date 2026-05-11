@@ -1444,7 +1444,7 @@ async function fetchStatcast() {
       if (!c&&!p) return;
       if (!p) { out[k]={...c,source:'current'}; return; }
       if (!c||(c.pa||0)<10) { out[k]={...p,source:'prior'}; return; }
-      const wC=Math.min(1,(c.pa||0)/thresh), wP=1-wC;
+      const wC=Math.min(0.85,(c.pa||0)/thresh), wP=1-wC; // 2025 always retains ≥15% weight
       const bv=(a,b)=>a==null&&b==null?null:a==null?b:b==null?a:parseFloat((a*wC+b*wP).toFixed(4));
       const m={name:c.name||p.name,pa:c.pa,source:`blend(${c.pa}PA)`};
       new Set([...Object.keys(c),...Object.keys(p)].filter(f=>!['name','pa','source'].includes(f))).forEach(f=>{m[f]=bv(c[f]??null,p[f]??null);});
@@ -2940,7 +2940,7 @@ function showXbaBreakdown(idx) {
     ['2026 xBA vs ' + p.pitcherHand + 'HP (split)', val(b.liveSplit)],
     ['', ''],
     ['── Blending ──', ''],
-    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(1, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(1, b.pa2026/100)) + ' prior' : b.source === '2026 embedded' ? '100% 2026 embedded snapshot' : 'N/A — using 2025 embedded'],
+    ['Blend weight (2026 vs 2025)', b.pa2026 > 0 ? wt(Math.min(0.85, b.pa2026/100)) + ' current / ' + wt(1 - Math.min(0.85, b.pa2026/100)) + ' prior (15% floor)' : b.source === '2026 embedded' ? '100% 2026 embedded snapshot' : 'N/A — using 2025 embedded'],
     ['Split confidence', b.splitPA > 0 ? wt(b.splitConfidence) + ' (' + b.splitPA + ' split PA of 80 needed)' : 'No split data — using overall'],
     ['Embedded 2025 xBA', val(b.embeddedXba)],
     ['', ''],
