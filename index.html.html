@@ -1726,7 +1726,16 @@ function lookupStatcast(name, spHand) {
 
   // xBA: prefer split, fall back to overall live, then embedded
   const splitXBA  = splitStats?.xba  ?? null;
-  const overallXBA = overall?.xba ?? embedded?.xba ?? null;
+  let overallXBA = overall?.xba ?? embedded?.xba ?? null;
+
+  // Apply 15% prior-year floor: always blend in embedded 2025 xBA when we have live 2026 data
+  // This prevents small-sample outliers from dominating even at high PA counts
+  if (overallXBA !== null && overall?.xba != null && embedded?.xba != null) {
+    const pa = overall?.pa || 0;
+    const wCur = Math.min(0.85, pa / 100); // ramps 0→85% over 100 PA, then locked at 85%
+    const wPri = 1 - wCur;
+    overallXBA = parseFloat((overall.xba * wCur + embedded.xba * wPri).toFixed(3));
+  }
 
   // Blend split xBA with overall when split PA is low
   // splitStats.pa tells us how many PA in that split — fewer = more weight to overall
