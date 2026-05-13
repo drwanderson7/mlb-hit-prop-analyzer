@@ -24,6 +24,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .tab.active{color:var(--blue);border-bottom-color:var(--blue);}
 .tab:hover:not(.active){color:var(--text);}
 .panel{display:none;padding:20px 24px;max-width:1100px;margin:0 auto;}
+#panel-pools.panel{max-width:1500px;}
 .panel.active{display:block;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;}
 .card-header{padding:13px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
@@ -1778,18 +1779,30 @@ function lookupStatcast(name, spHand) {
   };
 }
 
-// Lookup pitcher Statcast — live first, then SP_STATS hardcoded fallback
+// Lookup pitcher Statcast — live first, then SP_STATCAST embedded, then SP_STATS hardcoded fallback
 function lookupPitcher(name) {
   const key = normalize(name);
   // 1. Live Statcast pitcher data (from proxy)
   const liveMatch = lookupInMap(livePitchers, name);
   if (liveMatch) return { ...liveMatch, fromStatcast: true };
 
-  // 2. SP_STATS hardcoded fallback (normalized lookup)
+  // 2. SP_STATCAST embedded 2025 data — [xbaAllowed, kpct, hhAllowed, whiffPct, barrelAllowed]
+  const scEntry = SP_STATCAST[name] ||
+    Object.entries(SP_STATCAST).find(([k]) => normalize(k) === key)?.[1] || null;
+  if (scEntry) return {
+    xbaAllowed:     scEntry[0],
+    kpct:           scEntry[1],
+    hardHitAllowed: scEntry[2],
+    whiffPct:       scEntry[3],
+    barrelAllowed:  scEntry[4],
+    fromStatcast: true, // treat as statcast-quality data so scoring uses the rich path
+  };
+
+  // 3. SP_STATS hardcoded fallback (normalized lookup)
   const sp = SP_NORM[key];
   if (sp) return {
     xbaAllowed:     null,
-    kpct:           sp[2] * 0.0275, // K/9 → approx K% (8.5 K/9 ≈ 23%, 12 K/9 ≈ 33%)
+    kpct:           sp[2] * 0.0275, // K/9 → approx K%
     hardHitAllowed: null,
     barrelAllowed:  null,
     whiffPct:       null,
@@ -1797,7 +1810,7 @@ function lookupPitcher(name) {
     fromStatcast: false,
   };
 
-  // 3. Partial name match in SP_NORM
+  // 4. Partial name match in SP_NORM
   const parts = key.split(' ');
   if (parts.length >= 2) {
     const lLast = parts[parts.length-1], lInit = parts[0][0];
