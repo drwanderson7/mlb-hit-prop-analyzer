@@ -889,7 +889,7 @@ function showScoreBreakdown(playerName) {
   const sc=lookupStatcast(p.name,p.pitcherHand);
   const xba=p.xba??sc?.xba??0.255, kpct=p.kpct??sc?.kpct??0.22, barrel=p.barrelpct??sc?.barrelpct??0.07;
   const rawXba=Math.min(100,Math.max(0,((xba-0.180)/(0.360-0.180))*100));
-  const contactAdj=xba*(1-kpct);
+  const contactAdj=xba*(1-0.5*kpct);
   const contactScore=p.contactScore??Math.min(100,Math.max(0,((contactAdj-0.100)/(0.310-0.100))*100));
   const barrelScore=p.barrelScoreValue??Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
   const spStats=getSPStats(p.pitcher,p.pitcherHand);
@@ -948,7 +948,7 @@ function showScoreBreakdown(playerName) {
     ${D('── Batter Profile ──')}
     ${R('xBA (overall)',xba.toFixed(3),rawXba,'—','(used below)')}
     ${R('K%',(kpct*100).toFixed(1)+'%',100-kpct*250,'—','(used below)')}
-    ${R('Contact-adj xBA (xBA×(1-K%))',contactAdj.toFixed(3),contactScore,'—','raw score '+contactScore.toFixed(0))}
+    ${R('Contact-adj xBA (xBA×(1-0.5K%))',contactAdj.toFixed(3),contactScore,'—','raw score '+contactScore.toFixed(0))}
     ${R('Barrel%',(barrel*100).toFixed(1)+'%',barrelScore,'4%',(barrelScore*0.04).toFixed(1)+' pts')}
     ${D('── Pitcher Matchup ──')}
     ${R(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '',matchupScore,'—','factor '+pitcherFactor.toFixed(3))}
@@ -2518,9 +2518,9 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   const barrel = (sc?.barrelpct  != null && sc.barrelpct  >= 0) ? sc.barrelpct  : 0.07;
   const kpct   = (sc?.kpct != null && sc.kpct >= 0) ? sc.kpct : 0.22;
 
-  // --- Contact-adjusted xBA: xBA × (1 - K%) ---
+  // --- Contact-adjusted xBA: xBA × (1 - 0.5×K%) ---
   // Core per-PA hit probability signal.
-  const contactAdjXba = xba * (1 - kpct);
+  const contactAdjXba = xba * (1 - 0.5 * kpct);
   // Scale 0-100: ~.100 (weak/high-K) to .310 (elite/low-K)
   const contactAdjScore = Math.min(100, Math.max(0,
     ((contactAdjXba - 0.100) / (0.310 - 0.100)) * 100
@@ -2668,7 +2668,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   }
 
   // Weighted composite — weights sum to 1.0
-  // Weights: contactAdjScore = xBA × (1-K%) is the primary per-PA hit probability signal.
+  // Weights: contactAdjScore = xBA × (1-0.5K%) is the primary per-PA hit probability signal.
   // K% is NO LONGER a separate component — it's baked into contactAdjScore to avoid double-counting.
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
@@ -2988,7 +2988,7 @@ function showXbaBreakdown(idx) {
     ['xBA used in model', val(b.final) + ' (' + (b.splitUsed || 'overall') + ')'],
     ['Source', b.source || 'embedded'],
     ['K%', pct(p.kpct)],
-    ['Contact-adj xBA (xBA × (1-K%))', ((p.xba || 0) * (1 - (p.kpct || 0.22))).toFixed(3)],
+    ['Contact-adj xBA (xBA × (1-0.5K%))', ((p.xba || 0) * (1 - 0.5 * (p.kpct || 0.22))).toFixed(3)],
   ];
 
   const tableRows = rows.map(([k, v]) => {
