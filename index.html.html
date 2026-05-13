@@ -1543,12 +1543,13 @@ async function fetchStatcast() {
   Object.keys(pitcherMap).forEach(key => {
     const p = pitcherMap[key];
     if (!p) return;
+    const validNum = (v, min=0.01) => (v != null && v > min) ? v : null;
     livePitchers[normalize(key)] = {
-      xbaAllowed:     p.xbaAllowed     ?? null,
-      kpct:           p.kpct           ?? null,
-      hardHitAllowed: p.hardHitAllowed ?? null,
-      barrelAllowed:  p.barrelAllowed  ?? null,
-      whiffPct:       p.whiffPct       ?? null,
+      xbaAllowed:     validNum(p.xbaAllowed, 0.05),
+      kpct:           validNum(p.kpct, 0.01),
+      hardHitAllowed: validNum(p.hardHitAllowed, 0.01),
+      barrelAllowed:  validNum(p.barrelAllowed),
+      whiffPct:       validNum(p.whiffPct, 0.01),
       source: 'live',
     };
   });
@@ -1782,27 +1783,41 @@ function lookupStatcast(name, spHand) {
 // Lookup pitcher Statcast — live first, then SP_STATCAST embedded, then SP_STATS hardcoded fallback
 function lookupPitcher(name) {
   const key = normalize(name);
-  // 1. Live Statcast pitcher data (from proxy)
+
+  // Helper to get SP_STATCAST entry by name
+  const getSCEntry = (n, k) => SP_STATCAST[n] ||
+    Object.entries(SP_STATCAST).find(([ek]) => normalize(ek) === k)?.[1] || null;
+
+  // 1. Live Statcast pitcher data (from proxy) — merge with SP_STATCAST to fill null fields
   const liveMatch = lookupInMap(livePitchers, name);
-  if (liveMatch) return { ...liveMatch, fromStatcast: true };
+  if (liveMatch) {
+    const scEntry = getSCEntry(name, key);
+    return {
+      xbaAllowed:     liveMatch.xbaAllowed     ?? scEntry?.[0] ?? null,
+      kpct:           liveMatch.kpct           ?? scEntry?.[1] ?? null,
+      hardHitAllowed: liveMatch.hardHitAllowed ?? scEntry?.[2] ?? null,
+      whiffPct:       liveMatch.whiffPct       ?? scEntry?.[3] ?? null,
+      barrelAllowed:  liveMatch.barrelAllowed  ?? scEntry?.[4] ?? null,
+      fromStatcast: true,
+    };
+  }
 
   // 2. SP_STATCAST embedded 2025 data — [xbaAllowed, kpct, hhAllowed, whiffPct, barrelAllowed]
-  const scEntry = SP_STATCAST[name] ||
-    Object.entries(SP_STATCAST).find(([k]) => normalize(k) === key)?.[1] || null;
+  const scEntry = getSCEntry(name, key);
   if (scEntry) return {
     xbaAllowed:     scEntry[0],
     kpct:           scEntry[1],
     hardHitAllowed: scEntry[2],
     whiffPct:       scEntry[3],
     barrelAllowed:  scEntry[4],
-    fromStatcast: true, // treat as statcast-quality data so scoring uses the rich path
+    fromStatcast: true,
   };
 
   // 3. SP_STATS hardcoded fallback (normalized lookup)
   const sp = SP_NORM[key];
   if (sp) return {
     xbaAllowed:     null,
-    kpct:           sp[2] * 0.0275, // K/9 → approx K%
+    kpct:           sp[2] * 0.0275,
     hardHitAllowed: null,
     barrelAllowed:  null,
     whiffPct:       null,
