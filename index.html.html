@@ -872,12 +872,11 @@ function computeScoreModelA(player,sc,spStats,spHand,venue,bats,spSC,impliedRuns
   const kScore=Math.min(100,Math.max(0,(1-(kpct-0.05)/(0.40-0.05))*100));
   const hhScore=Math.min(100,Math.max(0,((hh-0.25)/(0.60-0.25))*100));
   const brlScore=Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
-  const pk=parkScore(venue);
   const orderScore=Math.round((([4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6][Math.min(player.order-1,8)]-3.6)/1.1)*100);
   let impliedScore=50; if(impliedRuns!=null) impliedScore=Math.min(100,Math.max(0,((impliedRuns-2.0)/5.0)*100));
   const k9=spStats?.k9||8.5, whip=spStats?.whip||1.35;
   const spScore=Math.min(100,Math.max(0,(1-(k9-4.0)/10.0)*65+((whip-0.80)/1.10)*35));
-  const composite=Math.round(xbaScore*0.30+kScore*0.22+spScore*0.18+orderScore*0.12+hhScore*0.08+brlScore*0.05+pk.score*0.05);
+  const composite=Math.round(xbaScore*0.30+kScore*0.22+spScore*0.18+orderScore*0.12+hhScore*0.08+brlScore*0.05);
   const clamped=Math.min(100,Math.max(0,composite));
   let tier='Avoid'; if(clamped>=65)tier='Elite'; else if(clamped>=57)tier='Strong'; else if(clamped>=48)tier='Lean';
   return {compositeScore:clamped,tier};
@@ -922,8 +921,6 @@ function showScoreBreakdown(playerName) {
   const matchupScore=p.matchupScore??spScore;
   const pitcherFactor=p.pitcherFactor??(0.70+(matchupScore/100)*0.60);
   const pitcherAdjContact=p.pitcherAdjContact??Math.min(100,Math.max(0,contactScore*pitcherFactor));
-  const pk=parkScore(p.venue);
-  const pkSc=p.parkScoreValue??pk.score??50, pkLbl=p.parkScoreLabel??pk.label??'Neutral';
   const slotPA=p.slotPA??[4.7,4.6,4.5,4.4,4.3,4.2,4.0,3.8,3.6][Math.min((p.battingOrder||5)-1,8)]??4.3;
   const orderScore=p.orderScoreValue??Math.round(((slotPA-3.6)/(4.7-3.6))*100)??50;
   const impliedScore=p.impliedScoreValue??50;
@@ -957,7 +954,6 @@ function showScoreBreakdown(playerName) {
     ${D('── Game Environment ──')}
     ${R('Batting order (slot '+p.battingOrder+')',slotPA.toFixed(1)+' PA/game',orderScore,'8%',(orderScore*0.08).toFixed(1)+' pts')}
     ${R('Implied runs',ir!=null?ir.toFixed(1)+' proj runs':'No odds data',impliedScore,'14%',(impliedScore*0.14).toFixed(1)+' pts')}
-    ${R('Park factor',pkLbl,pkSc,'5%',(pkSc*0.05).toFixed(1)+' pts')}
     ${platoonAdj!==0?R('Platoon bonus',p.bats==='S'?'Switch hitter':(p.platoon?.label||'Favorable'),65,'flat',(platoonAdj>0?'+':'')+platoonAdj+' pts'):''}
     ${D('── Final Score ──')}
     <tr style="background:var(--surface2);">
@@ -2634,10 +2630,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // Apply: scale contactAdjScore by pitcherFactor, clamp 0-100
   const pitcherAdjContact = Math.min(100, Math.max(0, contactAdjScore * pitcherFactor));
 
-  // --- Park factor (8%) ---
-  const pk = parkScore(venue);
-
-  // --- Batting order (4%) ---
+  // --- Batting order (8%) ---
   // PA per game by lineup slot (MLB averages): 1=4.7, 2=4.6, 3=4.5, 4=4.4, 5=4.3, 6=4.2, 7=4.0, 8=3.8, 9=3.6
   const paBySlot = [4.7, 4.6, 4.5, 4.4, 4.3, 4.2, 4.0, 3.8, 3.6];
   const slotPA = paBySlot[Math.min(player.order - 1, 8)];
@@ -2677,7 +2670,6 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     impliedScore      * 0.14 +  // team implied runs — PA penalty only bottom order in low-run games
     orderScore        * 0.08 +  // PA volume by batting slot
     barrelScore       * 0.04 +  // Barrel% — reduced: power ≠ hits
-    pk.score          * 0.05 +  // park factor
     platoonAdj;                 // +3 flat for favorable platoon
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite)));
@@ -2732,9 +2724,6 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
       else if (xbaAll <= 0.215) reasons.push('low xBA allowed (' + xbaAll.toFixed(3) + ') — tough');
     }
   }
-  // Park
-  if (pk.score >= 75) reasons.push('hitter park (' + venue + ')');
-  if (pk.score <= 30) reasons.push('pitcher park (' + venue + ')');
   // Implied runs
   if (impliedRuns !== null && impliedRuns !== undefined) {
     if (impliedRuns >= 5.0) reasons.push('high run env (' + impliedRuns.toFixed(1) + ' proj)');
@@ -2757,8 +2746,6 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     barrelScoreValue: barrelScore,
     orderScoreValue: orderScore,
     impliedScoreValue: impliedScore,
-    parkScoreValue: pk.score,
-    parkScoreLabel: pk.label,
     slotPA,
     platoonAdj,
     tier,
@@ -2766,8 +2753,6 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     kpct,
     hardhitpct: hh,
     barrelpct: barrel,
-    parkLabel: pk.label,
-    parkCls: pk.cls,
     era: spStats.era,
     statcastFound: !!sc,
     splitUsed: sc?.splitUsed || 'overall',
@@ -2915,7 +2900,6 @@ function playerCard(p, rank) {
         ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
         ${p.spStatcast && p.spXBA ? `<span class="pill info">xBA vs ${p.spXBA.toFixed(3)}</span>` : ''}
         ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}" title="Source: The Odds API (updates every 10min)">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
-        <span class="pill ${p.parkCls}">${p.parkLabel}</span>
         <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
       </div>
       <div class="p-reasoning">${p.reasoning}</div>
