@@ -1570,6 +1570,11 @@ async function fetchOdds() {
     const json = await res.json();
     if (json.error) throw new Error(json.error);
     liveOdds = json.games || {};
+    // Alias teams where Odds API and MLB schedule use different abbreviations
+    const ODDS_ALIASES = { CHW:'CWS', CWS:'CHW', KC:'KCR', KCR:'KC', SD:'SDP', SDP:'SD', SF:'SFG', SFG:'SF', TB:'TBR', TBR:'TB', WAS:'WSH', WSH:'WAS' };
+    Object.entries(ODDS_ALIASES).forEach(([from, to]) => {
+      if (liveOdds[from] && !liveOdds[to]) liveOdds[to] = liveOdds[from];
+    });
     const n = Object.keys(liveOdds).length;
     DIAG.log('Odds', { status: '200', rows: n, ms: Date.now()-t0,
       ...(n === 0 ? { error: 'no games returned' } : {}) });
