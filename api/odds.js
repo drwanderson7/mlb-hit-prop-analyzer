@@ -26,14 +26,30 @@ function getTomorrowUTC() {
   return d.toISOString().slice(0, 10);
 }
 
+function impliedProb(o) {
+  const n = parseFloat(o);
+  if (!isFinite(n)) return 0.5;
+  return n > 0 ? 100 / (n + 100) : Math.abs(n) / (Math.abs(n) + 100);
+}
+
+// Convert normalized win probability to expected run differential
+// At 50%  → 0.0 run diff (pick'em)
+// At 60%  → ~0.44 runs
+// At 70%  → ~0.88 runs
+// At 80%  → ~1.32 runs
+// Capped at ±1.5 runs
+function winProbToRunDiff(normWinProb) {
+  const diff = (normWinProb - 0.5) * 4.4;
+  return Math.min(1.5, Math.max(-1.5, diff));
+}
+
 export default async function handler(req) {
   const apiKey = process.env.ODDS_API_KEY;
   if (!apiKey) return respond(500, { error: 'ODDS_API_KEY not set' });
 
   try {
-    // Fetch team_totals + totals markets — team_totals are the actual per-team lines set by books
     const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=totals,team_totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`
+      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`
     );
 
     const remaining = res.headers.get('x-requests-remaining') || '?';
@@ -62,9 +78,7 @@ export default async function handler(req) {
       const awayAbbr = TEAM_MAP[game.away_team];
       if (!homeAbbr || !awayAbbr) return;
 
-      const totals = [];
-      // team_totals keyed by team name → array of points from each book
-      const teamTotalsMap = { [game.home_team]: [], [game.away_team]: [] };
+      const totals = [], homeProbs = [], awayProbs = [];
 
       (game.bookmakers||[]).forEach(bk => {
         (bk.markets||[]).forEach(mkt => {
@@ -72,13 +86,11 @@ export default async function handler(req) {
             const over = (mkt.outcomes||[]).find(o => o.name === 'Over');
             if (over?.point) totals.push(over.point);
           }
-          if (mkt.key === 'team_totals') {
-            (mkt.outcomes||[]).forEach(o => {
-              // outcome name is "Over" or "Under", description is team name
-              if (o.name === 'Over' && o.description && teamTotalsMap[o.description] !== undefined) {
-                teamTotalsMap[o.description].push(o.point);
-              }
-            });
+          if (mkt.key === 'h2h') {
+            const homeO = (mkt.outcomes||[]).find(o => o.name === game.home_team);
+            const awayO = (mkt.outcomes||[]).find(o => o.name === game.away_team);
+            if (homeO?.price) homeProbs.push(impliedProb(homeO.price));
+            if (awayO?.price) awayProbs.push(impliedProb(awayO.price));
           }
         });
       });
@@ -86,45 +98,31 @@ export default async function handler(req) {
       const gameTotal = avg(totals);
       if (!gameTotal) return;
 
-      // Prefer direct team totals; fall back to splitting game total 50/50
-      const homeTeamTotals = teamTotalsMap[game.home_team];
-      const awayTeamTotals = teamTotalsMap[game.away_team];
+      // Remove vig, normalize to true win probabilities
+      const rawHome = avg(homeProbs) || 0.5;
+      const rawAway = avg(awayProbs) || 0.5;
+      const vigTotal = rawHome + rawAway;
+      const normHome = rawHome / vigTotal;
 
-      let homeImplied, awayImplied, source;
-
-      if (homeTeamTotals.length > 0 && awayTeamTotals.length > 0) {
-        // Best case: direct team totals from books
-        homeImplied = avg(homeTeamTotals);
-        awayImplied = avg(awayTeamTotals);
-        source = 'team_totals';
-      } else if (homeTeamTotals.length > 0) {
-        homeImplied = avg(homeTeamTotals);
-        awayImplied = gameTotal - homeImplied;
-        source = 'team_totals_partial';
-      } else if (awayTeamTotals.length > 0) {
-        awayImplied = avg(awayTeamTotals);
-        homeImplied = gameTotal - awayImplied;
-        source = 'team_totals_partial';
-      } else {
-        // Fallback: split game total evenly — no moneyline distortion
-        homeImplied = gameTotal / 2;
-        awayImplied = gameTotal / 2;
-        source = 'game_total_split';
-      }
+      // Derive run differential: favorite gets slightly more of the total
+      // (total + diff) / 2 for the favorite, (total - diff) / 2 for the dog
+      const runDiff = winProbToRunDiff(normHome); // positive = home favored
+      const homeImplied = (gameTotal + runDiff) / 2;
+      const awayImplied = (gameTotal - runDiff) / 2;
 
       result[homeAbbr] = {
         impliedRuns: parseFloat(homeImplied.toFixed(1)),
         gameTotal: parseFloat(gameTotal.toFixed(1)),
         opponent: awayAbbr,
         commenceTime: game.commence_time,
-        source,
+        source: 'run_diff_derived',
       };
       result[awayAbbr] = {
         impliedRuns: parseFloat(awayImplied.toFixed(1)),
         gameTotal: parseFloat(gameTotal.toFixed(1)),
         opponent: homeAbbr,
         commenceTime: game.commence_time,
-        source,
+        source: 'run_diff_derived',
       };
     });
 
