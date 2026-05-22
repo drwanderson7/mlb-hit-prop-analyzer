@@ -954,6 +954,7 @@ function showScoreBreakdown(playerName) {
     ${D('── Game Environment ──')}
     ${R('Batting order (slot '+p.battingOrder+')',slotPA.toFixed(1)+' PA/game',orderScore,'8%',(orderScore*0.08).toFixed(1)+' pts')}
     ${R('Implied runs',ir!=null?ir.toFixed(1)+' proj runs':'No odds data',impliedScore,'14%',(impliedScore*0.14).toFixed(1)+' pts')}
+    ${p.baDiff !== null ? R('BA vs xBA regression', (p.ba.toFixed(3))+' BA vs '+(p.xba.toFixed(3))+' xBA ('+(p.baDiff>0?'+':'')+(p.baDiff*1000).toFixed(0)+'pts)', p.regressionScore, '2%', (p.regressionScore*0.02).toFixed(1)+' pts') : ''}
     ${platoonAdj!==0?R('Platoon bonus',p.bats==='S'?'Switch hitter':(p.platoon?.label||'Favorable'),65,'flat',(platoonAdj>0?'+':'')+platoonAdj+' pts'):''}
     ${D('── Final Score ──')}
     <tr style="background:var(--surface2);">
@@ -1761,9 +1762,10 @@ function lookupStatcast(name, spHand) {
       kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
       hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
       barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+      ba:         overall?.ba         ?? null,
       splitUsed,
-      splitPA,      // expose PA count for confidence weighting in score
-      splitConfidence: parseFloat(wSplit.toFixed(2)), // 0-1 (full at 150 PA)
+      splitPA,
+      splitConfidence: parseFloat(wSplit.toFixed(2)),
     };
   } else if (splitXBA !== null) {
     xba = splitXBA;
@@ -1775,6 +1777,7 @@ function lookupStatcast(name, spHand) {
     kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
     hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
     barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
+    ba:         overall?.ba         ?? null,
     splitUsed,
     splitPA:         splitStats?.pa ?? 0,
     splitConfidence: splitXBA !== null ? Math.min(1, (splitStats?.pa || 0) / 150) : 0,
@@ -2665,16 +2668,27 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     }
   }
 
+  // --- BA vs xBA regression signal (2%) ---
+  // Positive diff (BA > xBA) = overperforming = negative regression expected
+  // Negative diff (BA < xBA) = underperforming = positive regression expected
+  // Range: ±0.060 maps to 0–100 (50 = neutral)
+  const ba = sc?.ba ?? null;
+  const baDiff = (ba !== null && xba) ? ba - xba : null;
+  const regressionScore = baDiff !== null
+    ? Math.min(100, Math.max(0, 50 - (baDiff / 0.060) * 50))
+    : 50; // neutral if no BA data
+
   // Weighted composite — weights sum to 1.0
   // Weights: contactAdjScore = xBA × (1-0.5K%) is the primary per-PA hit probability signal.
   // K% is NO LONGER a separate component — it's baked into contactAdjScore to avoid double-counting.
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
   const rawComposite =
-    pitcherAdjContact * 0.56 +  // contact-adj xBA scaled by pitcher factor — primary signal
+    pitcherAdjContact * 0.54 +  // contact-adj xBA scaled by pitcher factor — primary signal
     impliedScore      * 0.14 +  // team implied runs — PA penalty only bottom order in low-run games
     orderScore        * 0.08 +  // PA volume by batting slot
     barrelScore       * 0.04 +  // Barrel% — reduced: power ≠ hits
+    regressionScore   * 0.02 +  // BA vs xBA regression signal
     platoonAdj;                 // +3 flat for favorable platoon
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite)));
@@ -2751,6 +2765,9 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     barrelScoreValue: barrelScore,
     orderScoreValue: orderScore,
     impliedScoreValue: impliedScore,
+    regressionScore,
+    ba,
+    baDiff,
     slotPA,
     platoonAdj,
     tier,
@@ -2905,6 +2922,7 @@ function playerCard(p, rank) {
         ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
         ${p.spStatcast && p.spXBA ? `<span class="pill info">xBA vs ${p.spXBA.toFixed(3)}</span>` : ''}
         ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}" title="Source: The Odds API (updates every 10min)">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
+        ${p.baDiff !== null ? `<span class="pill ${p.baDiff <= -0.040 ? 'good' : p.baDiff >= 0.040 ? 'bad' : ''}" title="BA vs xBA: ${p.ba.toFixed(3)} BA vs ${p.xba.toFixed(3)} xBA">${p.baDiff <= -0.040 ? '↑ Due +' : p.baDiff >= 0.040 ? '↓ Overperf' : '~ Neutral'} (${(p.baDiff > 0 ? '+' : '')}${(p.baDiff * 1000).toFixed(0)}pts)</span>` : ''}
         <span class="pill ${p.platoon?.cls||''}">${p.platoon?.label||'?'}</span>
       </div>
       <div class="p-reasoning">${p.reasoning}</div>
