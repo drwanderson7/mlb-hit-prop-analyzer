@@ -889,7 +889,7 @@ function showScoreBreakdown(playerName) {
   const xba=p.xba??sc?.xba??0.255, kpct=p.kpct??sc?.kpct??0.22, barrel=p.barrelpct??sc?.barrelpct??0.07;
   const rawXba=Math.min(100,Math.max(0,((xba-0.180)/(0.360-0.180))*100));
   const contactAdj=xba*(1-0.5*kpct);
-  const contactScore=p.contactScore??Math.min(100,Math.max(0,((contactAdj-0.100)/(0.310-0.100))*100));
+  const contactScore=p.contactScore??Math.min(100,Math.max(0,((contactAdj-0.195)/(0.300-0.195))*100));
   const barrelScore=p.barrelScoreValue??Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
   const spStats=getSPStats(p.pitcher,p.pitcherHand);
   let spScore,spDetail;
@@ -950,11 +950,11 @@ function showScoreBreakdown(playerName) {
     ${D('── Pitcher Matchup ──')}
     ${R(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '',matchupScore,'—','factor '+pitcherFactor.toFixed(3))}
     ${S(spDetail)}
-    ${R('Contact × Pitcher Factor',contactScore.toFixed(0)+' × '+pitcherFactor.toFixed(3),pitcherAdjContact,'56%',(pitcherAdjContact*0.56).toFixed(1)+' pts','',true)}
+    ${R('Contact × Pitcher Factor',contactScore.toFixed(0)+' × '+pitcherFactor.toFixed(3),pitcherAdjContact,'51%',(pitcherAdjContact*0.51).toFixed(1)+' pts','',true)}
     ${D('── Game Environment ──')}
     ${R('Batting order (slot '+p.battingOrder+')',slotPA.toFixed(1)+' PA/game',orderScore,'8%',(orderScore*0.08).toFixed(1)+' pts')}
     ${R('Implied runs',ir!=null?ir.toFixed(1)+' proj runs':'No odds data',impliedScore,'14%',(impliedScore*0.14).toFixed(1)+' pts')}
-    ${p.baDiff !== null ? R('BA vs xBA regression', (p.ba.toFixed(3))+' BA vs '+(p.xba.toFixed(3))+' xBA ('+(p.baDiff>0?'+':'')+(p.baDiff*1000).toFixed(0)+'pts)', p.regressionScore, '2%', (p.regressionScore*0.02).toFixed(1)+' pts') : ''}
+    ${p.baDiff !== null ? R('BA vs xBA regression', (p.ba.toFixed(3))+' BA vs '+(p.xba.toFixed(3))+' xBA ('+(p.baDiff>0?'+':'')+(p.baDiff*1000).toFixed(0)+'pts)', p.regressionScore, '5%', (p.regressionScore*0.05).toFixed(1)+' pts') : ''}
     ${platoonAdj!==0?R('Platoon bonus',p.bats==='S'?'Switch hitter':(p.platoon?.label||'Favorable'),65,'flat',(platoonAdj>0?'+':'')+platoonAdj+' pts'):''}
     ${D('── Final Score ──')}
     <tr style="background:var(--surface2);">
@@ -2527,7 +2527,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   const contactAdjXba = xba * (1 - 0.5 * kpct);
   // Scale 0-100: ~.100 (weak/high-K) to .310 (elite/low-K)
   const contactAdjScore = Math.min(100, Math.max(0,
-    ((contactAdjXba - 0.100) / (0.310 - 0.100)) * 100
+    ((contactAdjXba - 0.195) / (0.300 - 0.195)) * 100
   ));
 
   // --- Barrel% standalone (independent signal) ---
@@ -2684,11 +2684,11 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
   const rawComposite =
-    pitcherAdjContact * 0.54 +  // contact-adj xBA scaled by pitcher factor — primary signal
+    pitcherAdjContact * 0.51 +  // contact-adj xBA scaled by pitcher factor — primary signal
     impliedScore      * 0.14 +  // team implied runs — PA penalty only bottom order in low-run games
     orderScore        * 0.08 +  // PA volume by batting slot
     barrelScore       * 0.04 +  // Barrel% — reduced: power ≠ hits
-    regressionScore   * 0.02 +  // BA vs xBA regression signal
+    regressionScore   * 0.05 +  // BA vs xBA regression signal
     platoonAdj;                 // +3 flat for favorable platoon
 
   const composite = Math.min(100, Math.max(0, Math.round(rawComposite)));
