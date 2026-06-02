@@ -384,6 +384,20 @@ div[style*=“width:480px”]{width:95vw !important;max-width:95vw !important;ma
     <span id="runHint" style="font-size:12px;color:var(--muted);">Select at least one game above</span>
     <span style="font-size:11px;color:var(--muted);display:block;margin-top:4px;">💡 Re-run for fresh odds — lines update every 10 min</span>
   </div>
+
+  <div style="margin-top:12px;padding:10px 12px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">🔧 Implied Runs Override <span style="font-weight:400;font-style:italic;">(use if API total looks wrong)</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;" id="oddsOverrideRow">
+      <input id="overrideTeam" placeholder="Team (e.g. STL)" maxlength="4"
+        style="width:90px;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:inherit;outline:none;text-transform:uppercase;">
+      <input id="overrideRuns" placeholder="Runs (e.g. 3.6)" type="number" min="0" max="15" step="0.1"
+        style="width:90px;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-family:inherit;outline:none;">
+      <button class="btn btn-secondary btn-sm" onclick="addOddsOverride()">Add Override</button>
+      <button class="btn btn-secondary btn-sm" onclick="clearOddsOverrides()" style="color:var(--red);border-color:var(--red);">Clear All</button>
+    </div>
+    <div id="overrideList" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;"></div>
+  </div>
+
   <div id="errBox" style="display:none;margin-top:12px;"></div>
 </div>
 ```
@@ -1211,6 +1225,14 @@ async function runAnalysis() {
   // Step 4: Score
   setStep('score', 'running', 'Scoring all hitters...');
   await sleep(200);
+  // Apply any manual implied runs overrides before scoring
+  Object.entries(oddsOverrides).forEach(([team, runs]) => {
+    if (liveOdds[team]) {
+      liveOdds[team] = { ...liveOdds[team], impliedRuns: runs, source: 'manual_override' };
+    } else {
+      liveOdds[team] = { impliedRuns: runs, gameTotal: null, source: 'manual_override' };
+    }
+  });
   const maxOrder = parseInt(document.getElementById('maxOrder').value);
   const topN = parseInt(document.getElementById('topN').value);
   const minPA = parseInt(document.getElementById('minPA').value);
@@ -1322,6 +1344,39 @@ const DIAG = {
 
 let livePitchers = {};   // pitcher Statcast: xBA allowed, K%, HH%, whiff%
 let liveOdds = {};       // implied team run totals keyed by team abbreviation
+let oddsOverrides = {};  // manual overrides: { 'STL': 3.6, 'TEX': 4.1 }
+
+function addOddsOverride() {
+  const team = (document.getElementById('overrideTeam').value || '').trim().toUpperCase();
+  const runs = parseFloat(document.getElementById('overrideRuns').value);
+  if (!team || isNaN(runs) || runs < 0 || runs > 15) return;
+  oddsOverrides[team] = runs;
+  document.getElementById('overrideTeam').value = '';
+  document.getElementById('overrideRuns').value = '';
+  renderOverrideList();
+}
+
+function clearOddsOverrides() {
+  oddsOverrides = {};
+  renderOverrideList();
+}
+
+function removeOddsOverride(team) {
+  delete oddsOverrides[team];
+  renderOverrideList();
+}
+
+function renderOverrideList() {
+  const el = document.getElementById('overrideList');
+  if (!el) return;
+  if (!Object.keys(oddsOverrides).length) { el.innerHTML = ''; return; }
+  el.innerHTML = Object.entries(oddsOverrides).map(([team, runs]) =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--blue);color:#fff;border-radius:12px;font-size:11px;font-weight:700;">
+      ${team}: ${runs} R
+      <span onclick="removeOddsOverride('${team}')" style="cursor:pointer;opacity:.8;margin-left:2px;">×</span>
+    </span>`
+  ).join('');
+}
 const LIVE_NORM = {};
 
 
