@@ -16,26 +16,21 @@ const TEAM_MAP = {
 
 function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
 
+function getTodayUTC() { return new Date().toISOString().slice(0, 10); }
+function getTomorrowUTC() {
+  const d = new Date(); d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function impliedProb(o) {
   const n = parseFloat(o);
   if (!isFinite(n)) return 0.5;
-  return n > 0 ? 100/(n+100) : Math.abs(n)/(Math.abs(n)+100);
+  return n > 0 ? 100 / (n + 100) : Math.abs(n) / (Math.abs(n) + 100);
 }
 
-function winProbToRunShare(winProb) {
-  const raw = 0.5 + (winProb - 0.5) * 0.45;
-  return Math.min(0.60, Math.max(0.40, raw));
-}
-
-function getTodayUTC() {
-  const d = new Date();
-  return d.toISOString().slice(0, 10); // "2026-04-21"
-}
-
-function getTomorrowUTC() {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
+function winProbToRunDiff(normWinProb) {
+  const diff = (normWinProb - 0.5) * 4.4;
+  return Math.min(1.5, Math.max(-1.5, diff));
 }
 
 export default async function handler(req) {
@@ -43,8 +38,10 @@ export default async function handler(req) {
   if (!apiKey) return respond(500, { error: 'ODDS_API_KEY not set' });
 
   try {
+    // Fetch team_totals + totals + h2h from a wider set of books
+    // DraftKings and FanDuel both offer team totals for MLB
     const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`
+      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals,team_totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm,williamhill_us,bovada`
     );
 
     const remaining = res.headers.get('x-requests-remaining') || '?';
@@ -58,16 +55,10 @@ export default async function handler(req) {
 
     const today = getTodayUTC();
     const tomorrow = getTomorrowUTC();
-
-    // Filter to only today's games (commence_time starts with today's date in UTC)
-    // MLB games are typically 12:00-22:00 ET = 16:00-03:00 UTC
-    // So "today" in ET means games with commence_time on today OR tomorrow UTC
     const todayGames = games.filter(g => {
       const ct = g.commence_time || '';
       return ct.startsWith(today) || ct.startsWith(tomorrow);
     });
-
-    // Use all games if today filter returns nothing (fallback)
     const gameList = todayGames.length > 0 ? todayGames : games;
 
     const result = {};
@@ -78,17 +69,33 @@ export default async function handler(req) {
       if (!homeAbbr || !awayAbbr) return;
 
       const totals = [], homeProbs = [], awayProbs = [];
+      // Collect team totals per team across all books
+      const homeTeamTotals = [], awayTeamTotals = [];
+
       (game.bookmakers||[]).forEach(bk => {
         (bk.markets||[]).forEach(mkt => {
           if (mkt.key === 'totals') {
             const over = (mkt.outcomes||[]).find(o => o.name === 'Over');
-            if (over && over.point) totals.push(over.point);
+            if (over?.point) totals.push(over.point);
           }
           if (mkt.key === 'h2h') {
             const homeO = (mkt.outcomes||[]).find(o => o.name === game.home_team);
             const awayO = (mkt.outcomes||[]).find(o => o.name === game.away_team);
-            if (homeO && homeO.price) homeProbs.push(impliedProb(homeO.price));
-            if (awayO && awayO.price) awayProbs.push(impliedProb(awayO.price));
+            if (homeO?.price) homeProbs.push(impliedProb(homeO.price));
+            if (awayO?.price) awayProbs.push(impliedProb(awayO.price));
+          }
+          if (mkt.key === 'team_totals') {
+            (mkt.outcomes||[]).forEach(o => {
+              if (o.name !== 'Over') return;
+              const desc = (o.description || '').toLowerCase();
+              const homeTeam = game.home_team.toLowerCase();
+              const awayTeam = game.away_team.toLowerCase();
+              if (desc.includes(homeTeam) || desc === 'home') {
+                if (o.point) homeTeamTotals.push(o.point);
+              } else if (desc.includes(awayTeam) || desc === 'away') {
+                if (o.point) awayTeamTotals.push(o.point);
+              }
+            });
           }
         });
       });
@@ -96,27 +103,48 @@ export default async function handler(req) {
       const gameTotal = avg(totals);
       if (!gameTotal) return;
 
-      const homeProb = avg(homeProbs) || 0.5;
-      const awayProb = avg(awayProbs) || 0.5;
-      const vigTotal = homeProb + awayProb;
-      const normHome = homeProb / vigTotal;
-      const homeRunShare = winProbToRunShare(normHome);
-      const homeImplied = gameTotal * homeRunShare;
-      const awayImplied = gameTotal * (1 - homeRunShare);
+      let homeImplied, awayImplied, source;
+
+      const avgHome = avg(homeTeamTotals);
+      const avgAway = avg(awayTeamTotals);
+
+      if (avgHome !== null && avgAway !== null) {
+        // Best case: direct team totals from multiple books
+        homeImplied = avgHome;
+        awayImplied = avgAway;
+        source = 'team_totals';
+      } else if (avgHome !== null) {
+        homeImplied = avgHome;
+        awayImplied = gameTotal - avgHome;
+        source = 'team_totals_partial';
+      } else if (avgAway !== null) {
+        awayImplied = avgAway;
+        homeImplied = gameTotal - avgAway;
+        source = 'team_totals_partial';
+      } else {
+        // Fallback: derive from moneyline win probability
+        const rawHome = avg(homeProbs) || 0.5;
+        const rawAway = avg(awayProbs) || 0.5;
+        const normHome = rawHome / (rawHome + rawAway);
+        const runDiff = winProbToRunDiff(normHome);
+        homeImplied = (gameTotal + runDiff) / 2;
+        awayImplied = (gameTotal - runDiff) / 2;
+        source = 'run_diff_derived';
+      }
 
       result[homeAbbr] = {
         impliedRuns: parseFloat(homeImplied.toFixed(1)),
         gameTotal: parseFloat(gameTotal.toFixed(1)),
         opponent: awayAbbr,
         commenceTime: game.commence_time,
-        source: 'moneyline_derived',
+        source,
       };
       result[awayAbbr] = {
         impliedRuns: parseFloat(awayImplied.toFixed(1)),
         gameTotal: parseFloat(gameTotal.toFixed(1)),
         opponent: homeAbbr,
         commenceTime: game.commence_time,
-        source: 'moneyline_derived',
+        source,
       };
     });
 
