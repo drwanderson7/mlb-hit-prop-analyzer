@@ -28,8 +28,13 @@ function impliedProb(o) {
   return n > 0 ? 100 / (n + 100) : Math.abs(n) / (Math.abs(n) + 100);
 }
 
+// Convert normalized win probability to run differential
+// Pick'em (50%) → 0.0 run diff → each team gets gameTotal/2
+// Moderate fav (60%) → ~0.5 run diff
+// Heavy fav (70%) → ~1.0 run diff
+// Capped at ±1.5 runs
 function winProbToRunDiff(normWinProb) {
-  const diff = (normWinProb - 0.5) * 4.4;
+  const diff = (normWinProb - 0.5) * 3.0;
   return Math.min(1.5, Math.max(-1.5, diff));
 }
 
@@ -38,10 +43,8 @@ export default async function handler(req) {
   if (!apiKey) return respond(500, { error: 'ODDS_API_KEY not set' });
 
   try {
-    // Fetch team_totals + totals + h2h from a wider set of books
-    // DraftKings and FanDuel both offer team totals for MLB
     const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals,team_totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`
+      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`
     );
 
     const remaining = res.headers.get('x-requests-remaining') || '?';
@@ -69,8 +72,6 @@ export default async function handler(req) {
       if (!homeAbbr || !awayAbbr) return;
 
       const totals = [], homeProbs = [], awayProbs = [];
-      // Collect team totals per team across all books
-      const homeTeamTotals = [], awayTeamTotals = [];
 
       (game.bookmakers||[]).forEach(bk => {
         (bk.markets||[]).forEach(mkt => {
@@ -84,67 +85,32 @@ export default async function handler(req) {
             if (homeO?.price) homeProbs.push(impliedProb(homeO.price));
             if (awayO?.price) awayProbs.push(impliedProb(awayO.price));
           }
-          if (mkt.key === 'team_totals') {
-            (mkt.outcomes||[]).forEach(o => {
-              if (o.name !== 'Over') return;
-              const desc = (o.description || '').toLowerCase();
-              const homeTeam = game.home_team.toLowerCase();
-              const awayTeam = game.away_team.toLowerCase();
-              if (desc.includes(homeTeam) || desc === 'home') {
-                if (o.point) homeTeamTotals.push(o.point);
-              } else if (desc.includes(awayTeam) || desc === 'away') {
-                if (o.point) awayTeamTotals.push(o.point);
-              }
-            });
-          }
         });
       });
 
       const gameTotal = avg(totals);
       if (!gameTotal) return;
 
-      let homeImplied, awayImplied, source;
-
-      const avgHome = avg(homeTeamTotals);
-      const avgAway = avg(awayTeamTotals);
-
-      if (avgHome !== null && avgAway !== null) {
-        // Best case: direct team totals from multiple books
-        homeImplied = avgHome;
-        awayImplied = avgAway;
-        source = 'team_totals';
-      } else if (avgHome !== null) {
-        homeImplied = avgHome;
-        awayImplied = gameTotal - avgHome;
-        source = 'team_totals_partial';
-      } else if (avgAway !== null) {
-        awayImplied = avgAway;
-        homeImplied = gameTotal - avgAway;
-        source = 'team_totals_partial';
-      } else {
-        // Fallback: derive from moneyline win probability
-        const rawHome = avg(homeProbs) || 0.5;
-        const rawAway = avg(awayProbs) || 0.5;
-        const normHome = rawHome / (rawHome + rawAway);
-        const runDiff = winProbToRunDiff(normHome);
-        homeImplied = (gameTotal + runDiff) / 2;
-        awayImplied = (gameTotal - runDiff) / 2;
-        source = 'run_diff_derived';
-      }
+      const rawHome = avg(homeProbs) || 0.5;
+      const rawAway = avg(awayProbs) || 0.5;
+      const normHome = rawHome / (rawHome + rawAway);
+      const runDiff = winProbToRunDiff(normHome);
+      const homeImplied = (gameTotal + runDiff) / 2;
+      const awayImplied = (gameTotal - runDiff) / 2;
 
       result[homeAbbr] = {
         impliedRuns: parseFloat(homeImplied.toFixed(1)),
         gameTotal: parseFloat(gameTotal.toFixed(1)),
         opponent: awayAbbr,
         commenceTime: game.commence_time,
-        source,
+        source: 'run_diff_derived',
       };
       result[awayAbbr] = {
         impliedRuns: parseFloat(awayImplied.toFixed(1)),
         gameTotal: parseFloat(gameTotal.toFixed(1)),
         opponent: homeAbbr,
         commenceTime: game.commence_time,
-        source,
+        source: 'run_diff_derived',
       };
     });
 
@@ -166,7 +132,7 @@ function respond(status, body) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'public, max-age=600',
+      'Cache-Control': 'public, max-age=300',
     }
   });
 }
