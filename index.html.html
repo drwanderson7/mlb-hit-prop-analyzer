@@ -1020,25 +1020,25 @@ function switchTab(t) {
 // ── Schedule ──────────────────────────────────────────────────────────────────
 // Today's schedule — loaded from Claude's live sports feed on tool update
 // Format: {id, away, awayAbbr, home, homeAbbr, time, venue, awaySP, homeSP}
-// Updated: Tue Apr 7, 2026
+// Updated: May 21, 2026
 const TODAYS_GAMES = [
-  // Auto-updated: Apr 27, 2026
+  // Auto-updated: May 21, 2026
   // Tool will try live MLB API first; this is the fallback
-  {id:'g1',away:'Boston Red Sox',awayAbbr:'BOS',home:'Baltimore Orioles',homeAbbr:'BAL',time:'1:35 PM ET',venue:'Oriole Park at Camden Yards',awaySP:'Connelly Early',homeSP:'Kyle Bradish'},
-  {id:'g2',away:'Philadelphia Phillies',awayAbbr:'PHI',home:'Atlanta Braves',homeAbbr:'ATL',time:'1:35 PM ET',venue:'Truist Park',awaySP:'Aaron Nola',homeSP:'Chris Sale'},
-  {id:'g3',away:'Cleveland Guardians',awayAbbr:'CLE',home:'Toronto Blue Jays',homeAbbr:'TOR',time:'1:37 PM ET',venue:'Rogers Centre',awaySP:'Slade Cecconi',homeSP:'Patrick Corbin'},
-  {id:'g4',away:'Minnesota Twins',awayAbbr:'MIN',home:'Tampa Bay Rays',homeAbbr:'TBR',time:'1:40 PM ET',venue:'Tropicana Field',awaySP:'Simeon Woods Richardson',homeSP:'Jesse Scholtens'},
-  {id:'g5',away:'Detroit Tigers',awayAbbr:'DET',home:'Cincinnati Reds',homeAbbr:'CIN',time:'1:40 PM ET',venue:'Great American Ball Park',awaySP:'Keider Montero',homeSP:'Rhett Lowder'},
-  {id:'g6',away:'Colorado Rockies',awayAbbr:'COL',home:'New York Mets',homeAbbr:'NYM',time:'1:40 PM ET',venue:'Citi Field',awaySP:'Jose Quintana',homeSP:'Nolan McLean'},
-  {id:'g7',away:'Washington Nationals',awayAbbr:'WSH',home:'Chicago White Sox',homeAbbr:'CWS',time:'2:10 PM ET',venue:'Rate Field',awaySP:'Foster Griffin',homeSP:'Bryan Hudson'},
-  {id:'g8',away:'New York Yankees',awayAbbr:'NYY',home:'Houston Astros',homeAbbr:'HOU',time:'2:10 PM ET',venue:'Daikin Park',awaySP:'Luis Gil',homeSP:'Spencer Arrighetti'},
-  {id:'g9',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Milwaukee Brewers',homeAbbr:'MIL',time:'2:10 PM ET',venue:'American Family Field',awaySP:'Carmen Mlodzinski',homeSP:'Kyle Harrison'},
-  {id:'g10',away:'Seattle Mariners',awayAbbr:'SEA',home:'St. Louis Cardinals',homeAbbr:'STL',time:'2:15 PM ET',venue:'Busch Stadium',awaySP:'Emerson Hancock',homeSP:'Michael McGreevy'},
-  {id:'g11',away:'Athletics',awayAbbr:'ATH',home:'Texas Rangers',homeAbbr:'TEX',time:'2:35 PM ET',venue:'Globe Life Field',awaySP:'J.T. Ginn',homeSP:'Kumar Rocker'},
-  {id:'g12',away:'San Diego Padres',awayAbbr:'SD',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'4:05 PM ET',venue:'Chase Field',awaySP:'Michael King',homeSP:'Ryne Nelson'},
-  {id:'g13',away:'Miami Marlins',awayAbbr:'MIA',home:'San Francisco Giants',homeAbbr:'SF',time:'4:05 PM ET',venue:'Oracle Park',awaySP:'Max Meyer',homeSP:'Landen Roupp'},
-  {id:'g14',away:'Chicago Cubs',awayAbbr:'CHC',home:'Los Angeles Dodgers',homeAbbr:'LAD',time:'4:10 PM ET',venue:'Dodger Stadium',awaySP:'Shota Imanaga',homeSP:'Justin Wrobleski'},
-  {id:'g15',away:'Los Angeles Angels',awayAbbr:'LAA',home:'Kansas City Royals',homeAbbr:'KC',time:'7:20 PM ET',venue:'Kauffman Stadium',awaySP:'Reid Detmers',homeSP:'Seth Lugo'},
+  {id:'g1',away:'San Diego Padres',awayAbbr:'SD',home:'Philadelphia Phillies',homeAbbr:'PHI',time:'6:40 PM ET',venue:'Citizens Bank Park',awaySP:'Randy Vasquez',homeSP:'Aaron Nola'},
+  {id:'g2',away:'Detroit Tigers',awayAbbr:'DET',home:'Tampa Bay Rays',homeAbbr:'TBR',time:'6:40 PM ET',venue:'Tropicana Field',awaySP:'Jack Flaherty',homeSP:'Steven Matz'},
+  {id:'g3',away:'Baltimore Orioles',awayAbbr:'BAL',home:'Boston Red Sox',homeAbbr:'BOS',time:'6:45 PM ET',venue:'Fenway Park',awaySP:'Shane Baz',homeSP:'Connelly Early'},
+  {id:'g4',away:'Miami Marlins',awayAbbr:'MIA',home:'Washington Nationals',homeAbbr:'WSH',time:'6:45 PM ET',venue:'Nationals Park',awaySP:'Ryan Gusto',homeSP:'Miles Mikolas'},
+  {id:'g5',away:'Cleveland Guardians',awayAbbr:'CLE',home:'New York Yankees',homeAbbr:'NYY',time:'7:05 PM ET',venue:'Yankee Stadium',awaySP:'Joey Cantillo',homeSP:'Cam Schlittler'},
+  {id:'g6',away:'Kansas City Royals',awayAbbr:'KC',home:'Cincinnati Reds',homeAbbr:'CIN',time:'7:10 PM ET',venue:'Great American Ball Park',awaySP:'Noah Cameron',homeSP:'Andrew Abbott'},
+  {id:'g7',away:'Toronto Blue Jays',awayAbbr:'TOR',home:'Atlanta Braves',homeAbbr:'ATL',time:'7:15 PM ET',venue:'Truist Park',awaySP:'Kevin Gausman',homeSP:'Bryce Elder'},
+  {id:'g8',away:'Chicago White Sox',awayAbbr:'CWS',home:'Minnesota Twins',homeAbbr:'MIN',time:'7:40 PM ET',venue:'Target Field',awaySP:'Davis Martin',homeSP:'Connor Prielipp'},
+  {id:'g9',away:'San Francisco Giants',awayAbbr:'SF',home:'Milwaukee Brewers',homeAbbr:'MIL',time:'7:40 PM ET',venue:'American Family Field',awaySP:'Trevor McDonald',homeSP:'Kyle Harrison'},
+  {id:'g10',away:'Texas Rangers',awayAbbr:'TEX',home:'St. Louis Cardinals',homeAbbr:'STL',time:'7:45 PM ET',venue:'Busch Stadium',awaySP:'Nathan Eovaldi',homeSP:'Dustin May'},
+  {id:'g11',away:'Athletics',awayAbbr:'ATH',home:'Chicago Cubs',homeAbbr:'CHC',time:'8:05 PM ET',venue:'Wrigley Field',awaySP:'Gage Jump',homeSP:'Jameson Taillon'},
+  {id:'g12',away:'Pittsburgh Pirates',awayAbbr:'PIT',home:'Houston Astros',homeAbbr:'HOU',time:'8:10 PM ET',venue:'Daikin Park',awaySP:'Bubba Chandler',homeSP:'Mike Burrows'},
+  {id:'g13',away:'Colorado Rockies',awayAbbr:'COL',home:'Los Angeles Angels',homeAbbr:'LAA',time:'9:38 PM ET',venue:'Angel Stadium',awaySP:'Tomoyuki Sugano',homeSP:'Grayson Rodriguez'},
+  {id:'g14',away:'New York Mets',awayAbbr:'NYM',home:'Seattle Mariners',homeAbbr:'SEA',time:'9:40 PM ET',venue:'T-Mobile Park',awaySP:'Jonah Tong',homeSP:'Logan Gilbert'},
+  {id:'g15',away:'Los Angeles Dodgers',awayAbbr:'LAD',home:'Arizona Diamondbacks',homeAbbr:'AZ',time:'9:40 PM ET',venue:'Chase Field',awaySP:'Eric Lauer',homeSP:'Michael Soroka'},
 ];
 
 async function loadSchedule() {
@@ -1216,7 +1216,14 @@ async function runAnalysis() {
   const minPA = parseInt(document.getElementById('minPA').value);
   scoredPlayers = scoreAllPlayers(lineupResults, maxOrder, minPA);
   scoredPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
-  scoredPlayers.forEach((p, i) => p.rank = i + 1);
+  scoredPlayers.forEach((p, i) => {
+    p.rank = i + 1;
+    // Rank-based tiers: top 10 Elite, next 18 Strong, next 20 Lean, rest Avoid
+    if (i < 10) p.tier = 'Elite';
+    else if (i < 28) p.tier = 'Strong';
+    else if (i < 48) p.tier = 'Lean';
+    else p.tier = 'Avoid';
+  });
   // Store full pool for search, but only render topN by default
   const prevScores = {};
   allScoredPlayers.forEach(p => { prevScores[p.name] = p.compositeScore; });
@@ -2336,48 +2343,48 @@ function mergeLivePitcherStats(spStats) {
 
 const DEPTH_CHARTS = {
   // AL East
-  'NYY': ['Trent Grisham','Ben Rice','Aaron Judge','Cody Bellinger','Giancarlo Stanton','Jazz Chisholm Jr.','Austin Wells','José Caballero','Ryan McMahon'],
-  'BOS': ['Roman Anthony','Trevor Story','Jarren Duran','Willson Contreras','Wilyer Abreu','Caleb Durbin','Marcelo Mayer','Ceddanne Rafaela','Carlos Narváez'],
-  'TOR': ['Nathan Lukes','Ernie Clement','Vladimir Guerrero Jr.','Jesus Sanchez','Eloy Jimenez','Daulton Varsho','Kazuma Okamoto','Andres Gimenez','Tyler Heineman'],
-  'BAL': ['Gunnar Henderson','Taylor Ward','Adley Rutschman','Pete Alonso','Dylan Beavers','Leody Taveras','Jeremiah Jackson','Colton Cowser','Coby Mayo'],
-  'TB':  ['Chandler Simpson','Junior Caminero','Jonathan Aranda','Yandy Diaz','Jake Fraley','Cedric Mullins','Richie Palacios','Nick Fortes','Taylor Walls'],
-  'TBR':  ['Chandler Simpson','Junior Caminero','Jonathan Aranda','Yandy Diaz','Jake Fraley','Cedric Mullins','Richie Palacios','Nick Fortes','Taylor Walls'],
+  'NYY': ['Paul Goldschmidt','Ben Rice','Aaron Judge','Cody Bellinger','Jose Caballero','Trent Grisham','Anthony Volpe','Max Schuemann','Austin Wells'],
+  'BOS': ['Jarren Duran','Ceddanne Rafaela','Wilyer Abreu','Willson Contreras','Masataka Yoshida','Mickey Gasper','Nick Sogard','Marcelo Mayer','Caleb Durbin'],
+  'TOR': ['George Springer','Nathan Lukes','Vladimir Guerrero Jr.','Daulton Varsho','Kazuma Okamoto','Jesus Sanchez','Ernie Clement','Andres Gimenez','Brandon Valenzuela'],
+  'BAL': ['Taylor Ward','Gunnar Henderson','Adley Rutschman','Pete Alonso','Coby Mayo','Leody Taveras','Tyler O\'Neill','Jeremiah Jackson','Blaze Alexander'],
+  'TB':  ['Yandy Diaz','Jonathan Aranda','Richie Palacios','Junior Caminero','Chandler Simpson','Victor Mesa','Cedric Mullins','Hunter Feduccia','Taylor Walls'],
+  'TBR': ['Yandy Diaz','Jonathan Aranda','Richie Palacios','Junior Caminero','Chandler Simpson','Victor Mesa','Cedric Mullins','Hunter Feduccia','Taylor Walls'],
   // AL Central
-  'CLE': ['Steven Kwan','Chase DeLauter','José Ramírez','Kyle Manzardo','Rhys Hoskins','Angel Martínez','Bo Naylor','Gabriel Arias','Brayan Rocchio'],
-  'MIN': ['Byron Buxton','Trevor Larnach','Josh Bell','Ryan Jeffers','Kody Clemens','Luke Keaschall','Matt Wallner','Royce Lewis','Brooks Lee'],
-  'KC':  ['Maikel Garcia','Bobby Witt Jr.','Vinnie Pasquantino','Salvador Perez','Lane Thomas','Starling Marte','Isaac Collins','Nick Loftin','Elias Diaz'],
-  'KCR':  ['Maikel Garcia','Bobby Witt Jr.','Vinnie Pasquantino','Salvador Perez','Lane Thomas','Starling Marte','Isaac Collins','Nick Loftin','Elias Diaz'],
-  'CHW': ['Andrew Benintendi','Munetaka Murakami','Miguel Vargas','Colson Montgomery','Everson Pereira','Sam Antonacci','Chase Meidroth','Edgar Quero','Tristan Peters'],
-  'CWS': ['Andrew Benintendi','Munetaka Murakami','Miguel Vargas','Colson Montgomery','Everson Pereira','Sam Antonacci','Chase Meidroth','Edgar Quero','Tristan Peters'],
-  'DET': ['Kevin McGonigle','Gleyber Torres','Colt Keith','Riley Greene','Spencer Torkelson','Matt Vierling','Parker Meadows','Dillon Dingler','Zach McKinstry'],
+  'CLE': ['Travis Bazzana','Jose Ramirez','Chase DeLauter','Rhys Hoskins','Kyle Manzardo','Daniel Schneemann','Petey Halpin','Patrick Bailey','Brayan Rocchio'],
+  'MIN': ['Byron Buxton','Brooks Lee','Kody Clemens','Josh Bell','Trevor Larnach','Austin Martin','Victor Caratini','Luke Keaschall','Tristan Gray'],
+  'KC':  ['Lane Thomas','Bobby Witt Jr.','Salvador Perez','Starling Marte','Vinnie Pasquantino','Nick Loftin','Isaac Collins','Jac Caglianone','Tyler Tolbert'],
+  'KCR': ['Lane Thomas','Bobby Witt Jr.','Salvador Perez','Starling Marte','Vinnie Pasquantino','Nick Loftin','Isaac Collins','Jac Caglianone','Tyler Tolbert'],
+  'CHW': ['Chase Meidroth','Miguel Vargas','Colson Montgomery','Randal Grichuk','Drew Romo','Andrew Benintendi','Derek Hill','Sam Antonacci','Luisangel Acuna'],
+  'CWS': ['Chase Meidroth','Miguel Vargas','Colson Montgomery','Randal Grichuk','Drew Romo','Andrew Benintendi','Derek Hill','Sam Antonacci','Luisangel Acuna'],
+  'DET': ['Matt Vierling','Dillon Dingler','Gleyber Torres','Riley Greene','Spencer Torkelson','Jahmai Jones','Wenceel Perez','Hao-Yu Lee','Zack Short'],
   // AL West
-  'HOU': ['Carlos Correa','Yordan Alvarez','Jose Altuve','Christian Walker','Isaac Paredes','Cam Smith','Daniel Johnson','Yainer Diaz','Dustin Harris'],
-  'TEX': ['Brandon Nimmo','Joc Pederson','Corey Seager','Jake Burger','Josh Jung','Evan Carter','Danny Jansen','Josh Smith','Alejandro Osuna'],
-  'LAA': ['Zach Neto','Mike Trout','Jo Adell','Jorge Soler','Oswald Peraza','Nolan Schanuel','Vaughn Grissom',"Logan O'Hoppe",'Bryce Teodosio'],
-  'ATH': ['Nick Kurtz','Shea Langeliers','Carlos Cortes','Tyler Soderstrom','Jacob Wilson','Jeff McNeil','Max Muncy','Lawrence Butler','Zack Gelof'],
-  'OAK': ['Nick Kurtz','Shea Langeliers','Carlos Cortes','Tyler Soderstrom','Jacob Wilson','Jeff McNeil','Max Muncy','Lawrence Butler','Zack Gelof'],
-  'SEA': ['J.P. Crawford','Cal Raleigh','Julio Rodriguez','Josh Naylor','Randy Arozarena','Luke Raley','Dominic Canzone','Cole Young','Leo Rivas'],
+  'HOU': ['Jeremy Pena','Yordan Alvarez','Christian Walker','Taylor Trammell','Isaac Paredes','Cam Smith','Braden Shewmake','Jake Meyers','Christian Vazquez'],
+  'TEX': ['Joc Pederson','Josh Jung','Brandon Nimmo','Jake Burger','Ezequiel Duran','Alejandro Osuna','Evan Carter','Kyle Higashioka','Nicky Lopez'],
+  'LAA': ['Zach Neto','Mike Trout','Vaughn Grissom','Jorge Soler','Wade Meckler','Jo Adell','Oswald Peraza','Donovan Walton','Logan O\'Hoppe'],
+  'ATH': ['Carlos Cortes','Nick Kurtz','Shea Langeliers','Brent Rooker','Tyler Soderstrom','Henry Bolte','Jeff McNeil','Zack Gelof','Darell Hernaiz'],
+  'OAK': ['Carlos Cortes','Nick Kurtz','Shea Langeliers','Brent Rooker','Tyler Soderstrom','Henry Bolte','Jeff McNeil','Zack Gelof','Darell Hernaiz'],
+  'SEA': ['J.P. Crawford','Julio Rodriguez','Josh Naylor','Randy Arozarena','Luke Raley','Cole Young','Dominic Canzone','Mitch Garver','Colt Emerson'],
   // NL East
-  'NYM': ['Bo Bichette','Juan Soto','Francisco Alvarez','Luis Robert','Brett Baty','Mark Vientos','Marcus Semien','Ronny Mauricio','Carson Benge'],
-  'ATL': ['Ronald Acuna Jr.','Drake Baldwin','Matt Olson','Austin Riley','Ozzie Albies','Michael Harris II','Dominic Smith','Mauricio Dubon','Mike Yastrzemski'],
-  'PHI': ['Trea Turner','Kyle Schwarber','Bryce Harper','Adolis Garcia','Brandon Marsh','Bryson Stott','Alec Bohm','Justin Crawford','Rafael Marchan'],
-  'MIA': ['Jakob Marsee','Xavier Edwards','Otto Lopez','Kyle Stowers','Agustin Ramirez','Liam Hicks','Connor Norby','Owen Caissie','Graham Pauley'],
-  'WSH': ['James Wood','Luis Garcia','Brady House','CJ Abrams','Jacob Young','Daylen Lile','Nasim Nunez','Jose Tena','Drew Millas'],
-  'WSN': ['James Wood','Luis Garcia','Brady House','CJ Abrams','Jacob Young','Daylen Lile','Nasim Nunez','Jose Tena','Drew Millas'],
+  'NYM': ['Carson Benge','Bo Bichette','Juan Soto','Jared Young','Mark Vientos','A.J. Ewing','Brett Baty','Marcus Semien','Luis Torrens'],
+  'ATL': ['Ronald Acuna Jr.','Michael Harris II','Matt Olson','Ozzie Albies','Dominic Smith','Austin Riley','Mike Yastrzemski','Jorge Mateo','Sandy Leon'],
+  'PHI': ['Kyle Schwarber','Trea Turner','Bryce Harper','Brandon Marsh','Alec Bohm','Bryson Stott','J.T. Realmuto','Adolis Garcia','Justin Crawford'],
+  'MIA': ['Liam Hicks','Otto Lopez','Kyle Stowers','Xavier Edwards','Leo Jimenez','Owen Caissie','Jakob Marsee','Joe Mack','Connor Norby'],
+  'WSH': ['James Wood','Luis Garcia','Curtis Mead','C.J. Abrams','Dylan Crews','Daylen Lile','Jacob Young','Drew Millas','Nasim Nunez'],
+  'WSN': ['James Wood','Luis Garcia','Curtis Mead','C.J. Abrams','Dylan Crews','Daylen Lile','Jacob Young','Drew Millas','Nasim Nunez'],
   // NL Central
-  'CHC': ['Nico Hoerner','Michael Busch','Alex Bregman','Ian Happ','Seiya Suzuki','Moisés Ballesteros','Miguel Amaya','Pete Crow-Armstrong','Dansby Swanson'],
-  'STL': ['JJ Wetherholt','Iván Herrera','Alec Burleson','Jordan Walker','Nolan Gorman','Masyn Winn','Nathan Church','Pedro Pagés','Victor Scott II'],
-  'MIL': ['Jackson Chourio','William Contreras','Christian Yelich','Rhys Hoskins','Sal Frelick','Joey Wiemer','Owen Miller','Tyrone Taylor','Brian Anderson'],
-  'CIN': ['TJ Friedl','Matt McLain','Elly De La Cruz','Spencer Steer','Sal Stewart','Gavin Lux','Tyler Stephenson',"Ke\'Bryan Hayes",'Noelvi Marte'],
-  'PIT': ['Oneil Cruz','Brandon Lowe','Bryan Reynolds','Marcell Ozuna',"Ryan O'Hearn",'Jared Triolo','Spencer Horwitz','Nick Gonzales','Henry Davis'],
+  'CHC': ['Nico Hoerner','Pete Crow-Armstrong','Alex Bregman','Seiya Suzuki','Ian Happ','Carson Kelly','Michael Busch','Kevin Alcantara','Dansby Swanson'],
+  'STL': ['JJ Wetherholt','Ivan Herrera','Alec Burleson','Jordan Walker','Bryan Torres','Masyn Winn','Nolan Gorman','Jimmy Crooks','Victor Scott'],
+  'MIL': ['Christian Yelich','Jackson Chourio','Brice Turang','William Contreras','Jake Bauers','Garrett Mitchell','Sal Frelick','Luis Rengifo','David Hamilton'],
+  'CIN': ['Blake Dunn','Dane Myers','Sal Stewart','Eugenio Suarez','Spencer Steer','JJ Bleday','Tyler Stephenson','Edwin Arroyo','Matt McLain'],
+  'PIT': ['Spencer Horwitz','Brandon Lowe','Bryan Reynolds','Ryan O\'Hearn','Nick Gonzales','Oneil Cruz','Endy Rodriguez','Jake Mangum','Jared Triolo'],
   // NL West
-  'AZ':  ['Ketel Marte','Corbin Carroll','Geraldo Perdomo','Gabriel Moreno','Pavin Smith','Nolan Arenado','Carlos Santana','Alek Thomas','Jordan Lawlar'],
-  'SF':  ['Willy Adames','Luis Arraez','Matt Chapman','Rafael Devers','Casey Schmitt','Jung Hoo Lee','Heliot Ramos','Drew Gilbert','Patrick Bailey'],
-  'SFG':  ['Willy Adames','Luis Arraez','Matt Chapman','Rafael Devers','Casey Schmitt','Jung Hoo Lee','Heliot Ramos','Drew Gilbert','Patrick Bailey'],
-  'LAD': ['Shohei Ohtani','Freddie Freeman','Will Smith','Kyle Tucker','Teoscar Hernandez','Max Muncy','Andy Pages','Hyeseong Kim','Alex Freeland'],
-  'SD':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Nick Castellanos','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
-  'SDP':  ['Fernando Tatis Jr.','Xander Bogaerts','Manny Machado','Jackson Merrill','Nick Castellanos','Gavin Sheets','Ha-Seong Kim','Kyle Higashioka','Tyler Wade'],
-  'COL': ['Edouard Julien','Mickey Moniak','Hunter Goodman','TJ Rumfield','Ezequiel Tovar','Troy Johnston','Kyle Karros','Jake McCarthy','Jordan Beck'],
+  'AZ':  ['Ketel Marte','Corbin Carroll','Geraldo Perdomo','Gabriel Moreno','Nolan Arenado','Ildemaro Vargas','Ryan Waldschmidt','Jose Fernandez','Tommy Troy'],
+  'SF':  ['Casey Schmitt','Rafael Devers','Luis Arraez','Willy Adames','Matt Chapman','Daniel Susac','Buddy Kennedy','Victor Bericoto','Jonah Cox'],
+  'SFG': ['Casey Schmitt','Rafael Devers','Luis Arraez','Willy Adames','Matt Chapman','Daniel Susac','Buddy Kennedy','Victor Bericoto','Jonah Cox'],
+  'LAD': ['Shohei Ohtani','Andy Pages','Freddie Freeman','Mookie Betts','Kyle Tucker','Max Muncy','Will Smith','Alex Call','Alex Freeland'],
+  'SD':  ['Fernando Tatis Jr.','Gavin Sheets','Manny Machado','Xander Bogaerts','Jackson Merrill','Miguel Andujar','Ramon Laureano','Jase Bowen','Freddy Fermin'],
+  'SDP': ['Fernando Tatis Jr.','Gavin Sheets','Manny Machado','Xander Bogaerts','Jackson Merrill','Miguel Andujar','Ramon Laureano','Jase Bowen','Freddy Fermin'],
+  'COL': ['Jake McCarthy','Tyler Freeman','Hunter Goodman','Troy Johnston','Willi Castro','Ezequiel Tovar','Edouard Julien','Sterlin Thompson','Kyle Karros'],
 };
 
 function buildLineups(gameLineups, rawGames) {
