@@ -1,3 +1,4 @@
+//V2
 export const config = { runtime: 'edge' };
 
 const TEAM_MAP = {
