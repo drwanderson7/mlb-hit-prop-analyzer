@@ -41,7 +41,7 @@ export default async function handler(req) {
     // Fetch team_totals + totals + h2h from a wider set of books
     // DraftKings and FanDuel both offer team totals for MLB
     const res = await fetch(
-      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals,team_totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm,williamhill_us,bovada`
+      `https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=${apiKey}&regions=us&markets=h2h,totals,team_totals&oddsFormat=american&bookmakers=draftkings,fanduel,betmgm`
     );
 
     const remaining = res.headers.get('x-requests-remaining') || '?';
