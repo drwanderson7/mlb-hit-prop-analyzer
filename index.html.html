@@ -1225,7 +1225,8 @@ async function runAnalysis() {
 
   // Fetch BB% from MLB Stats API (bulk — no player IDs needed)
   try {
-    const bbRes = await fetch(`/api/batters?season=${year}`);
+    const bbYear = new Date().getFullYear();
+    const bbRes = await fetch(`/api/batters?season=${bbYear}`);
     if (bbRes.ok) {
       const bbData = await bbRes.json();
       console.log('BB% fetch: got', Object.keys(bbData).length, 'players, sample:', Object.entries(bbData).slice(0,2).map(([n,s]) => `${n}: ${s.bbpct}`));
