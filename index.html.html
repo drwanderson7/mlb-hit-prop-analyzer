@@ -1519,37 +1519,30 @@ async function fetchStatcast() {
   };
 
   // Fetch in parallel
-  const [tCur, tPri, tPit, tSC26, tBB] = await Promise.all([
+  const [tCur, tPri, tPit, tSC26] = await Promise.all([
     fetchCsv('batter', year, ''),        // expected_statistics 2026 (xBA overall)
     fetchCsv('batter', prev, ''),        // expected_statistics 2025 (xBA prior year)
     fetchCsv('pitcher', year, ''),       // pitcher stats
     fetchCsv('statcast', year, ''),      // K%/HH%/Barrel%/xBA for all batters
-    fetchCsv('bbstats', year, ''),       // BB% for all batters
   ]);
+
+  // Fetch BB% from MLB Stats API separately (Savant doesn't expose BB% without auth)
+  let bbMap = {};
+  try {
+    const bbRes = await fetch(`/api/batters?year=${year}`);
+    if (bbRes.ok) {
+      const bbData = await bbRes.json();
+      // Key by normalized name
+      Object.entries(bbData.batters || {}).forEach(([name, stats]) => {
+        bbMap[normalize(name)] = stats.bbpct;
+      });
+    }
+  } catch(e) { /* silent fail — BB% will use default */ }
 
   const batterCur  = parseSavantCsv(tCur);
   const batterPri  = parseSavantCsv(tPri);
   const pitcherMap = parseSavantCsv(tPit, 'pitcher');
   const sc26Map    = parseSavantCsv(tSC26);
-  // Parse BB% map — keyed by normalized name → bbpct
-  const bbMap = {};
-  if (tBB && tBB.length > 100 && !tBB.trim().startsWith('{')) {
-    const lines = tBB.trim().split('\n');
-    const hdrs = lines[0].toLowerCase().split(',');
-    const iN = hdrs.findIndex(h => h.includes('last_name') || h.includes('player_name'));
-    const iBB = hdrs.findIndex(h => h.includes('bb_percent') || h.includes('b_bb'));
-    const iPA = hdrs.findIndex(h => h.trim() === 'pa');
-    if (iN >= 0 && iBB >= 0) {
-      lines.slice(1).forEach(line => {
-        if (!line.trim()) return;
-        const cols = line.split(',');
-        let name = (cols[iN] || '').replace(/"/g,'').trim();
-        if (name.includes(',')) { const p = name.split(','); name = p[1].trim()+' '+p[0].trim(); }
-        const bb = parseFloat(cols[iBB]);
-        if (name && isFinite(bb)) bbMap[normalize(name)] = bb / 100;
-      });
-    }
-  }
 
   liveStatcast = blendMaps(batterCur, batterPri, 100);
   liveVsRHP    = {};
