@@ -1229,10 +1229,12 @@ async function runAnalysis() {
     lineupResults.forEach(g => {
       [...(g.awayLineup||[]), ...(g.homeLineup||[])].forEach(p => { if (p.mlbId) batterIds.add(p.mlbId); });
     });
+    console.log('BB% fetch: found', batterIds.size, 'player IDs:', [...batterIds].slice(0,5));
     if (batterIds.size > 0) {
       const bbRes = await fetch(`/api/batters?ids=${[...batterIds].join(',')}&season=${year}`);
       if (bbRes.ok) {
         const bbData = await bbRes.json();
+        console.log('BB% response sample:', Object.entries(bbData).slice(0,3));
         Object.values(bbData).forEach(stats => {
           if (stats.name && stats.bbpct != null) {
             const key = normalize(stats.name);
@@ -1241,8 +1243,10 @@ async function runAnalysis() {
           }
         });
       }
+    } else {
+      console.log('BB% fetch: no player IDs found — all lineups projected?');
     }
-  } catch(e) { /* silent fail */ }
+  } catch(e) { console.log('BB% fetch error:', e.message); }
 
   // Step 4: Score
   setStep('score', 'running', 'Scoring all hitters...');
