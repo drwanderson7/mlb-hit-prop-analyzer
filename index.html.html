@@ -1223,28 +1223,19 @@ async function runAnalysis() {
   renderLineupsTab(lineupResults);
   setStep('lineups', 'done', `${lineupResults.reduce((a,g) => a + g.awayLineup.length + g.homeLineup.length, 0)} hitters projected`);
 
-  // Fetch BB% from MLB Stats API using player IDs from confirmed lineups
+  // Fetch BB% from MLB Stats API (bulk — no player IDs needed)
   try {
-    const batterIds = new Set();
-    lineupResults.forEach(g => {
-      [...(g.awayLineup||[]), ...(g.homeLineup||[])].forEach(p => { if (p.mlbId) batterIds.add(p.mlbId); });
-    });
-    console.log('BB% fetch: found', batterIds.size, 'player IDs:', [...batterIds].slice(0,5));
-    if (batterIds.size > 0) {
-      const bbRes = await fetch(`/api/batters?ids=${[...batterIds].join(',')}&season=${year}`);
-      if (bbRes.ok) {
-        const bbData = await bbRes.json();
-        console.log('BB% response sample:', Object.entries(bbData).slice(0,3));
-        Object.values(bbData).forEach(stats => {
-          if (stats.name && stats.bbpct != null) {
-            const key = normalize(stats.name);
-            if (liveStatcast[key]) liveStatcast[key].bbpct = stats.bbpct;
-            else liveStatcast[key] = { bbpct: stats.bbpct };
-          }
-        });
-      }
-    } else {
-      console.log('BB% fetch: no player IDs found — all lineups projected?');
+    const bbRes = await fetch(`/api/batters?season=${year}`);
+    if (bbRes.ok) {
+      const bbData = await bbRes.json();
+      console.log('BB% fetch: got', Object.keys(bbData).length, 'players, sample:', Object.entries(bbData).slice(0,2).map(([n,s]) => `${n}: ${s.bbpct}`));
+      Object.entries(bbData).forEach(([name, stats]) => {
+        if (stats.bbpct != null) {
+          const key = normalize(name);
+          if (liveStatcast[key]) liveStatcast[key].bbpct = stats.bbpct;
+          else liveStatcast[key] = { bbpct: stats.bbpct };
+        }
+      });
     }
   } catch(e) { console.log('BB% fetch error:', e.message); }
 
