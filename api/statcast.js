@@ -18,8 +18,8 @@ export default async function handler(req) {
   } else if (type === 'pitcher') {
     url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=pitcher&year=${year}&position=&team=&min=1&csv=true`;
   } else if (type === 'bbstats') {
-    // Fetch BB% from Savant custom leaderboard — includes walk rate for batters
-    url = `https://baseballsavant.mlb.com/leaderboard/custom?year=${year}&type=batter&filter=&sort=bb_percent&sortDir=desc&min=1&selections=b_bb_percent,b_k_percent&csv=true`;
+    // Savant statcast leaderboard with discipline stats — includes bb_percent
+    url = `https://baseballsavant.mlb.com/leaderboard/statcast?type=batter&year=${year}&position=&team=&min=1&csv=true&stat_type=discipline`;
   } else {
     url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year=${year}&position=&team=&min=1&csv=true`;
     if (hand) url += `&pitcher_hand=${hand}`;
@@ -36,17 +36,20 @@ export default async function handler(req) {
     }
     const csv = await res.text();
     if (csv.trim().startsWith('<') || csv.length < 200) {
-      return new Response(JSON.stringify({ error: 'Got HTML instead of CSV', url }), {
+      return new Response(JSON.stringify({ error: 'Got HTML instead of CSV', url, preview: csv.slice(0,200) }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', ...statusHdr },
       });
     }
+    // Return first line (headers) in a special header so we can debug column names
+    const firstLine = csv.split('\n')[0] || '';
     return new Response(csv, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
         'Cache-Control': 'public, max-age=21600',
         'X-Savant-Rows': String(csv.split('\n').length),
+        'X-Savant-Headers': firstLine.slice(0, 500),
         ...statusHdr,
       },
     });
