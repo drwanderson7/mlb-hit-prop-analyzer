@@ -18,8 +18,8 @@ export default async function handler(req) {
   } else if (type === 'pitcher') {
     url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=pitcher&year=${year}&position=&team=&min=1&csv=true`;
   } else if (type === 'bbstats') {
-    // Savant statcast leaderboard with discipline stats — includes bb_percent
-    url = `https://baseballsavant.mlb.com/leaderboard/statcast?type=batter&year=${year}&position=&team=&min=1&csv=true&stat_type=discipline`;
+    // Savant custom leaderboard — bb_percent and k_percent for batters
+    url = `https://baseballsavant.mlb.com/leaderboard/custom?year=${year}&type=batter&filter=&min=q&selections=b_bb_percent,b_k_percent,pa&csv=true`;
   } else {
     url = `https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year=${year}&position=&team=&min=1&csv=true`;
     if (hand) url += `&pitcher_hand=${hand}`;
@@ -41,7 +41,6 @@ export default async function handler(req) {
         headers: { 'Content-Type': 'application/json', ...statusHdr },
       });
     }
-    // Return first line (headers) in a special header so we can debug column names
     const firstLine = csv.split('\n')[0] || '';
     return new Response(csv, {
       status: 200,
