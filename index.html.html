@@ -1454,7 +1454,7 @@ async function fetchStatcast() {
     const iName = col('last_name, first_name','player_name');
     const iXBA  = col('xba','est_ba');
     const iK    = col('k_percent');
-    const iBB   = col('bb_percent');
+    const iBB   = col('bb_percent','b_bb_percent','walk_percent','bb%');
     const iHH   = col('hard_hit_percent');
     const iBrl  = col('barrel_batted_rate','brl_percent');
     const iWh   = col('whiff_percent');
