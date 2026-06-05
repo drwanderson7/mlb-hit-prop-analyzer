@@ -881,8 +881,9 @@ function renderPicksSidebar() {
 
 function computeScoreModelA(player,sc,spStats,spHand,venue,bats,spSC,impliedRuns,streak) {
   const xba=(sc?.xba!=null&&sc.xba>0)?sc.xba:0.255, kpct=sc?.kpct!=null?sc.kpct:0.22;
+  const bbpct=sc?.bbpct!=null?sc.bbpct:0.085;
   const hh=sc?.hardhitpct!=null?sc.hardhitpct:0.38, barrel=sc?.barrelpct!=null?sc.barrelpct:0.07;
-  const xbaScore=Math.min(100,Math.max(0,((xba-0.180)/(0.360-0.180))*100));
+  const xbaScore=Math.min(100,Math.max(0,((xba*(1-0.5*kpct)*(1-0.5*bbpct)-0.170)/(0.290-0.170))*100));
   const kScore=Math.min(100,Math.max(0,(1-(kpct-0.05)/(0.40-0.05))*100));
   const hhScore=Math.min(100,Math.max(0,((hh-0.25)/(0.60-0.25))*100));
   const brlScore=Math.min(100,Math.max(0,((barrel-0.02)/(0.20-0.02))*100));
@@ -959,7 +960,7 @@ function showScoreBreakdown(playerName) {
     ${D('── Batter Profile ──')}
     ${R('xBA (overall)',xba.toFixed(3),rawXba,'—','(used below)')}
     ${R('K%',(kpct*100).toFixed(1)+'%',100-kpct*250,'—','(used below)')}
-    ${R('Contact-adj xBA (xBA×(1-0.5K%))',contactAdj.toFixed(3),contactScore,'—','raw score '+contactScore.toFixed(0))}
+    ${R('Contact-adj xBA (xBA×(1-0.5K%)×(1-0.5BB%))',contactAdj.toFixed(3),contactScore,'—','raw score '+contactScore.toFixed(0))}
     ${R('Barrel%',(barrel*100).toFixed(1)+'%',barrelScore,'4%',(barrelScore*0.04).toFixed(1)+' pts')}
     ${D('── Pitcher Matchup ──')}
     ${R(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '',matchupScore,'—','factor '+pitcherFactor.toFixed(3))}
@@ -1453,6 +1454,7 @@ async function fetchStatcast() {
     const iName = col('last_name, first_name','player_name');
     const iXBA  = col('xba','est_ba');
     const iK    = col('k_percent');
+    const iBB   = col('bb_percent');
     const iHH   = col('hard_hit_percent');
     const iBrl  = col('barrel_batted_rate','brl_percent');
     const iWh   = col('whiff_percent');
@@ -1483,15 +1485,15 @@ async function fetchStatcast() {
       // Don't skip players missing xBA — they may still have K%, HH%, Barrel% from statcast leaderboard merge
       if (xba !== null && (xba < 0 || xba > 0.5)) return;
       const pa = parseInt(cols[iPA])||0;
-      const kpct = safe(iK,100); const hardhitpct = safe(iHH,100);
+      const kpct = safe(iK,100); const bbpct = safe(iBB,100); const hardhitpct = safe(iHH,100);
       const barrelpct = safe(iBrl,100);
       // Skip row only if ALL stats are null (truly empty row)
       if (xba === null && kpct === null && hardhitpct === null && barrelpct === null) return;
       const key = normalize(name); // normalize strips accents so "José Ramírez" → "jose ramirez"
       if (type === 'batter') {
-        result[key] = { name, pa, xba, kpct, hardhitpct, barrelpct, ba: safe(iBA) };
+        result[key] = { name, pa, xba, kpct, bbpct, hardhitpct, barrelpct, ba: safe(iBA) };
       } else {
-        result[key] = { name, pa, xbaAllowed: xba, kpct, hardHitAllowed: hardhitpct, barrelAllowed: barrelpct, whiffPct: safe(iWh,100) };
+        result[key] = { name, pa, xbaAllowed: xba, kpct, bbpct, hardHitAllowed: hardhitpct, barrelAllowed: barrelpct, whiffPct: safe(iWh,100) };
       }
     });
     return result;
@@ -1606,6 +1608,7 @@ async function fetchStatcast() {
     livePitchers[normalize(key)] = {
       xbaAllowed:     validNum(p.xbaAllowed, 0.05),
       kpct:           validNum(p.kpct, 0.01),
+      bbpct:          validNum(p.bbpct, 0.01),
       hardHitAllowed: validNum(p.hardHitAllowed, 0.01),
       barrelAllowed:  validNum(p.barrelAllowed),
       whiffPct:       validNum(p.whiffPct, 0.01),
@@ -1822,6 +1825,7 @@ function lookupStatcast(name, spHand) {
     return {
       xba,
       kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+      bbpct:      overall?.bbpct      ?? embedded?.bbpct      ?? null,
       hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
       barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
       ba:         overall?.ba         ?? null,
@@ -1837,6 +1841,7 @@ function lookupStatcast(name, spHand) {
   return {
     xba,
     kpct:       overall?.kpct       ?? embedded?.kpct       ?? null,
+    bbpct:      overall?.bbpct      ?? embedded?.bbpct      ?? null,
     hardhitpct: overall?.hardhitpct ?? embedded?.hardhitpct ?? null,
     barrelpct:  overall?.barrelpct  ?? embedded?.barrelpct  ?? null,
     ba:         overall?.ba         ?? null,
@@ -1861,6 +1866,7 @@ function lookupPitcher(name) {
     return {
       xbaAllowed:     liveMatch.xbaAllowed     ?? scEntry?.[0] ?? null,
       kpct:           liveMatch.kpct           ?? scEntry?.[1] ?? null,
+      bbpct:          liveMatch.bbpct          ?? null,
       hardHitAllowed: liveMatch.hardHitAllowed ?? scEntry?.[2] ?? null,
       whiffPct:       liveMatch.whiffPct       ?? scEntry?.[3] ?? null,
       barrelAllowed:  liveMatch.barrelAllowed  ?? scEntry?.[4] ?? null,
@@ -2584,10 +2590,12 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   const hh     = (sc?.hardhitpct != null && sc.hardhitpct >= 0) ? sc.hardhitpct : 0.38;
   const barrel = (sc?.barrelpct  != null && sc.barrelpct  >= 0) ? sc.barrelpct  : 0.07;
   const kpct   = (sc?.kpct != null && sc.kpct >= 0) ? sc.kpct : 0.22;
+  const bbpct  = (sc?.bbpct != null && sc.bbpct >= 0) ? sc.bbpct : 0.085; // league avg ~8.5%
 
-  // --- Contact-adjusted xBA: xBA × (1 - 0.5×K%) ---
-  // Core per-PA hit probability signal.
-  const contactAdjXba = xba * (1 - 0.5 * kpct);
+  // --- Contact-adjusted xBA: xBA × (1 - 0.5×K%) × (1 - 0.5×BB%) ---
+  // K% penalizes strikeouts (no contact), BB% penalizes walks (no AB opportunity)
+  // Both applied at half-weight to avoid over-penalizing plate discipline
+  const contactAdjXba = xba * (1 - 0.5 * kpct) * (1 - 0.5 * bbpct);
   // Scale 0-100: ~.100 (weak/high-K) to .310 (elite/low-K)
   const contactAdjScore = Math.min(100, Math.max(0,
     ((contactAdjXba - 0.170) / (0.290 - 0.170)) * 100
@@ -2836,6 +2844,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     tier,
     xba,
     kpct,
+    bbpct,
     hardhitpct: hh,
     barrelpct: barrel,
     era: spStats.era,
@@ -2843,6 +2852,7 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
     splitUsed: sc?.splitUsed || 'overall',
     spStatcast: !!(spSC?.fromStatcast && spSC.xbaAllowed !== null),
     spKpct:     spSC?.kpct           ?? null,
+    spBBpct:    spSC?.bbpct          ?? null,
     spXBA:      spSC?.xbaAllowed     ?? spStats?.spXbaAllow ?? null,
     spHH:       spSC?.hardHitAllowed ?? null,
     spXbaAllow: spStats?.spXbaAllow  ?? null,
@@ -2980,9 +2990,11 @@ function playerCard(p, rank) {
         ${lsPill}${scPill}
         <span class="pill ${xbaC}" style="cursor:pointer;" onclick="showXbaBreakdown(${rank-1})" title="Click to see xBA calculation breakdown">xBA ${p.xba.toFixed(3)} <span style="font-size:10px;opacity:.75;">(${p.splitUsed||'overall'})</span> 🔍</span>
         <span class="pill ${kC}">K% ${(p.kpct * 100).toFixed(1)}%</span>
+        ${p.bbpct != null ? `<span class="pill ${p.bbpct >= 0.14 ? 'warn' : ''}" title="Batter walk rate — high BB% = fewer AB opportunities">BB% ${(p.bbpct*100).toFixed(1)}%</span>` : ''}
         <span class="pill ${hhC}">HH% ${(p.hardhitpct * 100).toFixed(1)}%</span>
         <span class="pill ${bC}">Barrel ${(p.barrelpct * 100).toFixed(1)}%</span>
         ${p.spStatcast && p.spKpct ? `<span class="pill info">SP K% ${(p.spKpct*100).toFixed(0)}%</span>` : ''}
+        ${p.spStatcast && p.spBBpct != null ? `<span class="pill info" title="Pitcher walk rate — high SP BB% = favorable (more walks = fewer K opportunities)">SP BB% ${(p.spBBpct*100).toFixed(1)}%</span>` : ''}
         ${p.spStatcast && p.spXBA ? `<span class="pill info">xBA vs ${p.spXBA.toFixed(3)}</span>` : ''}
         ${(p.impliedRuns != null) ? `<span class="pill ${p.impliedRuns >= 5.0 ? 'good' : p.impliedRuns < 3.5 ? 'bad' : 'warn'}" title="Source: The Odds API (updates every 10min)">${p.impliedRuns.toFixed(1)} proj R</span>` : '<span class="pill" style="opacity:.4;">no odds</span>'}
         ${p.baDiff !== null ? `<span class="pill ${p.baDiff <= -0.040 ? 'good' : p.baDiff >= 0.040 ? 'bad' : ''}" title="BA vs xBA: ${p.ba.toFixed(3)} BA vs ${p.xba.toFixed(3)} xBA">${p.baDiff <= -0.040 ? '↑ Due +' : p.baDiff >= 0.040 ? '↓ Overperf' : '~ Neutral'} (${(p.baDiff > 0 ? '+' : '')}${(p.baDiff * 1000).toFixed(0)}pts)</span>` : ''}
@@ -3058,7 +3070,9 @@ function showXbaBreakdown(idx) {
     ['xBA used in model', val(b.final) + ' (' + (b.splitUsed || 'overall') + ')'],
     ['Source', b.source || 'embedded'],
     ['K%', pct(p.kpct)],
-    ['Contact-adj xBA (xBA × (1-0.5K%))', ((p.xba || 0) * (1 - 0.5 * (p.kpct || 0.22))).toFixed(3)],
+    ['K%', p.kpct != null ? (p.kpct*100).toFixed(1)+'%' : 'N/A'],
+    ['BB%', p.bbpct != null ? (p.bbpct*100).toFixed(1)+'%' : 'N/A'],
+    ['Contact-adj xBA (xBA × (1-0.5K%) × (1-0.5BB%))', ((p.xba || 0) * (1 - 0.5*(p.kpct||0.22)) * (1 - 0.5*(p.bbpct||0.085))).toFixed(3)],
   ];
 
   const tableRows = rows.map(([k, v]) => {
