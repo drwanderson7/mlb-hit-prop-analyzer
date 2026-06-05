@@ -1223,6 +1223,27 @@ async function runAnalysis() {
   renderLineupsTab(lineupResults);
   setStep('lineups', 'done', `${lineupResults.reduce((a,g) => a + g.awayLineup.length + g.homeLineup.length, 0)} hitters projected`);
 
+  // Fetch BB% from MLB Stats API using player IDs from confirmed lineups
+  try {
+    const batterIds = new Set();
+    lineupResults.forEach(g => {
+      [...(g.awayLineup||[]), ...(g.homeLineup||[])].forEach(p => { if (p.mlbId) batterIds.add(p.mlbId); });
+    });
+    if (batterIds.size > 0) {
+      const bbRes = await fetch(`/api/batters?ids=${[...batterIds].join(',')}&season=${year}`);
+      if (bbRes.ok) {
+        const bbData = await bbRes.json();
+        Object.values(bbData).forEach(stats => {
+          if (stats.name && stats.bbpct != null) {
+            const key = normalize(stats.name);
+            if (liveStatcast[key]) liveStatcast[key].bbpct = stats.bbpct;
+            else liveStatcast[key] = { bbpct: stats.bbpct };
+          }
+        });
+      }
+    }
+  } catch(e) { /* silent fail */ }
+
   // Step 4: Score
   setStep('score', 'running', 'Scoring all hitters...');
   await sleep(200);
@@ -1526,18 +1547,7 @@ async function fetchStatcast() {
     fetchCsv('statcast', year, ''),      // K%/HH%/Barrel%/xBA for all batters
   ]);
 
-  // Fetch BB% from MLB Stats API separately (Savant doesn't expose BB% without auth)
-  let bbMap = {};
-  try {
-    const bbRes = await fetch(`/api/batters?year=${year}`);
-    if (bbRes.ok) {
-      const bbData = await bbRes.json();
-      // Key by normalized name
-      Object.entries(bbData.batters || {}).forEach(([name, stats]) => {
-        bbMap[normalize(name)] = stats.bbpct;
-      });
-    }
-  } catch(e) { /* silent fail — BB% will use default */ }
+  // BB% is fetched separately after lineups are built (needs player IDs)
 
   const batterCur  = parseSavantCsv(tCur);
   const batterPri  = parseSavantCsv(tPri);
@@ -1562,13 +1572,6 @@ async function fetchStatcast() {
       if (s.bbpct      != null) liveStatcast[key].bbpct      = s.bbpct;
       if (s.hardhitpct != null) liveStatcast[key].hardhitpct = s.hardhitpct;
       if (s.barrelpct  != null) liveStatcast[key].barrelpct  = s.barrelpct;
-    }
-  });
-
-  // Merge BB% from dedicated bbstats fetch
-  Object.keys(bbMap).forEach(key => {
-    if (liveStatcast[key]) {
-      liveStatcast[key].bbpct = bbMap[key];
     }
   });
 
@@ -2482,14 +2485,15 @@ function buildLineups(gameLineups, rawGames) {
       if (confirmed.length >= 8) {
         return confirmed.slice(0, 9).map((p, i) => {
           const name = p.fullName || p.person?.fullName || 'Unknown';
-          // MLB API gives batSide.code: 'R', 'L', 'S'
           const apiBats = p.batSide?.code || p.person?.batSide?.code || null;
+          const mlbId = p.id || p.person?.id || null;
           return {
             order: i + 1,
             name,
             position: p.position?.abbreviation || '?',
             bats: apiBats || getBats(name),
             confirmed: true,
+            mlbId,
           };
         });
       }
