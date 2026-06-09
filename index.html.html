@@ -961,14 +961,14 @@ function showScoreBreakdown(playerName) {
     ${R('xBA (overall)',xba.toFixed(3),rawXba,'—','(used below)')}
     ${R('K%',(kpct*100).toFixed(1)+'%',100-kpct*250,'—','(used below)')}
     ${R('Contact-adj xBA (xBA×(1-0.5K%)×(1-0.5BB%))',contactAdj.toFixed(3),contactScore,'—','raw score '+contactScore.toFixed(0))}
-    ${R('Barrel%',(barrel*100).toFixed(1)+'%',barrelScore,'4%',(barrelScore*0.04).toFixed(1)+' pts')}
+    ${R('Barrel%',(barrel*100).toFixed(1)+'%',barrelScore,'2%',(barrelScore*0.02).toFixed(1)+' pts')}
     ${D('── Pitcher Matchup ──')}
     ${R(p.pitcher+' ('+(p.spStatcast&&p.spKpct!=null?'Live Statcast':'SP_STATS fallback')+')', '',matchupScore,'—','factor '+pitcherFactor.toFixed(3))}
     ${S(spDetail)}
-    ${R('Contact × Pitcher Factor',contactScore.toFixed(0)+' × '+pitcherFactor.toFixed(3),pitcherAdjContact,'51%',(pitcherAdjContact*0.51).toFixed(1)+' pts','',true)}
+    ${R('Contact × Pitcher Factor',contactScore.toFixed(0)+' × '+pitcherFactor.toFixed(3),pitcherAdjContact,'47%',(pitcherAdjContact*0.47).toFixed(1)+' pts','',true)}
     ${D('── Game Environment ──')}
     ${R('Batting order (slot '+p.battingOrder+')',slotPA.toFixed(1)+' PA/game',orderScore,'8%',(orderScore*0.08).toFixed(1)+' pts')}
-    ${R('Implied runs',ir!=null?ir.toFixed(1)+' proj runs':'No odds data',impliedScore,'14%',(impliedScore*0.14).toFixed(1)+' pts')}
+    ${R('Implied runs',ir!=null?ir.toFixed(1)+' proj runs':'No odds data',impliedScore,'20%',(impliedScore*0.20).toFixed(1)+' pts')}
     ${p.baDiff !== null ? R('BA vs xBA regression', (p.ba.toFixed(3))+' BA vs '+(p.xba.toFixed(3))+' xBA ('+(p.baDiff>0?'+':'')+(p.baDiff*1000).toFixed(0)+'pts)', p.regressionScore, '5%', (p.regressionScore*0.05).toFixed(1)+' pts') : ''}
     ${platoonAdj!==0?R('Platoon bonus',p.bats==='S'?'Switch hitter':(p.platoon?.label||'Favorable'),65,'flat',(platoonAdj>0?'+':'')+platoonAdj+' pts'):''}
     ${D('── Final Score ──')}
@@ -1229,7 +1229,6 @@ async function runAnalysis() {
     const bbRes = await fetch(`/api/batters?season=${bbYear}`);
     if (bbRes.ok) {
       const bbData = await bbRes.json();
-      console.log('BB% fetch: got', Object.keys(bbData).length, 'players, sample:', Object.entries(bbData).slice(0,2).map(([n,s]) => `${n}: ${s.bbpct}`));
       Object.entries(bbData).forEach(([name, stats]) => {
         if (stats.bbpct != null) {
           const key = normalize(name);
@@ -1238,7 +1237,7 @@ async function runAnalysis() {
         }
       });
     }
-  } catch(e) { console.log('BB% fetch error:', e.message); }
+  } catch(e) { /* silent fail — BB% will use default */ }
 
   // Step 4: Score
   setStep('score', 'running', 'Scoring all hitters...');
@@ -2776,10 +2775,10 @@ function computeScore(player, sc, spStats, spHand, venue, bats, spSC, impliedRun
   // HH% removed (redundant with xBA). Barrel% kept as independent signal.
   // ERA is NOT used anywhere in this model.
   const rawComposite =
-    pitcherAdjContact * 0.51 +  // contact-adj xBA scaled by pitcher factor — primary signal
-    impliedScore      * 0.14 +  // team implied runs — PA penalty only bottom order in low-run games
+    pitcherAdjContact * 0.47 +  // contact-adj xBA scaled by pitcher factor — primary signal
+    impliedScore      * 0.20 +  // team implied runs
     orderScore        * 0.08 +  // PA volume by batting slot
-    barrelScore       * 0.04 +  // Barrel% — reduced: power ≠ hits
+    barrelScore       * 0.02 +  // Barrel% — reduced: power ≠ hits
     regressionScore   * 0.05 +  // BA vs xBA regression signal
     platoonAdj;                 // +3 flat for favorable platoon
 
