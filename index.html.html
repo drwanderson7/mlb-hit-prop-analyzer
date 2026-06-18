@@ -1580,32 +1580,34 @@ async function fetchStatcast() {
     const live = liveStatcast[key];
     if (!live) return;
     const nkey = normalize(key);  // normalize to strip accents for lookup
-    const s26 = sc2026norm[nkey];  // 2026 full stats [xba, kpct, hh, brl]
-    const emb = SC_NORM[nkey];     // 2025 embedded
+    const s26 = sc2026norm[nkey];  // 2026 snapshot stats [xba, kpct, hh, brl] — STALE, captured ~April
+    const emb = SC_NORM[nkey];     // 2025 full-season embedded — more reliable than stale 2026 snapshot
     const brl26 = brl2026norm[nkey]; // 2026 barrel only
 
-    if (s26) {
-      // 2026 real data — highest priority for all fields
-      if (live.kpct       == null) live.kpct       = s26[1];
-      if (live.hardhitpct == null) live.hardhitpct = s26[2];
-      live.barrelpct = s26[3]; // always use 2026 barrel if available
-    } else {
-      // Fall back to 2025 K%/HH%, 2026 barrel if available
-      if (emb) {
-        if (live.kpct       == null) live.kpct       = emb[1];
-        if (live.hardhitpct == null) live.hardhitpct = emb[2];
-      }
-      if (brl26 != null) live.barrelpct = brl26;
-      else if (live.barrelpct == null && emb) live.barrelpct = emb[3];
+    // Only use the STATCAST_2026 snapshot for K%/HH% if we have NEITHER live data NOR 2025 data
+    // The 2026 snapshot is a stale point-in-time capture and should not override fresher sources
+    if (live.kpct == null) {
+      live.kpct = emb ? emb[1] : (s26 ? s26[1] : null);
     }
+    if (live.hardhitpct == null) {
+      live.hardhitpct = emb ? emb[2] : (s26 ? s26[2] : null);
+    }
+    // Barrel%: 2026-specific source preferred since it's barrel-only and updates more often
+    if (brl26 != null) live.barrelpct = brl26;
+    else if (live.barrelpct == null) live.barrelpct = s26 ? s26[3] : (emb ? emb[3] : null);
   });
 
-  // Add rookies/players not yet in liveStatcast from STATCAST_2026
+  // Add players not yet in liveStatcast — prefer 2025 full-season data over stale 2026 snapshot
   Object.keys(STATCAST_2026).forEach(name => {
     const key = normalize(name);
     if (!liveStatcast[key]) {
       const s = STATCAST_2026[name];
-      liveStatcast[key] = { name, pa: 0, xba: s[0], kpct: s[1], hardhitpct: s[2], barrelpct: s[3] };
+      const emb = SC_NORM[key];
+      liveStatcast[key] = { name, pa: 0,
+        xba: s[0],
+        kpct: emb ? emb[1] : s[1],
+        hardhitpct: emb ? emb[2] : s[2],
+        barrelpct: s[3] };
     }
   });
   // Also add from BARREL_2026 for players not covered above
